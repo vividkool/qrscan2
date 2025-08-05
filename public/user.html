@@ -166,6 +166,92 @@
                 transform: rotate(360deg);
             }
         }
+
+        /* モーダル関連のスタイル */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            position: relative;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .modal-header {
+            font-size: 24px;
+            color: #27ae60;
+            margin-bottom: 15px;
+        }
+
+        .modal-body {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #27ae60;
+        }
+
+        .modal-close {
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 15px;
+        }
+
+        .modal-close:hover {
+            background-color: #2ecc71;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
     </style>
 </head>
 
@@ -190,232 +276,37 @@
             <video id="camera" autoplay></video>
             <canvas id="canvas" style="display: none;"></canvas>
             <div style="margin-top: 10px;">
-                <p>QRコードをカメラに向けてください</p>
+                <p id="scanStatus">QRコードをカメラに向けてください</p>
+                <div style="font-size: 12px; color: #666; margin-top: 5px;">
+                    📷 カメラが正常に動作中 | スキャン待機中...
+                </div>
             </div>
         </div>
 
         <div id="result" class="result" style="display: none;"></div>
     </div>
 
-    <div class="container">
+    <div id="scanHistoryContainer" class="container">
         <h2>📋 スキャン履歴</h2>
         <button onclick="loadScanHistory()">履歴を更新</button>
         <div id="scanHistory" class="scan-history"></div>
     </div>
 
-    <!-- Firebase SDK -->
-    <script type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
-        import { getFirestore, collection, addDoc, getDocs, orderBy, query } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+    <!-- 成功モーダル -->
+    <div id="successModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">✅ スキャン成功！</div>
+            <div class="modal-body" id="modalBody">
+                <!-- スキャン結果がここに表示されます -->
+            </div>
+            <button class="modal-close" onclick="closeModal()">閉じる</button>
+        </div>
+    </div>
 
-        // Firebase設定
-        const firebaseConfig = {
-            apiKey: "AIzaSyCWFL91baSHkjkvU_k-yTUv6QS191YTFlg",
-            authDomain: "qrscan2-99ffd.firebaseapp.com",
-            projectId: "qrscan2-99ffd",
-            storageBucket: "qrscan2-99ffd.firebasestorage.app",
-            messagingSenderId: "1089215781575",
-            appId: "1:1089215781575:web:bf9d05f6930b7123813ce2",
-            measurementId: "G-QZZWT3HW0W"
-        };
-
-        // Firebase初期化
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-
-        // グローバル変数
-        let stream = null;
-        let scanning = false;
-        let animationId = null;
-
-        // QRコードデータをFirestoreに保存
-        window.saveScanResult = async function (qrData) {
-            try {
-                showResult('スキャン結果を保存中...', '');
-
-                const docRef = await addDoc(collection(db, 'scanItems'), {
-                    content: qrData,
-                    timestamp: new Date().toISOString(),
-                    createdAt: new Date(),
-                    deviceInfo: navigator.userAgent.substr(0, 100)
-                });
-
-                showResult(
-                    `QRコードスキャン成功！\n\nスキャン内容: ${qrData}\n\nFirestoreに保存されました\nドキュメントID: ${docRef.id}`,
-                    'success'
-                );
-
-                // スキャン後にカメラを停止
-                setTimeout(() => {
-                    stopScan();
-                }, 2000);
-
-                // 履歴を更新
-                loadScanHistory();
-
-            } catch (error) {
-                console.error('保存エラー:', error);
-                showResult(`保存エラー: ${error.message}`, 'error');
-            }
-        };
-
-        // スキャン履歴を読み込み
-        window.loadScanHistory = async function () {
-            try {
-                const historyDiv = document.getElementById('scanHistory');
-                historyDiv.innerHTML = '<div class="loading"></div> 履歴を読み込み中...';
-
-                const q = query(collection(db, 'scanItems'), orderBy('createdAt', 'desc'));
-                const querySnapshot = await getDocs(q);
-
-                if (querySnapshot.empty) {
-                    historyDiv.innerHTML = '<p>スキャン履歴がありません。</p>';
-                    return;
-                }
-
-                let historyHtml = '';
-                querySnapshot.forEach((doc) => {
-                    const data = doc.data();
-                    const date = new Date(data.timestamp).toLocaleString('ja-JP');
-                    historyHtml += `
-                        <div class="scan-item">
-                            <div><strong>内容:</strong> ${data.content}</div>
-                            <div class="scan-timestamp">スキャン日時: ${date}</div>
-                            <div class="scan-timestamp">ID: ${doc.id}</div>
-                        </div>
-                    `;
-                });
-
-                historyDiv.innerHTML = historyHtml;
-
-            } catch (error) {
-                console.error('履歴読み込みエラー:', error);
-                document.getElementById('scanHistory').innerHTML = `<p class="error">履歴の読み込みに失敗しました: ${error.message}</p>`;
-            }
-        };
-
-        // 結果表示
-        window.showResult = function (message, type = '') {
-            const element = document.getElementById('result');
-            element.textContent = message;
-            element.className = `result ${type}`;
-            element.style.display = 'block';
-        };
-
-        // 初期化時に履歴を読み込み
-        window.addEventListener('load', () => {
-            loadScanHistory();
-        });
-
-        console.log('Firebase アプリが初期化されました');
-    </script>
-
-    <!-- ZXing QRコードスキャナー -->
+    <!-- Firebase SDK & QRスキャナー -->
     <script src="https://unpkg.com/@zxing/library@latest/umd/index.min.js"></script>
-    <script>
-        // ZXing QRコードリーダー
-        const codeReader = new ZXing.BrowserQRCodeReader();
-
-        // カメラ開始
-        window.startScan = async function () {
-            try {
-                const cameraContainer = document.getElementById('cameraContainer');
-                const startBtn = document.getElementById('startScanBtn');
-                const stopBtn = document.getElementById('stopScanBtn');
-                const videoElement = document.getElementById('camera');
-
-                // UI更新
-                cameraContainer.classList.add('active');
-                startBtn.style.display = 'none';
-                stopBtn.style.display = 'inline-block';
-                scanning = true;
-
-                showResult('カメラを起動中...', '');
-
-                // デバイスの取得
-                const devices = await navigator.mediaDevices.enumerateDevices();
-                const videoDevices = devices.filter(device => device.kind === 'videoinput');
-
-                if (videoDevices.length === 0) {
-                    throw new Error('カメラが見つかりません');
-                }
-
-                // 後面カメラを優先的に選択
-                let selectedDevice = videoDevices[0];
-                for (const device of videoDevices) {
-                    if (device.label.toLowerCase().includes('back') ||
-                        device.label.toLowerCase().includes('rear') ||
-                        device.label.toLowerCase().includes('environment')) {
-                        selectedDevice = device;
-                        break;
-                    }
-                }
-
-                // QRコードスキャン開始
-                const result = await codeReader.decodeFromVideoDevice(
-                    selectedDevice.deviceId,
-                    videoElement,
-                    (result, err) => {
-                        if (result && scanning) {
-                            console.log('QRコード検出:', result.text);
-                            saveScanResult(result.text);
-                        }
-                        if (err && !(err instanceof ZXing.NotFoundException)) {
-                            console.error('スキャンエラー:', err);
-                        }
-                    }
-                );
-
-                showResult('QRコードをカメラに向けてください', '');
-
-            } catch (error) {
-                console.error('カメラ起動エラー:', error);
-                showResult(`カメラ起動エラー: ${error.message}`, 'error');
-                resetUI();
-            }
-        };
-
-        // カメラ停止
-        window.stopScan = function () {
-            try {
-                scanning = false;
-                codeReader.reset();
-
-                // ストリーム停止
-                const videoElement = document.getElementById('camera');
-                if (videoElement.srcObject) {
-                    const tracks = videoElement.srcObject.getTracks();
-                    tracks.forEach(track => track.stop());
-                    videoElement.srcObject = null;
-                }
-
-                resetUI();
-                showResult('カメラを停止しました', 'success');
-
-            } catch (error) {
-                console.error('カメラ停止エラー:', error);
-                showResult(`カメラ停止エラー: ${error.message}`, 'error');
-            }
-        };
-
-        // UI リセット
-        function resetUI() {
-            const cameraContainer = document.getElementById('cameraContainer');
-            const startBtn = document.getElementById('startScanBtn');
-            const stopBtn = document.getElementById('stopScanBtn');
-
-            cameraContainer.classList.remove('active');
-            startBtn.style.display = 'inline-block';
-            stopBtn.style.display = 'none';
-        }
-
-        // ページを離れる時にカメラを停止
-        window.addEventListener('beforeunload', () => {
-            if (scanning) {
-                stopScan();
-            }
-        });
-    </script>
+    <script src="js/zxing-init.js"></script>
+    <script type="module" src="js/qr-scanner.js"></script>
 </body>
 
 </html>
