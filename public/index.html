@@ -1,304 +1,519 @@
 <!DOCTYPE html>
 <html lang="ja">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>QR Scan App</title>
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #f5f5f5;
+      }
+
+      .container {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+      }
+
+      h1 {
+        color: #333;
+        border-bottom: 3px solid #4285f4;
+        padding-bottom: 10px;
+      }
+
+      h2 {
+        color: #4285f4;
+        margin-top: 30px;
+      }
+
+      button {
+        background-color: #4285f4;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        margin: 5px;
+        font-size: 16px;
+      }
+
+      button:hover {
+        background-color: #3367d6;
+      }
+
+      button:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+      }
+
+      input,
+      textarea {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        margin: 5px 0;
+        font-size: 16px;
+      }
+
+      .result {
+        background-color: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 4px;
+        padding: 15px;
+        margin: 10px 0;
+        font-family: "Courier New", monospace;
+        white-space: pre-wrap;
+        max-height: 300px;
+        overflow-y: auto;
+      }
+
+      .success {
+        background-color: #d4edda;
+        border-color: #c3e6cb;
+        color: #155724;
+      }
+
+      .error {
+        background-color: #f8d7da;
+        border-color: #f5c6cb;
+        color: #721c24;
+      }
+
+      .loading {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #4285f4;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
         }
 
-        .container {
-            background: white;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
+        100% {
+          transform: rotate(360deg);
         }
+      }
 
-        h1 {
-            color: #333;
-            border-bottom: 3px solid #4285f4;
-            padding-bottom: 10px;
-        }
+      .dashboard-header {
+        background: linear-gradient(135deg, #4285f4, #34a853);
+        color: white;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        text-align: center;
+      }
 
-        h2 {
-            color: #4285f4;
-            margin-top: 30px;
-        }
+      .dashboard-header h1 {
+        margin: 0;
+        color: white;
+        border: none;
+        padding: 0;
+      }
 
-        button {
-            background-color: #4285f4;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
-            cursor: pointer;
-            margin: 5px;
-            font-size: 16px;
-        }
+      .action-buttons {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+        margin-bottom: 30px;
+      }
 
-        button:hover {
-            background-color: #3367d6;
-        }
+      .action-buttons-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 15px;
+      }
 
-        button:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
-        }
+      .action-button {
+        background: white;
+        border: 2px solid #4285f4;
+        color: #4285f4;
+        padding: 15px 20px;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
 
-        input,
-        textarea {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            margin: 5px 0;
-            font-size: 16px;
-        }
+      .action-button:hover {
+        background: #4285f4;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(66, 133, 244, 0.3);
+      }
 
-        .result {
-            background-color: #f8f9fa;
-            border: 1px solid #e9ecef;
-            border-radius: 4px;
-            padding: 15px;
-            margin: 10px 0;
-            font-family: 'Courier New', monospace;
-            white-space: pre-wrap;
-            max-height: 300px;
-            overflow-y: auto;
-        }
+      .action-button.excel {
+        border-color: #34a853;
+        color: #34a853;
+      }
 
-        .success {
-            background-color: #d4edda;
-            border-color: #c3e6cb;
-            color: #155724;
-        }
+      .action-button.excel:hover {
+        background: #34a853;
+        color: white;
+      }
 
-        .error {
-            background-color: #f8d7da;
-            border-color: #f5c6cb;
-            color: #721c24;
-        }
+      .action-button.qr {
+        border-color: #f39c12;
+        color: #f39c12;
+      }
 
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #4285f4;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
+      .action-button.qr:hover {
+        background: #f39c12;
+        color: white;
+      }
 
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
+      .dashboard-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
 
-            100% {
-                transform: rotate(360deg);
-            }
+      .dashboard-section {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #f0f0f0;
+      }
+
+      .section-title {
+        color: #4285f4;
+        margin: 0;
+        font-size: 1.2em;
+      }
+
+      .btn-clear {
+        background: #dc3545;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+      }
+
+      .btn-clear:hover {
+        background: #c82333;
+      }
+
+      .btn-clear.action-button {
+        border: 2px solid #dc3545;
+        background: white;
+        color: #dc3545;
+        padding: 15px 20px;
+        font-size: 16px;
+        font-weight: bold;
+      }
+
+      .btn-clear.action-button:hover {
+        background: #dc3545;
+        color: white;
+      }
+
+      .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        font-size: 14px;
+      }
+
+      .data-table th,
+      .data-table td {
+        border: 1px solid #ddd;
+        padding: 8px 12px;
+        text-align: left;
+      }
+
+      .data-table th {
+        background-color: #f8f9fa;
+        font-weight: bold;
+        color: #333;
+        position: sticky;
+        top: 0;
+      }
+
+      .data-table tbody tr:nth-child(even) {
+        background-color: #f9f9f9;
+      }
+
+      .data-table tbody tr:hover {
+        background-color: #e3f2fd;
+      }
+
+      .table-container {
+        max-height: 400px;
+        overflow-y: auto;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+      }
+
+      .table-title {
+        font-size: 16px;
+        font-weight: bold;
+        color: #4285f4;
+        margin: 10px 0 5px 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .collection-title {
+        font-size: 16px;
+        font-weight: bold;
+        color: #4285f4;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .collection-count {
+        font-size: 14px;
+        font-weight: bold;
+        color: #666;
+        text-align: center;
+        padding: 5px 10px;
+        background-color: #f0f0f0;
+        border-radius: 15px;
+        min-width: 60px;
+      }
+
+      /* モーダルスタイル */
+      .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+      }
+
+      .modal-content {
+        background-color: white;
+        margin: 5% auto;
+        padding: 20px;
+        border-radius: 8px;
+        width: 80%;
+        max-width: 600px;
+        max-height: 80vh;
+        overflow-y: auto;
+      }
+
+      .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #f0f0f0;
+      }
+
+      .close {
+        color: #aaa;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+      }
+
+      .close:hover {
+        color: #000;
+      }
+
+      .form-group {
+        margin-bottom: 15px;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+        color: #333;
+      }
+
+      .form-group input,
+      .form-group select {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 14px;
+        box-sizing: border-box;
+      }
+
+      .modal-buttons {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+        margin-top: 20px;
+      }
+
+      .btn-cancel {
+        background: #6c757d;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+
+      .btn-cancel:hover {
+        background: #5a6268;
+      }
+
+      @media (max-width: 768px) {
+        .action-buttons {
+          grid-template-columns: 1fr;
         }
 
         .dashboard-header {
-            background: linear-gradient(135deg, #4285f4, #34a853);
-            color: white;
-            padding: 30px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            text-align: center;
+          padding: 20px;
         }
 
-        .dashboard-header h1 {
-            margin: 0;
-            color: white;
-            border: none;
-            padding: 0;
+        .data-table {
+          font-size: 12px;
         }
 
-        .action-buttons {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 30px;
+        .data-table th,
+        .data-table td {
+          padding: 6px 8px;
         }
-
-        .action-button {
-            background: white;
-            border: 2px solid #4285f4;
-            color: #4285f4;
-            padding: 15px 20px;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        .action-button:hover {
-            background: #4285f4;
-            color: white;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(66, 133, 244, 0.3);
-        }
-
-        .action-button.excel {
-            border-color: #34a853;
-            color: #34a853;
-        }
-
-        .action-button.excel:hover {
-            background: #34a853;
-            color: white;
-        }
-
-        .action-button.qr {
-            border-color: #f39c12;
-            color: #f39c12;
-        }
-
-        .action-button.qr:hover {
-            background: #f39c12;
-            color: white;
-        }
-
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 20px;
-        }
-
-        .dashboard-section {
-            background: white;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #f0f0f0;
-        }
-
-        .section-title {
-            color: #4285f4;
-            margin: 0;
-            font-size: 1.2em;
-        }
-
-        .btn-clear {
-            background: #dc3545;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-
-        .btn-clear:hover {
-            background: #c82333;
-        }
-
-        @media (max-width: 768px) {
-            .action-buttons {
-                grid-template-columns: 1fr;
-            }
-
-            .dashboard-header {
-                padding: 20px;
-            }
-        }
+      }
     </style>
-</head>
+  </head>
 
-<body>
+  <body>
     <!-- ダッシュボードヘッダー -->
     <div class="dashboard-header">
-        <h1>🔥 Firebase QR Scan Dashboard</h1>
-        <p>データベース管理とQRスキャン機能を統合管理</p>
+      <h1>展示会用 QRコードスキャン 管理画面</h1>
+      <p>データベース管理と管理</p>
     </div>
 
     <!-- アクションボタン -->
     <div class="action-buttons">
-        <button onclick="window.location.href='user.html'" class="action-button qr">
-            📱 QRコードスキャン
+      <!-- 1行目: 基本機能 -->
+      <div class="action-buttons-row">
+        <button
+          onclick="window.location.href='user.html'"
+          class="action-button qr"
+        >
+          📱 QRスキャン画面
         </button>
         <button onclick="downloadItemsTemplate()" class="action-button excel">
-            📊 Items テンプレートDL
+          📊 items テンプレートDL
         </button>
         <button onclick="downloadUsersTemplate()" class="action-button excel">
-            👥 Users テンプレートDL
+          👥 users テンプレートDL
         </button>
         <button onclick="callHelloWorld()" class="action-button">
-            ⚡ Functions テスト
+          ⚡ Functions テスト
         </button>
+      </div>
+      
+      <!-- 2行目: Firestoreデータ操作 -->
+      <div class="action-buttons-row">
+        <button onclick="getAllItems()" class="action-button">
+          📦 itemsコレクション取得
+        </button>
+        <button onclick="getAllUsers()" class="action-button">
+          👥 usersコレクション取得
+        </button>
+        
+        <button onclick="clearResults('firestoreResult')" class="btn-clear action-button">
+          🗑️ 結果をクリア
+        </button>
+      </div>
     </div>
 
     <!-- ダウンロード結果表示 -->
     <div class="dashboard-section">
-        <div class="section-header">
-            <h3 class="section-title">� ダウンロード結果</h3>
-            <button onclick="clearResults('downloadResult')" class="btn-clear">クリア</button>
-        </div>
-        <div id="downloadResult" class="result"></div>
+      <div class="section-header">
+        <h3 class="section-title">� ダウンロード結果</h3>
+        <button onclick="clearResults('downloadResult')" class="btn-clear">
+          クリア
+        </button>
+      </div>
+      <div id="downloadResult" class="result"></div>
     </div>
 
     <!-- データベース管理 -->
     <div class="dashboard-grid">
-        <div class="dashboard-section">
-            <div class="section-header">
-                <h3 class="section-title">📊 Firestore データベース</h3>
-                <button onclick="clearResults('firestoreResult')" class="btn-clear">クリア</button>
-            </div>
+      <div class="dashboard-section">
+        <div class="section-header">
+          <h3 class="section-title">📊 データベース管理</h3>
+          <div id="firestoreResult-collectionname" class="collection-title"></div>
+          <div id="firestoreResult-count" class="collection-count"></div>
+          <button onclick="addDocument()" class="action-button">
+          ➕ データを追加
+        </button>
+        </div>
+        <div id="firestoreResult" class="result"></div>
+      </div>
+    </div>
 
-            <div style="margin-bottom: 20px;">
-                <h4>データを追加</h4>
-                <input type="text" id="documentId" placeholder="ドキュメントID (オプション)">
-                <input type="text" id="dataTitle" placeholder="タイトル">
-                <textarea id="dataContent" placeholder="内容" rows="3"></textarea>
-                <button onclick="addDocument()">データを追加</button>
-            </div>
-
-            <div style="margin-bottom: 15px;">
-                <button onclick="getAllDocuments()">全データを取得</button>
-            </div>
-
-            <div id="firestoreResult" class="result"></div>
+    <!-- ファンクション管理 -->
+      <div class="dashboard-section">
+        <div class="section-header">
+          <h3 class="section-title">⚡ Cloud Functions</h3>
+          <button onclick="clearResults('functionResult')" class="btn-clear">
+            クリア
+          </button>
         </div>
 
-        <div class="dashboard-section">
-            <div class="section-header">
-                <h3 class="section-title">⚡ Cloud Functions</h3>
-                <button onclick="clearResults('functionResult')" class="btn-clear">クリア</button>
-            </div>
-
-            <div style="margin-bottom: 15px;">
-                <button onclick="callHelloWorld()">Hello World Function</button>
-            </div>
-
-            <div id="functionResult" class="result"></div>
+        <div style="margin-bottom: 15px">
+          <button onclick="callHelloWorld()">Hello World Function</button>
         </div>
+
+        <div id="functionResult" class="result"></div>
+      </div>
+    </div>
+
+    <!-- データ追加モーダル -->
+    <div id="addDataModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 id="modalTitle">データを追加</h3>
+          <span class="close" onclick="closeModal()">&times;</span>
+        </div>
+        <form id="addDataForm">
+          <div id="formFields"></div>
+          <div class="modal-buttons">
+            <button type="button" class="btn-cancel" onclick="closeModal()">キャンセル</button>
+            <button type="submit" class="btn btn-primary">追加</button>
+          </div>
+        </form>
+      </div>
     </div>
 
     <!-- Firebase SDK -->
     <script type="module" src="js/firebase-index.js"></script>
-</body>
-
+  </body>
 </html>
