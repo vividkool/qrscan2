@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Scan App</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #4285f4;
+            padding-bottom: 10px;
+        }
+
+        h2 {
+            color: #4285f4;
+            margin-top: 30px;
+        }
+
+        button {
+            background-color: #4285f4;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: #3367d6;
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        input,
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin: 5px 0;
+            font-size: 16px;
+        }
+
+        .result {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .success {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+
+        .error {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #4285f4;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🔥 Firebase QR Scan App</h1>
+        <p>FirestoreとFunctionsにアクセスできるWebアプリケーションです。</p>
+    </div>
+
+    <div class="grid">
+        <div class="container">
+            <h2>📊 Firestore データベース</h2>
+            <div>
+                <h3>データを追加</h3>
+                <input type="text" id="documentId" placeholder="ドキュメントID (オプション)">
+                <input type="text" id="dataTitle" placeholder="タイトル">
+                <textarea id="dataContent" placeholder="内容" rows="3"></textarea>
+                <button onclick="addDocument()">データを追加</button>
+            </div>
+
+            <div>
+                <h3>データを取得</h3>
+                <button onclick="getAllDocuments()">全データを取得</button>
+                <button onclick="clearResults('firestoreResult')">クリア</button>
+            </div>
+
+            <div id="firestoreResult" class="result"></div>
+        </div>
+
+        <div class="container">
+            <h2>⚡ Cloud Functions</h2>
+            <div>
+                <h3>Function を呼び出し</h3>
+                <button onclick="callHelloWorld()">Hello World Function</button>
+                <button onclick="clearResults('functionResult')">クリア</button>
+            </div>
+
+            <div id="functionResult" class="result"></div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getFirestore, collection, addDoc, getDocs, doc, setDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        // Firebase設定
+        const firebaseConfig = {
+            apiKey: "AIzaSyCWFL91baSHkjkvU_k-yTUv6QS191YTFlg",
+            authDomain: "qrscan2-99ffd.firebaseapp.com",
+            projectId: "qrscan2-99ffd",
+            storageBucket: "qrscan2-99ffd.firebasestorage.app",
+            messagingSenderId: "1089215781575",
+            appId: "1:1089215781575:web:bf9d05f6930b7123813ce2",
+            measurementId: "G-QZZWT3HW0W"
+        };
+
+        // Firebase初期化
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // グローバル関数として公開
+        window.addDocument = async function () {
+            const documentId = document.getElementById('documentId').value;
+            const title = document.getElementById('dataTitle').value;
+            const content = document.getElementById('dataContent').value;
+
+            if (!title || !content) {
+                showResult('firestoreResult', 'タイトルと内容を入力してください', 'error');
+                return;
+            }
+
+            try {
+                showLoading('firestoreResult');
+
+                const data = {
+                    title: title,
+                    content: content,
+                    timestamp: new Date().toISOString(),
+                    createdAt: new Date()
+                };
+
+                let docRef;
+                if (documentId) {
+                    docRef = doc(db, 'qrscans', documentId);
+                    await setDoc(docRef, data);
+                } else {
+                    docRef = await addDoc(collection(db, 'qrscans'), data);
+                }
+
+                showResult('firestoreResult',
+                    `ドキュメントが正常に追加されました:\nID: ${docRef.id || documentId}\nタイトル: ${title}\n内容: ${content}`,
+                    'success');
+
+                // フォームをクリア
+                document.getElementById('documentId').value = '';
+                document.getElementById('dataTitle').value = '';
+                document.getElementById('dataContent').value = '';
+            } catch (error) {
+                showResult('firestoreResult', `エラー: ${error.message}`, 'error');
+            }
+        };
+
+        window.getAllDocuments = async function () {
+            try {
+                showLoading('firestoreResult');
+
+                const querySnapshot = await getDocs(collection(db, 'qrscans'));
+                let result = 'Firestore データ一覧:\n\n';
+
+                if (querySnapshot.empty) {
+                    result += 'データが見つかりませんでした。';
+                } else {
+                    querySnapshot.forEach((doc) => {
+                        const data = doc.data();
+                        result += `ID: ${doc.id}\n`;
+                        result += `タイトル: ${data.title || 'N/A'}\n`;
+                        result += `内容: ${data.content || 'N/A'}\n`;
+                        result += `作成日時: ${data.timestamp || 'N/A'}\n`;
+                        result += '---\n\n';
+                    });
+                }
+
+                showResult('firestoreResult', result, 'success');
+            } catch (error) {
+                showResult('firestoreResult', `エラー: ${error.message}`, 'error');
+            }
+        };
+
+        window.callHelloWorld = async function () {
+            try {
+                showLoading('functionResult');
+
+                const response = await fetch('https://asia-northeast1-qrscan2-99ffd.cloudfunctions.net/helloWorld');
+                const text = await response.text();
+
+                showResult('functionResult',
+                    `Function レスポンス:\nステータス: ${response.status}\n内容: ${text}`,
+                    'success');
+            } catch (error) {
+                showResult('functionResult', `エラー: ${error.message}`, 'error');
+            }
+        };
+
+        window.showResult = function (elementId, message, type = '') {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `result ${type}`;
+        };
+
+        window.showLoading = function (elementId) {
+            const element = document.getElementById(elementId);
+            element.innerHTML = '<div class="loading"></div> 処理中...';
+            element.className = 'result';
+        };
+
+        window.clearResults = function (elementId) {
+            document.getElementById(elementId).textContent = '';
+            document.getElementById(elementId).className = 'result';
+        };
+
+        // 初期化完了メッセージ
+        console.log('Firebase アプリが初期化されました');
+    </script>
+</body>
+
+</html>
