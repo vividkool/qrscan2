@@ -1,0 +1,12 @@
+{
+    "name": "template-uploader",
+    "version": "1.0.0",
+    "type": "module",
+    "scripts": {
+        "upload-templates": "node upload-templates.js"
+    },
+    "dependencies": {
+        "firebase": "^10.7.1",
+        "xlsx": "^0.18.5"
+    }
+}

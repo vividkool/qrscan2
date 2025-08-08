@@ -1,6 +1,7 @@
 // Firebase Index Page Functions
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
 import { getFirestore, collection, addDoc, getDocs, doc, setDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+import { getStorage, ref, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js';
 
 // Firebase設定
 const firebaseConfig = {
@@ -16,6 +17,7 @@ const firebaseConfig = {
 // Firebase初期化
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const storage = getStorage(app);
 
 // ユーティリティ関数
 function showResult(elementId, message, type = '') {
@@ -119,7 +121,58 @@ async function callHelloWorld() {
     }
 }
 
-// テンプレートExcel ダウンロード関数
+// Firebase Storage からテンプレートファイルをダウンロード
+async function downloadItemsTemplateFromStorage() {
+    try {
+        showLoading('downloadResult');
+
+        const fileRef = ref(storage, 'templates/excel/items_template.xlsx');
+        const downloadURL = await getDownloadURL(fileRef);
+
+        // ファイルをダウンロード
+        const link = document.createElement('a');
+        link.href = downloadURL;
+        link.download = 'items_template.xlsx';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        showResult('downloadResult',
+            'items_template.xlsx をFirebase Storageからダウンロードしました\n\nアップロード用テンプレートファイルです。\n- 必要な項目: タイトル、内容、カテゴリ、価格、ステータス、作成者\n- データ入力後、このファイルをアップロードしてください',
+            'success');
+    } catch (error) {
+        console.log('Storage download failed, falling back to dynamic generation:', error);
+        // フォールバック: 動的生成
+        await downloadItemsTemplate();
+    }
+}
+
+async function downloadUsersTemplateFromStorage() {
+    try {
+        showLoading('downloadResult');
+
+        const fileRef = ref(storage, 'templates/excel/users_template.xlsx');
+        const downloadURL = await getDownloadURL(fileRef);
+
+        // ファイルをダウンロード
+        const link = document.createElement('a');
+        link.href = downloadURL;
+        link.download = 'users_template.xlsx';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        showResult('downloadResult',
+            'users_template.xlsx をFirebase Storageからダウンロードしました\n\nアップロード用テンプレートファイルです。\n- 必要な項目: 名前、メール、電話番号、部署、役職、ステータス、権限\n- データ入力後、このファイルをアップロードしてください',
+            'success');
+    } catch (error) {
+        console.log('Storage download failed, falling back to dynamic generation:', error);
+        // フォールバック: 動的生成
+        await downloadUsersTemplate();
+    }
+}
+
+// テンプレートファイル ダウンロード関数（動的生成版 - フォールバック用）
 async function downloadItemsTemplate() {
     try {
         showLoading('downloadResult');
@@ -173,7 +226,9 @@ async function downloadItemsTemplate() {
         const fileName = `items_template.xlsx`;
         window.XLSX.writeFile(workbook, fileName);
 
-        showResult('downloadResult', `${fileName} をダウンロードしました\n\nアップロード用テンプレートファイルです。\n- 1行目: サンプル入力例\n- 2行目: 実際の例\n- データ入力後、このファイルをアップロードしてください`, 'success');
+        showResult('downloadResult',
+            `${fileName} をダウンロードしました\n\nアップロード用テンプレートファイルです。\n- 必要な項目: タイトル、内容、カテゴリ、価格、ステータス、作成者\n- データ入力後、このファイルをアップロードしてください`,
+            'success');
     } catch (error) {
         showResult('downloadResult', `エラー: ${error.message}`, 'error');
     }
@@ -235,7 +290,9 @@ async function downloadUsersTemplate() {
         const fileName = `users_template.xlsx`;
         window.XLSX.writeFile(workbook, fileName);
 
-        showResult('downloadResult', `${fileName} をダウンロードしました\n\nアップロード用テンプレートファイルです。\n- 1行目: サンプル入力例\n- 2行目: 実際の例\n- データ入力後、このファイルをアップロードしてください`, 'success');
+        showResult('downloadResult',
+            `${fileName} をダウンロードしました\n\nアップロード用テンプレートファイルです。\n- 必要な項目: 名前、メール、電話番号、部署、役職、ステータス、権限\n- データ入力後、このファイルをアップロードしてください`,
+            'success');
     } catch (error) {
         showResult('downloadResult', `エラー: ${error.message}`, 'error');
     }
@@ -245,8 +302,10 @@ async function downloadUsersTemplate() {
 window.addDocument = addDocument;
 window.getAllDocuments = getAllDocuments;
 window.callHelloWorld = callHelloWorld;
-window.downloadItemsTemplate = downloadItemsTemplate;
-window.downloadUsersTemplate = downloadUsersTemplate;
+window.downloadItemsTemplate = downloadItemsTemplateFromStorage;
+window.downloadUsersTemplate = downloadUsersTemplateFromStorage;
+window.downloadItemsTemplateDynamic = downloadItemsTemplate;
+window.downloadUsersTemplateDynamic = downloadUsersTemplate;
 window.showResult = showResult;
 window.showLoading = showLoading;
 window.clearResults = clearResults;
