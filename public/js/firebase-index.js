@@ -1,3 +1,15 @@
+// 選択式テンプレートダウンロード
+function downloadSelectedTemplate() {
+  const select = document.getElementById("templateSelect");
+  const value = select.value;
+  if (value === "items") {
+    downloadItemsTemplateFromHosting();
+  } else if (value === "users") {
+    downloadUsersTemplateFromHosting();
+  } else {
+    showDownloadResultModal("未対応のコレクションです", "error");
+  }
+}
 // itemsコレクション一覧表示
 async function getAllItems() {
   try {
@@ -9,15 +21,15 @@ async function getAllItems() {
     }
     let html = "<table><thead><tr>";
     html +=
-      "<th>item_no</th><th>item_name</th><th>category</th><th>maker_code</th><th>price</th><th>standard</th><th>shape</th>";
+      "<th>item_no</th><th>item_name</th><th>category_name</th><th>company_name</th><th>maker_code</th>";
     html += "</tr></thead><tbody>";
     querySnapshot.forEach((docSnap) => {
       const d = docSnap.data();
       html += `<tr><td>${d.item_no || ""}</td><td>${
         d.item_name || ""
-      }</td><td>${d.category || ""}</td><td>${d.maker_code || ""}</td><td>${
-        d.price || ""
-      }</td><td>${d.standard || ""}</td><td>${d.shape || ""}</td></tr>`;
+      }</td><td>${d.category_name || ""}</td><td>${
+        d.company_name || ""
+      }</td><td>${d.maker_code || ""}</td></tr>`;
     });
     html += "</tbody></table>";
     showResult("firestoreResult", html, "success");
@@ -314,7 +326,7 @@ async function downloadUsersTemplateFromHosting() {
     //await downloadUsersTemplate();
   }
 }
-
+/*
 // テンプレートファイル ダウンロード関数（動的生成版 - フォールバック用）
 async function downloadItemsTemplate() {
   try {
@@ -450,7 +462,7 @@ async function downloadUsersTemplate() {
     showResult("downloadResult", `エラー: ${error.message}`, "error");
   }
 }
-
+*/
 // モーダル関数
 function openAddDataModal(collectionType) {
   const modal = document.getElementById("addDataModal");
@@ -469,16 +481,19 @@ function openAddDataModal(collectionType) {
     fields = [
       { name: "item_no", label: "アイテム番号", type: "text", required: true },
       { name: "item_name", label: "アイテム名", type: "text", required: true },
-      { name: "category", label: "カテゴリ", type: "text", required: false },
+      {
+        name: "category_name",
+        label: "カテゴリ",
+        type: "text",
+        required: false,
+      },
+      { name: "company_name", label: "会社名", type: "text", required: true },
       {
         name: "maker_code",
         label: "メーカーコード",
         type: "text",
         required: false,
       },
-      { name: "price", label: "価格", type: "number", required: false },
-      { name: "standard", label: "規格", type: "text", required: false },
-      { name: "shape", label: "形状", type: "text", required: false },
     ];
   } else {
     fields = [
@@ -629,8 +644,24 @@ async function uploadExcelFile(collectionType, fileInput) {
     }
 
     // ヘッダー行とデータ行を分離
-    const headers = jsonData[0];
+    let headers = jsonData[0];
     const dataRows = jsonData.slice(1);
+
+    // デバッグ情報
+    console.log("Headers type:", typeof headers);
+    console.log("Headers:", headers);
+    console.log("Is Array:", Array.isArray(headers));
+
+    // ヘッダー行が配列でない場合は配列に変換
+    if (!Array.isArray(headers)) {
+      if (typeof headers === "object" && headers !== null) {
+        headers = Object.values(headers);
+        console.log("Converted headers to array:", headers);
+      } else {
+        showResult("firestoreResult", "ヘッダー行が不正です", "error");
+        return;
+      }
+    }
 
     // コレクションタイプに応じたバリデーション
     let expectedHeaders;
@@ -640,11 +671,9 @@ async function uploadExcelFile(collectionType, fileInput) {
       expectedHeaders = [
         "item_no",
         "item_name",
-        "category",
+        "category_name",
+        "company_name",
         "maker_code",
-        "price",
-        "standard",
-        "shape",
       ];
       collectionName = "items";
     } else if (collectionType === "users") {
@@ -680,35 +709,35 @@ async function uploadExcelFile(collectionType, fileInput) {
     }
 
     // データをFirestoreに保存
+    let resultMessage = "";
     let successCount = 0;
     let errorCount = 0;
     const errors = [];
 
     for (let i = 0; i < dataRows.length; i++) {
-      const row = dataRows[i];
+      let row = dataRows[i];
 
-      // 空行をスキップ
-      if (row.every((cell) => !cell && cell !== 0)) {
-        continue;
+      // rowが配列でない場合はObject.valuesで配列化
+      if (!Array.isArray(row)) {
+        if (typeof row === "object" && row !== null) {
+          row = Object.values(row);
+        } else {
+          continue; // 不正な行はスキップ
+        }
       }
 
+      // 空行をスキップ
+      if (row.every((cell) => !cell && cell !== 0)) continue;
+
       try {
-        // オブジェクトを作成
+        // 必要な項目のみ抽出（priceはexpectedHeadersに含めない）
         const docData = {};
-        expectedHeaders.forEach((header, index) => {
+        expectedHeaders.forEach((header) => {
           const headerIndex = headers.indexOf(header);
-          if (headerIndex !== -1) {
-            let value = row[headerIndex];
-
-            // 価格フィールドの数値変換
-            if (header === "price" && value !== undefined && value !== "") {
-              value = Number(value);
-              if (isNaN(value)) {
-                throw new Error(`行 ${i + 2}: 価格は数値である必要があります`);
-              }
-            }
-
-            docData[header] = value || "";
+          if (headerIndex !== -1 && headerIndex < row.length) {
+            docData[header] = row[headerIndex] || "";
+          } else {
+            docData[header] = ""; // ヘッダーが見つからない場合は空文字
           }
         });
 
@@ -722,17 +751,19 @@ async function uploadExcelFile(collectionType, fileInput) {
 
         // Firestoreに追加
         const docId =
-          collectionType === "items" ? docData.item_no : docData.user_id;
+          collectionType === "items"
+            ? String(docData.item_no)
+            : String(docData.user_id);
+        console.log(`Saving to Firestore: ${docId}`, docData);
         await setDoc(doc(db, collectionName, docId), docData);
         successCount++;
+        console.log(`Successfully saved: ${docId}`);
       } catch (error) {
+        console.error(`Error in row ${i + 2}:`, error);
         errorCount++;
         errors.push(`行 ${i + 2}: ${error.message}`);
       }
     }
-
-    // 結果表示
-    let resultMessage = `アップロード完了\n`;
     resultMessage += `成功: ${successCount} 件\n`;
 
     if (errorCount > 0) {
@@ -800,6 +831,7 @@ window.getAllUsers = getAllUsers;
 
 window.downloadItemsTemplateFromHosting = downloadItemsTemplateFromHosting;
 window.downloadUsersTemplateFromHosting = downloadUsersTemplateFromHosting;
+window.downloadSelectedTemplate = downloadSelectedTemplate; // 追加
 
 // 初期化完了メッセージ
 console.log("Firebase アプリが初期化されました");
