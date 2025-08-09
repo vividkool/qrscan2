@@ -46,18 +46,18 @@ function clearResults(elementId) {
   element.textContent = "";
   element.className = "result";
   element.style.display = "none";
-  
+
   // Firestoreの結果をクリアする場合は追加ボタンも非表示
-  if (elementId === 'firestoreResult') {
+  if (elementId === "firestoreResult") {
     updateAddButton(null);
   }
 }
 
 // UUID生成関数
 function generateUUID() {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0;
-    const v = c == 'x' ? r : (r & 0x3 | 0x8);
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+    const r = (Math.random() * 16) | 0;
+    const v = c == "x" ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
 }
@@ -65,14 +65,15 @@ function generateUUID() {
 // 現在のコレクションに応じた追加ボタンの表示制御
 function updateAddButton(collectionType) {
   currentCollectionType = collectionType;
-  const addButton = document.getElementById('addDataButton');
-  
+  const addButton = document.getElementById("addDataButton");
+
   if (collectionType) {
-    addButton.style.display = 'block';
-    const buttonText = collectionType === 'items' ? '➕ アイテム追加' : '➕ ユーザー追加';
+    addButton.style.display = "block";
+    const buttonText =
+      collectionType === "items" ? "➕ アイテム追加" : "➕ ユーザー追加";
     addButton.innerHTML = buttonText;
   } else {
-    addButton.style.display = 'none';
+    addButton.style.display = "none";
   }
 }
 
@@ -124,9 +125,9 @@ async function getAllItems() {
     document.getElementById(
       "firestoreResult-count"
     ).textContent = `${querySnapshot.size}件`;
-    
+
     // 追加ボタンを更新
-    updateAddButton('items');
+    updateAddButton("items");
   } catch (error) {
     showResult("firestoreResult", `取得エラー: ${error.message}`, "error");
     updateAddButton(null);
@@ -163,9 +164,9 @@ async function getAllUsers() {
     document.getElementById(
       "firestoreResult-count"
     ).textContent = `${querySnapshot.size}件`;
-    
+
     // 追加ボタンを更新
-    updateAddButton('users');
+    updateAddButton("users");
   } catch (error) {
     showResult("firestoreResult", `取得エラー: ${error.message}`, "error");
     updateAddButton(null);
@@ -667,8 +668,12 @@ async function uploadExcelFile(collectionType, fileInput) {
 
         // UUIDを生成してFirestoreに追加
         const docId = generateUUID();
-        const displayId = collectionType === "items" ? docData.item_no : docData.user_id;
-        console.log(`Saving to Firestore: UUID(${docId}) for ${displayId}`, docData);
+        const displayId =
+          collectionType === "items" ? docData.item_no : docData.user_id;
+        console.log(
+          `Saving to Firestore: UUID(${docId}) for ${displayId}`,
+          docData
+        );
         await setDoc(doc(db, collectionName, docId), docData);
         successCount++;
         console.log(`Successfully saved: ${displayId} with UUID ${docId}`);
