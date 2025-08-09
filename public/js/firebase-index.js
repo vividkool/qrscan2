@@ -46,18 +46,18 @@ function clearResults(elementId) {
   element.textContent = "";
   element.className = "result";
   element.style.display = "none";
-  
+
   // Firestoreの結果をクリアする場合は追加ボタンも非表示
-  if (elementId === 'firestoreResult') {
+  if (elementId === "firestoreResult") {
     updateAddButton(null);
   }
 }
 
 // UUID生成関数
 function generateUUID() {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0;
-    const v = c == 'x' ? r : (r & 0x3 | 0x8);
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+    const r = (Math.random() * 16) | 0;
+    const v = c == "x" ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
 }
@@ -65,14 +65,15 @@ function generateUUID() {
 // 現在のコレクションに応じた追加ボタンの表示制御
 function updateAddButton(collectionType) {
   currentCollectionType = collectionType;
-  const addButton = document.getElementById('addDataButton');
-  
+  const addButton = document.getElementById("addDataButton");
+
   if (collectionType) {
-    addButton.style.display = 'block';
-    const buttonText = collectionType === 'items' ? '➕ アイテム追加' : '➕ ユーザー追加';
+    addButton.style.display = "block";
+    const buttonText =
+      collectionType === "items" ? "➕ アイテム追加" : "➕ ユーザー追加";
     addButton.innerHTML = buttonText;
   } else {
-    addButton.style.display = 'none';
+    addButton.style.display = "none";
   }
 }
 
@@ -124,9 +125,9 @@ async function getAllItems() {
     document.getElementById(
       "firestoreResult-count"
     ).textContent = `${querySnapshot.size}件`;
-    
+
     // 追加ボタンを更新
-    updateAddButton('items');
+    updateAddButton("items");
   } catch (error) {
     showResult("firestoreResult", `取得エラー: ${error.message}`, "error");
     updateAddButton(null);
@@ -163,9 +164,9 @@ async function getAllUsers() {
     document.getElementById(
       "firestoreResult-count"
     ).textContent = `${querySnapshot.size}件`;
-    
+
     // 追加ボタンを更新
-    updateAddButton('users');
+    updateAddButton("users");
   } catch (error) {
     showResult("firestoreResult", `取得エラー: ${error.message}`, "error");
     updateAddButton(null);
@@ -667,8 +668,12 @@ async function uploadExcelFile(collectionType, fileInput) {
 
         // UUIDを生成してFirestoreに追加
         const docId = generateUUID();
-        const displayId = collectionType === "items" ? docData.item_no : docData.user_id;
-        console.log(`Saving to Firestore: UUID(${docId}) for ${displayId}`, docData);
+        const displayId =
+          collectionType === "items" ? docData.item_no : docData.user_id;
+        console.log(
+          `Saving to Firestore: UUID(${docId}) for ${displayId}`,
+          docData
+        );
         await setDoc(doc(db, collectionName, docId), docData);
         successCount++;
         console.log(`Successfully saved: ${displayId} with UUID ${docId}`);
@@ -745,6 +750,100 @@ window.getAllUsers = getAllUsers;
 window.downloadItemsTemplateFromHosting = downloadItemsTemplateFromHosting;
 window.downloadUsersTemplateFromHosting = downloadUsersTemplateFromHosting;
 window.downloadSelectedTemplate = downloadSelectedTemplate;
+window.createTestUsers = createTestUsers;
 
 // 初期化完了メッセージ
 console.log("Firebase アプリが初期化されました");
+
+// ページロード時の初期化
+document.addEventListener("DOMContentLoaded", function () {
+  // ユーザー情報表示
+  displayUserInfo();
+});
+
+// ユーザー情報表示
+function displayUserInfo() {
+  const userInfoElement = document.getElementById("userInfo");
+  if (userInfoElement && window.UserSession) {
+    const user = UserSession.getCurrentUser();
+    if (user) {
+      userInfoElement.textContent = `${user.user_name} (${user.role}) - ${
+        user.department || ""
+      }`;
+    }
+  }
+}
+
+// テストユーザー作成機能
+async function createTestUsers() {
+  const testUsers = [
+    {
+      user_id: "ADMIN001",
+      user_name: "管理者テスト",
+      email: "admin@test.com",
+      phone: "090-1111-1111",
+      department: "システム管理部",
+      status: "active",
+      role: "admin",
+      print_status: "not_printed",
+    },
+    {
+      user_id: "SCAN001",
+      user_name: "スキャナーテスト",
+      email: "scanner@test.com",
+      phone: "090-2222-2222",
+      department: "展示会運営",
+      status: "active",
+      role: "scanner",
+      print_status: "not_printed",
+    },
+    {
+      user_id: "GUEST001",
+      user_name: "ゲストテスト",
+      email: "guest@test.com",
+      phone: "090-3333-3333",
+      department: "来場者",
+      status: "active",
+      role: "guest",
+      print_status: "not_printed",
+    },
+  ];
+
+  try {
+    showLoading("firestoreResult");
+    let successCount = 0;
+    let errorCount = 0;
+    const errors = [];
+
+    for (const user of testUsers) {
+      try {
+        const docId = generateUUID();
+        await setDoc(doc(db, "users", docId), user);
+        successCount++;
+        console.log(`Created user: ${user.user_id} (${user.user_name})`);
+      } catch (error) {
+        errorCount++;
+        errors.push(`${user.user_id}: ${error.message}`);
+      }
+    }
+
+    let resultMessage = `テストユーザー作成完了\n成功: ${successCount} 件`;
+    if (errorCount > 0) {
+      resultMessage += `\nエラー: ${errorCount} 件\n${errors.join("\n")}`;
+      showResult("firestoreResult", resultMessage, "warning");
+    } else {
+      resultMessage += "\n\n作成されたユーザー:\n";
+      testUsers.forEach((user) => {
+        resultMessage += `- ${user.user_id}: ${user.user_name} (${user.role})\n`;
+      });
+      showResult("firestoreResult", resultMessage, "success");
+    }
+  } catch (error) {
+    console.error("テストユーザー作成エラー:", error);
+    showResult(
+      "firestoreResult",
+      `テストユーザー作成エラー: ${error.message}`,
+      "error"
+    );
+  }
+}
