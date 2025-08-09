@@ -54,15 +54,15 @@ async function getAllUsers() {
     }
     let html = "<table><thead><tr>";
     html +=
-      "<th>user_id</th><th>user_name</th><th>email</th><th>phone</th><th>department</th><th>status</th><th>role</th><th>print_status</th>";
+      "<th>user_id</th><th>user_name</th><th>email</th><th>phone</th><th>company_name</th><th>status</th><th>user_role</th><th>print_status</th>";
     html += "</tr></thead><tbody>";
     querySnapshot.forEach((docSnap) => {
       const d = docSnap.data();
       html += `<tr><td>${d.user_id || ""}</td><td>${
         d.user_name || ""
       }</td><td>${d.email || ""}</td><td>${d.phone || ""}</td><td>${
-        d.department || ""
-      }</td><td>${d.status || ""}</td><td>${d.role || ""}</td><td>${
+        d.company_name || ""
+      }</td><td>${d.status || ""}</td><td>${d.user_role || ""}</td><td>${
         d.print_status || ""
       }</td></tr>`;
     });
@@ -140,6 +140,15 @@ function clearResults(elementId) {
   element.textContent = "";
   element.className = "result";
   element.style.display = "none";
+}
+
+// UUID生成関数
+function generateUUID() {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+    const r = (Math.random() * 16) | 0;
+    const v = c == "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
 }
 
 // Firestore関数
@@ -326,143 +335,7 @@ async function downloadUsersTemplateFromHosting() {
     //await downloadUsersTemplate();
   }
 }
-/*
-// テンプレートファイル ダウンロード関数（動的生成版 - フォールバック用）
-async function downloadItemsTemplate() {
-  try {
-    showLoading("downloadResult");
 
-    // XLSX ライブラリを動的に読み込み
-    if (!window.XLSX) {
-      const script = document.createElement("script");
-      script.src = "https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js";
-      document.head.appendChild(script);
-
-      await new Promise((resolve, reject) => {
-        script.onload = resolve;
-        script.onerror = reject;
-      });
-    }
-
-    // itemsコレクション用のテンプレートデータ
-    const templateData = [
-      {
-        item_no: "商品番号を入力してください",
-        item_name: "商品名を入力してください",
-        category: "カテゴリを入力してください",
-        maker_code: "メーカーコードを入力してください",
-        price: "価格を数値で入力してください",
-        standard: "規格を入力してください",
-        shape: "形状を入力してください",
-      },
-      {
-        item_no: "例: ITM001",
-        item_name: "例: iPhone 15",
-        category: "例: Electronics",
-        maker_code: "例: APPLE",
-        price: "例: 128000",
-        standard: "例: 128GB",
-        shape: "例: Rectangle",
-      },
-    ];
-
-    const worksheet = window.XLSX.utils.json_to_sheet(templateData);
-    const workbook = window.XLSX.utils.book_new();
-    window.XLSX.utils.book_append_sheet(workbook, worksheet, "Items Template");
-
-    // カラム幅を設定
-    worksheet["!cols"] = [
-      { width: 15 }, // item_no
-      { width: 25 }, // item_name
-      { width: 15 }, // category
-      { width: 15 }, // maker_code
-      { width: 12 }, // price
-      { width: 15 }, // standard
-      { width: 15 }, // shape
-    ];
-
-    const fileName = `items_template.xlsx`;
-    window.XLSX.writeFile(workbook, fileName);
-
-    showResult(
-      "downloadResult",
-      `${fileName} をダウンロードしました\n\nアップロード用テンプレートファイルです。\n- 必要な項目: item_no, item_name, category, maker_code, price, standard, shape\n- データ入力後、このファイルをアップロードしてください`,
-      "success"
-    );
-  } catch (error) {
-    showResult("downloadResult", `エラー: ${error.message}`, "error");
-  }
-}
-
-async function downloadUsersTemplate() {
-  try {
-    showLoading("downloadResult");
-
-    // XLSX ライブラリを動的に読み込み
-    if (!window.XLSX) {
-      const script = document.createElement("script");
-      script.src = "https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js";
-      document.head.appendChild(script);
-
-      await new Promise((resolve, reject) => {
-        script.onload = resolve;
-        script.onerror = reject;
-      });
-    }
-
-    // usersコレクション用のテンプレートデータ
-    const templateData = [
-      {
-        user_id: "ユーザーIDを入力してください",
-        user_name: "ユーザー名を入力してください",
-        email: "メールアドレスを入力してください",
-        phone: "電話番号を入力してください",
-        department: "部署名を入力してください",
-        status: "active/inactive",
-        role: "admin/user/guest",
-        print_status: "printed/not_printed",
-      },
-      {
-        user_id: "例: USR001",
-        user_name: "例: 田中太郎",
-        email: "例: tanaka@example.com",
-        phone: "例: 090-1234-5678",
-        department: "例: 営業部",
-        status: "例: active",
-        role: "例: user",
-        print_status: "例: not_printed",
-      },
-    ];
-
-    const worksheet = window.XLSX.utils.json_to_sheet(templateData);
-    const workbook = window.XLSX.utils.book_new();
-    window.XLSX.utils.book_append_sheet(workbook, worksheet, "Users Template");
-
-    // カラム幅を設定
-    worksheet["!cols"] = [
-      { width: 15 }, // user_id
-      { width: 20 }, // user_name
-      { width: 25 }, // email
-      { width: 15 }, // phone
-      { width: 15 }, // department
-      { width: 12 }, // status
-      { width: 12 }, // role
-      { width: 15 }, // print_status
-    ];
-
-    const fileName = `users_template.xlsx`;
-    window.XLSX.writeFile(workbook, fileName);
-
-    showResult(
-      "downloadResult",
-      `${fileName} をダウンロードしました\n\nアップロード用テンプレートファイルです。\n- 必要な項目: user_id, user_name, email, phone, department, status, role, print_status\n- データ入力後、このファイルをアップロードしてください`,
-      "success"
-    );
-  } catch (error) {
-    showResult("downloadResult", `エラー: ${error.message}`, "error");
-  }
-}
-*/
 // モーダル関数
 function openAddDataModal(collectionType) {
   const modal = document.getElementById("addDataModal");
@@ -506,9 +379,9 @@ function openAddDataModal(collectionType) {
         required: false,
       },
       { name: "phone", label: "電話番号", type: "tel", required: false },
-      { name: "department", label: "部署", type: "text", required: false },
+      { name: "company_name", label: "会社名", type: "text", required: false },
       { name: "status", label: "ステータス", type: "text", required: false },
-      { name: "role", label: "役割", type: "text", required: false },
+      { name: "user_role", label: "役割", type: "text", required: false },
       {
         name: "print_status",
         label: "印刷ステータス",
@@ -572,9 +445,21 @@ async function submitAddData() {
 
     // コレクション名とドキュメントID設定
     const collectionName = collectionType;
-    const docId = collectionType === "items" ? data.item_no : data.user_id;
+    // UUIDを生成してドキュメントIDとして使用
+    const docId = generateUUID();
 
-    if (!docId) {
+    // item_noやuser_idが既に存在するかチェックする場合は以下を有効化
+    // const existingQuery = collectionType === "items" ?
+    //   query(collection(db, collectionName), where("item_no", "==", data.item_no)) :
+    //   query(collection(db, collectionName), where("user_id", "==", data.user_id));
+    // const existingDocs = await getDocs(existingQuery);
+    // if (!existingDocs.empty) {
+    //   throw new Error(`${collectionType === "items" ? "アイテム番号" : "ユーザーID"}が既に存在します`);
+    // }
+
+    // 必須フィールドチェック
+    const requiredId = collectionType === "items" ? data.item_no : data.user_id;
+    if (!requiredId) {
       throw new Error(
         collectionType === "items"
           ? "アイテム番号は必須です"
@@ -589,7 +474,7 @@ async function submitAddData() {
       "firestoreResult",
       `${
         collectionType === "items" ? "アイテム" : "ユーザー"
-      }を追加しました: ${docId}`,
+      }を追加しました: ${requiredId} (ID: ${docId})`,
       "success"
     );
     closeModal();
@@ -682,9 +567,9 @@ async function uploadExcelFile(collectionType, fileInput) {
         "user_name",
         "email",
         "phone",
-        "department",
+        "company_name",
         "status",
-        "role",
+        "user_role",
         "print_status",
       ];
       collectionName = "users";
@@ -749,15 +634,17 @@ async function uploadExcelFile(collectionType, fileInput) {
           throw new Error(`行 ${i + 2}: user_id は必須です`);
         }
 
-        // Firestoreに追加
-        const docId =
-          collectionType === "items"
-            ? String(docData.item_no)
-            : String(docData.user_id);
-        console.log(`Saving to Firestore: ${docId}`, docData);
+        // UUIDを生成してFirestoreに追加
+        const docId = generateUUID();
+        const displayId =
+          collectionType === "items" ? docData.item_no : docData.user_id;
+        console.log(
+          `Saving to Firestore: UUID(${docId}) for ${displayId}`,
+          docData
+        );
         await setDoc(doc(db, collectionName, docId), docData);
         successCount++;
-        console.log(`Successfully saved: ${docId}`);
+        console.log(`Successfully saved: ${displayId} with UUID ${docId}`);
       } catch (error) {
         console.error(`Error in row ${i + 2}:`, error);
         errorCount++;
