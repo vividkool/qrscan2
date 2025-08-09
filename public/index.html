@@ -6,6 +6,48 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QR Scan App</title>
     <style>
+        /* テーブル装飾 */
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 10px 0;
+            background: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(66,133,244,0.08);
+        }
+        th, td {
+            border: 1px solid #e0e0e0;
+            padding: 10px 8px;
+            text-align: left;
+            font-size: 15px;
+        }
+        th {
+            background: #4285f4;
+            color: #fff;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+        tr:nth-child(even) {
+            background: #f5f7fa;
+        }
+        tr:hover {
+            background: #e3f0fd;
+        }
+        table thead {
+            border-radius: 8px 8px 0 0;
+        }
+        table tbody {
+            border-radius: 0 0 8px 8px;
+        }
+        @media (max-width: 768px) {
+            table, th, td {
+                font-size: 13px;
+                padding: 7px 4px;
+            }
+        }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             max-width: 1200px;
@@ -243,7 +285,7 @@
           onclick="window.location.href='user.html'"
           class="action-button qr"
         >
-          📱 QRスキャン画面
+          📱 users.html
         </button>
         <button onclick="downloadItemsTemplateFromHosting()" class="action-button excel">
           📊 items テンプレートDL
@@ -264,12 +306,7 @@
         <button onclick="getAllUsers()" class="action-button">
           👥 usersコレクション取得
         </button>
-        <button onclick="openAddDataModal('items')" class="action-button">
-          ➕ アイテム追加
-        </button>
-        <button onclick="openAddDataModal('users')" class="action-button">
-          ➕ ユーザー追加
-        </button>
+        
       </div>
       
       <!-- 3行目: ファイルアップロード -->
@@ -300,6 +337,12 @@
       <div class="dashboard-section">
         <div class="section-header">
           <h3 class="section-title">📊 データベース管理</h3>
+          <button onclick="openAddDataModal('items')" class="action-button">
+          ➕ アイテム追加
+        </button>
+        <button onclick="openAddDataModal('users')" class="action-button">
+          ➕ ユーザー追加
+        </button>
           <div id="firestoreResult-count" class="collection-count"></div>
           <div id="firestoreResult-collectionname" class="collection-title"></div>
         </div>

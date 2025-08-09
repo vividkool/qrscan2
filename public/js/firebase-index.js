@@ -1,3 +1,70 @@
+// itemsコレクション一覧表示
+async function getAllItems() {
+  try {
+    showLoading("firestoreResult");
+    const querySnapshot = await getDocs(collection(db, "items"));
+    if (querySnapshot.empty) {
+      showResult("firestoreResult", "アイテムデータがありません", "error");
+      return;
+    }
+    let html = "<table><thead><tr>";
+    html +=
+      "<th>item_no</th><th>item_name</th><th>category</th><th>maker_code</th><th>price</th><th>standard</th><th>shape</th>";
+    html += "</tr></thead><tbody>";
+    querySnapshot.forEach((docSnap) => {
+      const d = docSnap.data();
+      html += `<tr><td>${d.item_no || ""}</td><td>${
+        d.item_name || ""
+      }</td><td>${d.category || ""}</td><td>${d.maker_code || ""}</td><td>${
+        d.price || ""
+      }</td><td>${d.standard || ""}</td><td>${d.shape || ""}</td></tr>`;
+    });
+    html += "</tbody></table>";
+    showResult("firestoreResult", html, "success");
+    document.getElementById("firestoreResult-collectionname").textContent =
+      "itemsコレクション";
+    document.getElementById(
+      "firestoreResult-count"
+    ).textContent = `${querySnapshot.size}件`;
+  } catch (error) {
+    showResult("firestoreResult", `取得エラー: ${error.message}`, "error");
+  }
+}
+
+// usersコレクション一覧表示
+async function getAllUsers() {
+  try {
+    showLoading("firestoreResult");
+    const querySnapshot = await getDocs(collection(db, "users"));
+    if (querySnapshot.empty) {
+      showResult("firestoreResult", "ユーザーデータがありません", "error");
+      return;
+    }
+    let html = "<table><thead><tr>";
+    html +=
+      "<th>user_id</th><th>user_name</th><th>email</th><th>phone</th><th>department</th><th>status</th><th>role</th><th>print_status</th>";
+    html += "</tr></thead><tbody>";
+    querySnapshot.forEach((docSnap) => {
+      const d = docSnap.data();
+      html += `<tr><td>${d.user_id || ""}</td><td>${
+        d.user_name || ""
+      }</td><td>${d.email || ""}</td><td>${d.phone || ""}</td><td>${
+        d.department || ""
+      }</td><td>${d.status || ""}</td><td>${d.role || ""}</td><td>${
+        d.print_status || ""
+      }</td></tr>`;
+    });
+    html += "</tbody></table>";
+    showResult("firestoreResult", html, "success");
+    document.getElementById("firestoreResult-collectionname").textContent =
+      "usersコレクション";
+    document.getElementById(
+      "firestoreResult-count"
+    ).textContent = `${querySnapshot.size}件`;
+  } catch (error) {
+    showResult("firestoreResult", `取得エラー: ${error.message}`, "error");
+  }
+}
 // ダウンロード結果モーダル表示・非表示
 function showDownloadResultModal(message, type = "") {
   const modal = document.getElementById("downloadResultModal");
@@ -45,7 +112,7 @@ const db = getFirestore(app);
 // ユーティリティ関数
 function showResult(elementId, message, type = "") {
   const element = document.getElementById(elementId);
-  element.textContent = message;
+  element.innerHTML = message;
   element.className = `result ${type}`;
   element.style.display = "block";
 }
@@ -728,6 +795,9 @@ window.openAddDataModal = openAddDataModal; // 追加
 window.closeModal = closeModal; // 追加
 window.closeDownloadResultModal = closeDownloadResultModal; // 追加
 window.submitAddData = submitAddData; // 追加
+window.getAllItems = getAllItems;
+window.getAllUsers = getAllUsers;
+
 window.downloadItemsTemplateFromHosting = downloadItemsTemplateFromHosting;
 window.downloadUsersTemplateFromHosting = downloadUsersTemplateFromHosting;
 
