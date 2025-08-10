@@ -7,6 +7,7 @@ import {
   getDocs,
   doc,
   setDoc,
+  deleteDoc,
   query,
   orderBy,
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
@@ -114,15 +115,18 @@ async function getAllItems() {
     }
     let html = "<table><thead><tr>";
     html +=
-      "<th>item_no</th><th>category_name</th><th>company_name</th><th>item_name</th><th>maker_code</th>";
+      "<th>item_no</th><th>category_name</th><th>company_name</th><th>item_name</th><th>maker_code</th><th>操作</th>";
     html += "</tr></thead><tbody>";
     querySnapshot.forEach((docSnap) => {
       const d = docSnap.data();
+      const docId = docSnap.id;
       html += `<tr><td>${d.item_no || ""}</td><td>${
         d.category_name || ""
       }</td><td>${d.company_name || ""}</td><td>${d.item_name || ""}</td><td>${
         d.maker_code || ""
-      }</td></tr>`;
+      }</td><td><button onclick="deleteDocument('items', '${docId}', '${
+        d.item_no || "unknown"
+      }')" class="delete-btn">🗑️ 削除</button></td></tr>`;
     });
     html += "</tbody></table>";
     showResult("firestoreResult", html, "success");
@@ -144,24 +148,33 @@ async function getAllItems() {
 async function getAllUsers() {
   try {
     showLoading("firestoreResult");
-    const querySnapshot = await getDocs(collection(db, "users"));
+    const querySnapshot = await getDocs(
+      collection(db, "users"),
+      orderBy("user_id", "asc")
+    );
+
     if (querySnapshot.empty) {
       showResult("firestoreResult", "ユーザーデータがありません", "error");
       return;
     }
     let html = "<table><thead><tr>";
     html +=
-      "<th>user_id</th><th>company_name</th><th>user_name</th><th>email</th><th>phone</th><th>department</th><th>status</th><th>role</th><th>print_status</th>";
+      "<th>user_id</th><th>company_name</th><th>user_name</th><th>email</th><th>phone</th><th>department</th><th>status</th><th>role</th><th>print_status</th><th>操作</th>";
     html += "</tr></thead><tbody>";
     querySnapshot.forEach((docSnap) => {
       const d = docSnap.data();
+      const docId = docSnap.id;
       html += `<tr><td>${d.user_id || ""}</td><td>${
         d.company_name || ""
       }</td><td>${d.user_name || ""}</td><td>${d.email || ""}</td><td>${
         d.phone || ""
       }</td><td>${d.department || ""}</td><td>${d.status || ""}</td><td>${
         d.user_role || ""
-      }</td><td>${d.print_status || ""}</td></tr>`;
+      }</td><td>${
+        d.print_status || ""
+      }</td><td><button onclick="deleteDocument('users', '${docId}', '${
+        d.user_id || "unknown"
+      }')" class="delete-btn">🗑️ 削除</button></td></tr>`;
     });
     html += "</tbody></table>";
     showResult("firestoreResult", html, "success");
@@ -184,22 +197,26 @@ async function getAllScanItems() {
     showLoading("firestoreResult");
     const querySnapshot = await getDocs(collection(db, "scanItems"));
     if (querySnapshot.empty) {
-      showResult("firestoreResult", "アイテムデータがありません", "error");
+      showResult("firestoreResult", "スキャンデータがありません", "error");
       return;
     }
     let html = "<table><thead><tr>";
     html +=
-      "<th>item_no</th><th>item_name</th><th>content</th><th>timestamp</th><th>company_name</th><th>maker_code</th><th>isiOS</th><th>isWebkit</th><th>scannerMode</th>";
+      "<th>content</th><th>timestamp</th><th>user_name</th><th>user_role</th><th>company_name</th><th>scannerMode</th><th>操作</th>";
     html += "</tr></thead><tbody>";
     querySnapshot.forEach((docSnap) => {
       const d = docSnap.data();
-      html += `<tr><td>${d.item_no || ""}</td><td>${
-        d.item_name || ""
-      }</td><td>${d.content || ""}</td><td>${d.timestamp || ""}</td><td>${
-        d.isMobile || ""
-      }</td><td>${d.isWebkit || ""}</td><td>${d.isiOS || ""}</td><td>${
-        d.platform || ""
-      }</td><td>${d.scannerMode || ""}</td></tr>`;
+      const docId = docSnap.id;
+      const timestamp = d.timestamp
+        ? new Date(d.timestamp).toLocaleString("ja-JP")
+        : "";
+      html += `<tr><td>${d.content || ""}</td><td>${timestamp}</td><td>${
+        d.user_name || ""
+      }</td><td>${d.user_role || ""}</td><td>${d.company_name || ""}</td><td>${
+        d.scannerMode || ""
+      }</td><td><button onclick="deleteDocument('scanItems', '${docId}', '${
+        d.content || "unknown"
+      }')" class="delete-btn">🗑️ 削除</button></td></tr>`;
     });
     html += "</tbody></table>";
     showResult("firestoreResult", html, "success");
@@ -530,6 +547,52 @@ async function submitAddData() {
   }
 }
 
+// ドキュメント削除関数
+async function deleteDocument(collectionName, docId, displayName) {
+  if (
+    !confirm(`「${displayName}」を削除しますか？\n\nこの操作は取り消せません。`)
+  ) {
+    return;
+  }
+
+  try {
+    showLoading("firestoreResult");
+
+    // Firestoreからドキュメントを削除
+    await deleteDoc(doc(db, collectionName, docId));
+
+    showResult(
+      "firestoreResult",
+      `「${displayName}」を削除しました。`,
+      "success"
+    );
+
+    console.log(
+      `Document deleted: ${collectionName}/${docId} (${displayName})`
+    );
+
+    // 削除後に適切なコレクション一覧を自動再表示
+    setTimeout(() => {
+      switch (collectionName) {
+        case "items":
+          getAllItems();
+          break;
+        case "users":
+          getAllUsers();
+          break;
+        case "scanItems":
+          getAllScanItems();
+          break;
+        default:
+          console.warn(`Unknown collection name: ${collectionName}`);
+      }
+    }, 1000); // 1秒後に再表示（結果メッセージを表示する時間を確保）
+  } catch (error) {
+    console.error("削除エラー:", error);
+    showResult("firestoreResult", `削除エラー: ${error.message}`, "error");
+  }
+}
+
 // Excel ファイルアップロード処理
 async function uploadExcelFile(collectionType, fileInput) {
   const file = fileInput.files[0];
@@ -761,6 +824,7 @@ window.closeModal = closeModal;
 window.closeDownloadResultModal = closeDownloadResultModal;
 window.submitAddData = submitAddData;
 window.addToCurrentCollection = addToCurrentCollection;
+window.deleteDocument = deleteDocument;
 
 window.downloadItemsTemplateFromHosting = downloadItemsTemplateFromHosting;
 window.downloadUsersTemplateFromHosting = downloadUsersTemplateFromHosting;

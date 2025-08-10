@@ -328,13 +328,51 @@ class SmartQRScanner {
 
   async saveScanResult(qrData) {
     try {
-      this.showStatus("💾 スキャン結果を保存中...", "info");
+      this.showStatus("💾 スキャン結果を処理中...", "info");
+
+      // QRコードデータをパラメータ区切りで分割（カンマ、セミコロン、パイプなど対応）
+      const params = qrData.split(/[,;|]/);
+      this.debugLog("QRコードパラメータ分析", { original: qrData, params });
+
+      // 1番目のパラメータが"aaa"かチェック
+      const firstParam = params[0]?.trim();
+      if (firstParam !== "aaa") {
+        this.debugLog("不正なQRコード識別子", firstParam);
+
+        // エラーモーダル表示
+        this.showErrorModal(
+          "無効なQRコード",
+          `このQRコードは展示会用ではありません。`
+        );
+
+        // カメラを停止
+        await this.stopScan();
+        return;
+      }
+
+      // 2番目のパラメータを取得（コンテンツとして保存）
+      const content = params[1]?.trim();
+      if (!content) {
+        this.debugLog("コンテンツパラメータが見つかりません");
+
+        this.showErrorModal(
+          "データ不足",
+          "QRコードの2番目のパラメータ（コンテンツ）が見つかりません。"
+        );
+
+        await this.stopScan();
+        return;
+      }
+
+      this.showStatus("💾 展示会データを保存中...", "info");
 
       // 現在のユーザー情報を取得
       const currentUser = this.getCurrentUserInfo();
 
       const docRef = await addDoc(collection(db, "scanItems"), {
-        content: qrData,
+        content: content, // 2番目のパラメータをコンテンツとして保存
+        originalQrCode: qrData, // 元のQRコードデータも保存
+        identifier: firstParam, // 識別子も保存
         timestamp: new Date().toISOString(),
         createdAt: new Date(),
         scannerMode: this.currentMode,
@@ -347,10 +385,10 @@ class SmartQRScanner {
         company_name: currentUser.company_name || "", // テストユーザーには後で追加予定
       });
 
-      this.debugLog("Firestore保存完了", docRef.id);
+      this.debugLog("展示会データ保存完了", { docId: docRef.id, content });
 
       // 成功モーダル表示
-      this.showSuccessModal(qrData, docRef.id);
+      this.showSuccessModal(content, docRef.id);
 
       // UIリセット
       this.resetUI();
@@ -511,6 +549,16 @@ class SmartQRScanner {
     }
   }
 
+  showErrorModal(title, message) {
+    if (typeof showErrorModal === "function") {
+      showErrorModal(title, message);
+    } else {
+      // フォールバック: alertを使用
+      alert(`${title}\n\n${message}`);
+    }
+    this.debugLog("エラーモーダル表示", { title, message });
+  }
+
   // UI制御関数
   showCameraContainer() {
     const container =
@@ -582,12 +630,6 @@ class SmartQRScanner {
         scanData.push({
           id: doc.id,
           content: data.content,
-          timestamp: data.timestamp,
-          scannerMode: data.scannerMode,
-          createdAt: data.createdAt,
-          role: data.role || "",
-          user_id: data.user_id || "",
-          user_name: data.user_name || "",
           company_name: data.company_name || "",
         });
       });
@@ -605,12 +647,8 @@ class SmartQRScanner {
       html += '<table class="history-table">';
       html += "<thead>";
       html += "<tr>";
-      html += "<th>時刻</th>";
       html += "<th>内容</th>";
-      html += "<th>ユーザー</th>";
-      html += "<th>役割</th>";
       html += "<th>会社</th>";
-      html += "<th>スキャナー</th>";
       html += "</tr>";
       html += "</thead>";
       html += "<tbody>";
@@ -629,12 +667,8 @@ class SmartQRScanner {
         const company = item.company_name || "-";
 
         html += "<tr>";
-        html += `<td class="time-cell">${timeStr}</td>`;
         html += `<td class="content-cell">${item.content}</td>`;
-        html += `<td class="user-cell">${userName}</td>`;
-        html += `<td class="role-cell">${role}</td>`;
         html += `<td class="company-cell">${company}</td>`;
-        html += `<td class="mode-cell">${mode}</td>`;
         html += "</tr>";
       });
 

@@ -247,6 +247,25 @@
         background-color: #2ecc71;
       }
 
+      /* エラーモーダル専用スタイル */
+      .error-header {
+        color: #e74c3c !important;
+      }
+
+      #errorModal .modal-body {
+        border-left: 4px solid #e74c3c;
+        background-color: #fdf2f2;
+        color: #721c24;
+      }
+
+      #errorModal .modal-close {
+        background-color: #e74c3c;
+      }
+
+      #errorModal .modal-close:hover {
+        background-color: #c0392b;
+      }
+
       .hidden {
         display: none !important;
       }
@@ -543,6 +562,19 @@
       </div>
     </div>
 
+    <!-- エラーモーダル -->
+    <div id="errorModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header error-header">
+          ❌ <span id="errorTitle">エラー</span>
+        </div>
+        <div class="modal-body" id="errorModalBody">
+          <!-- エラーメッセージがここに表示されます -->
+        </div>
+        <button class="modal-close" onclick="closeErrorModal()">閉じる</button>
+      </div>
+    </div>
+
     <!-- Firebase SDK & QRスキャナー -->
     <script src="https://unpkg.com/@zxing/library@latest/umd/index.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
@@ -584,6 +616,52 @@
           }
         }
       }
+
+      // 成功モーダル表示関数
+      function showSuccessModal(qrData, docId) {
+        const modal = document.getElementById("successModal");
+        const modalBody = document.getElementById("modalBody");
+
+        modalBody.innerHTML = `
+          <div><strong>スキャン結果:</strong></div>
+          <div style="margin: 10px 0; padding: 10px; background: #e8f5e8; border-radius: 4px; font-family: monospace;">${qrData}</div>
+          <div style="font-size: 12px; color: #666;">ドキュメントID: ${docId}</div>
+        `;
+
+        modal.classList.add("show");
+      }
+
+      // エラーモーダル表示関数
+      function showErrorModal(title, message) {
+        const modal = document.getElementById("errorModal");
+        const titleElement = document.getElementById("errorTitle");
+        const modalBody = document.getElementById("errorModalBody");
+
+        titleElement.textContent = title;
+        modalBody.innerHTML = `
+          <div style="white-space: pre-line; line-height: 1.5;">${message}</div>
+        `;
+
+        modal.classList.add("show");
+      }
+
+      // 成功モーダル閉じる
+      function closeModal() {
+        const modal = document.getElementById("successModal");
+        modal.classList.remove("show");
+      }
+
+      // エラーモーダル閉じる
+      function closeErrorModal() {
+        const modal = document.getElementById("errorModal");
+        modal.classList.remove("show");
+      }
+
+      // グローバル関数として登録
+      window.showSuccessModal = showSuccessModal;
+      window.showErrorModal = showErrorModal;
+      window.closeModal = closeModal;
+      window.closeErrorModal = closeErrorModal;
     </script>
   </body>
 </html>
