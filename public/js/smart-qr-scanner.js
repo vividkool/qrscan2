@@ -34,6 +34,8 @@ class SmartQRScanner {
     this.currentMode = null;
     this.retryCount = 0;
     this.maxRetries = 2;
+    this.zxingErrorCount = 0; // ZXingエラーカウンター
+    this.maxZXingErrors = 10; // ZXing最大エラー数
 
     // デバッグモード
     this.DEBUG_MODE = true;
@@ -119,6 +121,7 @@ class SmartQRScanner {
     this.debugLog("スキャン開始");
     this.isScanning = true;
     this.retryCount = 0;
+    this.zxingErrorCount = 0; // エラーカウンターをリセット
 
     // まずZXingを試行
     const zxingSuccess = await this.tryZXingScan();
@@ -148,7 +151,7 @@ class SmartQRScanner {
 
       // カメラコンテナを表示
       this.showCameraContainer();
-      
+
       // ボタン状態を切り替え
       this.toggleScanButtons(true);
 
@@ -184,12 +187,43 @@ class SmartQRScanner {
         (result, err) => {
           if (result && this.isScanning) {
             this.debugLog("ZXing QRコード検出", result.text);
+            this.zxingErrorCount = 0; // 成功時はエラーカウンターをリセット
             this.handleScanResult(result.text);
             return;
           }
 
-          if (err && !(err instanceof ZXing.NotFoundException)) {
-            this.debugLog("ZXing スキャンエラー", err);
+          if (err) {
+            // ZXing固有のエラーは正常な動作として扱う
+            if (
+              err instanceof ZXing.NotFoundException ||
+              err instanceof ZXing.ChecksumException ||
+              err instanceof ZXing.FormatException
+            ) {
+              // これらは正常なスキャン処理中に発生する
+              return;
+            }
+
+            // その他のエラーはカウントアップ
+            this.zxingErrorCount++;
+
+            // デバッグ出力（詳細ログは抑制）
+            if (this.zxingErrorCount <= 3) {
+              this.debugLog("ZXing デコードエラー", err.message || err);
+            }
+
+            // エラーが多すぎる場合はフォールバックを検討
+            if (this.zxingErrorCount >= this.maxZXingErrors) {
+              this.debugLog(
+                `ZXing エラー多発 (${this.zxingErrorCount}回), フォールバックを検討`
+              );
+              // 非同期でフォールバックを実行
+              setTimeout(() => {
+                if (this.isScanning && this.currentMode === "zxing") {
+                  this.debugLog("ZXing からHTML5-QRCode へ自動フォールバック");
+                  this.switchToFallback();
+                }
+              }, 1000);
+            }
           }
         }
       );
@@ -228,7 +262,7 @@ class SmartQRScanner {
 
       // カメラコンテナを表示
       this.showCameraContainer();
-      
+
       // ボタン状態を切り替え
       this.toggleScanButtons(true);
 
@@ -296,6 +330,9 @@ class SmartQRScanner {
     try {
       this.showStatus("💾 スキャン結果を保存中...", "info");
 
+      // 現在のユーザー情報を取得
+      const currentUser = this.getCurrentUserInfo();
+
       const docRef = await addDoc(collection(db, "scanItems"), {
         content: qrData,
         timestamp: new Date().toISOString(),
@@ -303,6 +340,11 @@ class SmartQRScanner {
         scannerMode: this.currentMode,
         deviceInfo: this.getDeviceInfo(),
         userAgent: navigator.userAgent.substr(0, 100),
+        // ユーザー情報を追加
+        role: currentUser.role || "",
+        user_id: currentUser.user_id || "",
+        user_name: currentUser.user_name || "",
+        company_name: currentUser.company_name || "", // テストユーザーには後で追加予定
       });
 
       this.debugLog("Firestore保存完了", docRef.id);
@@ -320,6 +362,29 @@ class SmartQRScanner {
     } catch (error) {
       this.debugLog("保存エラー", error);
       this.showError(`保存エラー: ${error.message}`);
+    }
+  }
+
+  async switchToFallback() {
+    if (!this.isScanning || this.currentMode !== "zxing") return;
+
+    this.debugLog("ZXing から HTML5-QRCode への自動フォールバック開始");
+
+    try {
+      // ZXingスキャナーを停止（UIはリセットしない）
+      if (this.primaryScanner) {
+        this.primaryScanner.reset();
+        this.debugLog("ZXing スキャナー停止（フォールバック）");
+      }
+
+      // カメラストリームを停止
+      await this.stopCurrentStream();
+
+      // HTML5-QRCodeでスキャン再開
+      await this.tryHTML5QRCodeScan();
+    } catch (error) {
+      this.debugLog("フォールバックエラー", error);
+      this.showError("スキャナーの切り替えに失敗しました");
     }
   }
 
@@ -345,11 +410,13 @@ class SmartQRScanner {
 
       // カメラストリーム停止
       await this.stopCurrentStream();
-      
+
       // UI をリセット
       this.hideCameraContainer();
       this.toggleScanButtons(false);
-      
+
+      // スキャン履歴を表示
+      await this.displayScanHistory();
     } catch (error) {
       this.debugLog("スキャン停止エラー", error);
     }
@@ -391,6 +458,31 @@ class SmartQRScanner {
     };
   }
 
+  getCurrentUserInfo() {
+    try {
+      // UserSessionクラスからユーザー情報を取得
+      if (typeof UserSession !== "undefined" && UserSession.getCurrentUser) {
+        const user = UserSession.getCurrentUser();
+        this.debugLog("ユーザー情報取得", user);
+        return user || {};
+      }
+
+      // フォールバック: localStorageから直接取得
+      const userStr = localStorage.getItem("currentUser");
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        this.debugLog("localStorage からユーザー情報取得", user);
+        return user;
+      }
+
+      this.debugLog("ユーザー情報が見つかりません");
+      return {};
+    } catch (error) {
+      this.debugLog("ユーザー情報取得エラー", error);
+      return {};
+    }
+  }
+
   delay(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
@@ -421,8 +513,9 @@ class SmartQRScanner {
 
   // UI制御関数
   showCameraContainer() {
-    const container = document.getElementById("cameraContainer") || 
-                     document.querySelector(".camera-container");
+    const container =
+      document.getElementById("cameraContainer") ||
+      document.querySelector(".camera-container");
     if (container) {
       container.style.display = "block";
       container.classList.add("active");
@@ -431,8 +524,9 @@ class SmartQRScanner {
   }
 
   hideCameraContainer() {
-    const container = document.getElementById("cameraContainer") || 
-                     document.querySelector(".camera-container");
+    const container =
+      document.getElementById("cameraContainer") ||
+      document.querySelector(".camera-container");
     if (container) {
       container.style.display = "none";
       container.classList.remove("active");
@@ -443,7 +537,7 @@ class SmartQRScanner {
   toggleScanButtons(scanning) {
     const startBtn = document.getElementById("startScanBtn");
     const stopBtn = document.getElementById("stopScanBtn");
-    
+
     if (startBtn && stopBtn) {
       if (scanning) {
         startBtn.style.display = "none";
@@ -453,6 +547,115 @@ class SmartQRScanner {
         startBtn.style.display = "block";
         stopBtn.style.display = "none";
         this.debugLog("スキャンボタンを開始状態に切り替え");
+      }
+    }
+  }
+
+  async displayScanHistory() {
+    try {
+      this.debugLog("スキャン履歴表示開始");
+
+      const historyElement = document.getElementById("scanHistory");
+      if (!historyElement) {
+        this.debugLog("scanHistory要素が見つかりません");
+        return;
+      }
+
+      // ローディング表示
+      historyElement.innerHTML =
+        '<div class="loading">📜 履歴を読み込み中...</div>';
+
+      // Firestoreからスキャン履歴を取得
+      const querySnapshot = await getDocs(collection(db, "scanItems"));
+
+      if (querySnapshot.empty) {
+        historyElement.innerHTML =
+          '<div class="no-data">📝 スキャン履歴がありません</div>';
+        this.debugLog("スキャン履歴なし");
+        return;
+      }
+
+      // データを配列に変換して時刻順にソート
+      const scanData = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        scanData.push({
+          id: doc.id,
+          content: data.content,
+          timestamp: data.timestamp,
+          scannerMode: data.scannerMode,
+          createdAt: data.createdAt,
+          role: data.role || "",
+          user_id: data.user_id || "",
+          user_name: data.user_name || "",
+          company_name: data.company_name || "",
+        });
+      });
+
+      // 新しい順にソート
+      scanData.sort((a, b) => {
+        const timeA = new Date(a.timestamp || a.createdAt);
+        const timeB = new Date(b.timestamp || b.createdAt);
+        return timeB - timeA;
+      });
+
+      // テーブル形式でHTML生成
+      let html = "<h3>📜 スキャン履歴</h3>";
+      html += '<div class="history-table-container">';
+      html += '<table class="history-table">';
+      html += "<thead>";
+      html += "<tr>";
+      html += "<th>時刻</th>";
+      html += "<th>内容</th>";
+      html += "<th>ユーザー</th>";
+      html += "<th>役割</th>";
+      html += "<th>会社</th>";
+      html += "<th>スキャナー</th>";
+      html += "</tr>";
+      html += "</thead>";
+      html += "<tbody>";
+
+      scanData.slice(0, 20).forEach((item, index) => {
+        const time = new Date(item.timestamp || item.createdAt);
+        const timeStr = time.toLocaleString("ja-JP", {
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        const mode = item.scannerMode || "unknown";
+        const userName = item.user_name || item.user_id || "-";
+        const role = item.role || "-";
+        const company = item.company_name || "-";
+
+        html += "<tr>";
+        html += `<td class="time-cell">${timeStr}</td>`;
+        html += `<td class="content-cell">${item.content}</td>`;
+        html += `<td class="user-cell">${userName}</td>`;
+        html += `<td class="role-cell">${role}</td>`;
+        html += `<td class="company-cell">${company}</td>`;
+        html += `<td class="mode-cell">${mode}</td>`;
+        html += "</tr>";
+      });
+
+      html += "</tbody>";
+      html += "</table>";
+      html += "</div>";
+
+      if (scanData.length > 20) {
+        html += `<div class="history-footer">他 ${
+          scanData.length - 20
+        } 件</div>`;
+      }
+
+      historyElement.innerHTML = html;
+      this.debugLog(`スキャン履歴表示完了: ${scanData.length}件`);
+    } catch (error) {
+      this.debugLog("スキャン履歴表示エラー", error);
+      const historyElement = document.getElementById("scanHistory");
+      if (historyElement) {
+        historyElement.innerHTML =
+          '<div class="error">履歴の読み込みに失敗しました</div>';
       }
     }
   }

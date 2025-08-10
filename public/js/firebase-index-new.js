@@ -7,6 +7,8 @@ import {
   getDocs,
   doc,
   setDoc,
+  query,
+  orderBy,
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 // Firebase設定
@@ -101,22 +103,26 @@ function downloadSelectedTemplate() {
 async function getAllItems() {
   try {
     showLoading("firestoreResult");
-    const querySnapshot = await getDocs(collection(db, "items"));
+
+    // item_noで昇順ソートのクエリを作成
+    const q = query(collection(db, "items"), orderBy("item_no", "asc"));
+    const querySnapshot = await getDocs(q);
+
     if (querySnapshot.empty) {
       showResult("firestoreResult", "アイテムデータがありません", "error");
       return;
     }
     let html = "<table><thead><tr>";
     html +=
-      "<th>item_no</th><th>item_name</th><th>category_name</th><th>company_name</th><th>maker_code</th>";
+      "<th>item_no</th><th>category_name</th><th>company_name</th><th>item_name</th><th>maker_code</th>";
     html += "</tr></thead><tbody>";
     querySnapshot.forEach((docSnap) => {
       const d = docSnap.data();
       html += `<tr><td>${d.item_no || ""}</td><td>${
-        d.item_name || ""
-      }</td><td>${d.category_name || ""}</td><td>${
-        d.company_name || ""
-      }</td><td>${d.maker_code || ""}</td></tr>`;
+        d.category_name || ""
+      }</td><td>${d.company_name || ""}</td><td>${d.item_name || ""}</td><td>${
+        d.maker_code || ""
+      }</td></tr>`;
     });
     html += "</tbody></table>";
     showResult("firestoreResult", html, "success");
@@ -145,17 +151,17 @@ async function getAllUsers() {
     }
     let html = "<table><thead><tr>";
     html +=
-      "<th>user_id</th><th>user_name</th><th>email</th><th>phone</th><th>department</th><th>status</th><th>role</th><th>print_status</th>";
+      "<th>user_id</th><th>company_name</th><th>user_name</th><th>email</th><th>phone</th><th>department</th><th>status</th><th>role</th><th>print_status</th>";
     html += "</tr></thead><tbody>";
     querySnapshot.forEach((docSnap) => {
       const d = docSnap.data();
       html += `<tr><td>${d.user_id || ""}</td><td>${
-        d.user_name || ""
-      }</td><td>${d.email || ""}</td><td>${d.phone || ""}</td><td>${
-        d.department || ""
-      }</td><td>${d.status || ""}</td><td>${d.role || ""}</td><td>${
-        d.print_status || ""
-      }</td></tr>`;
+        d.company_name || ""
+      }</td><td>${d.user_name || ""}</td><td>${d.email || ""}</td><td>${
+        d.phone || ""
+      }</td><td>${d.department || ""}</td><td>${d.status || ""}</td><td>${
+        d.user_role || ""
+      }</td><td>${d.print_status || ""}</td></tr>`;
     });
     html += "</tbody></table>";
     showResult("firestoreResult", html, "success");
@@ -170,6 +176,40 @@ async function getAllUsers() {
   } catch (error) {
     showResult("firestoreResult", `取得エラー: ${error.message}`, "error");
     updateAddButton(null);
+  }
+}
+
+async function getAllScanItems() {
+  try {
+    showLoading("firestoreResult");
+    const querySnapshot = await getDocs(collection(db, "scanItems"));
+    if (querySnapshot.empty) {
+      showResult("firestoreResult", "アイテムデータがありません", "error");
+      return;
+    }
+    let html = "<table><thead><tr>";
+    html +=
+      "<th>item_no</th><th>item_name</th><th>content</th><th>timestamp</th><th>company_name</th><th>maker_code</th><th>isiOS</th><th>isWebkit</th><th>scannerMode</th>";
+    html += "</tr></thead><tbody>";
+    querySnapshot.forEach((docSnap) => {
+      const d = docSnap.data();
+      html += `<tr><td>${d.item_no || ""}</td><td>${
+        d.item_name || ""
+      }</td><td>${d.content || ""}</td><td>${d.timestamp || ""}</td><td>${
+        d.isMobile || ""
+      }</td><td>${d.isWebkit || ""}</td><td>${d.isiOS || ""}</td><td>${
+        d.platform || ""
+      }</td><td>${d.scannerMode || ""}</td></tr>`;
+    });
+    html += "</tbody></table>";
+    showResult("firestoreResult", html, "success");
+    document.getElementById("firestoreResult-collectionname").textContent =
+      "ScanItemsコレクション";
+    document.getElementById(
+      "firestoreResult-count"
+    ).textContent = `${querySnapshot.size}件`;
+  } catch (error) {
+    showResult("firestoreResult", `取得エラー: ${error.message}`, "error");
   }
 }
 
@@ -233,32 +273,6 @@ async function addDocument() {
     document.getElementById("documentId").value = "";
     document.getElementById("dataTitle").value = "";
     document.getElementById("dataContent").value = "";
-  } catch (error) {
-    showResult("firestoreResult", `エラー: ${error.message}`, "error");
-  }
-}
-
-async function getAllDocuments() {
-  try {
-    showLoading("firestoreResult");
-
-    const querySnapshot = await getDocs(collection(db, "qrscans"));
-    let result = "Firestore データ一覧:\n\n";
-
-    if (querySnapshot.empty) {
-      result += "データが見つかりませんでした。";
-    } else {
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        result += `ID: ${doc.id}\n`;
-        result += `タイトル: ${data.title || "N/A"}\n`;
-        result += `内容: ${data.content || "N/A"}\n`;
-        result += `作成日時: ${data.timestamp || "N/A"}\n`;
-        result += "---\n\n";
-      });
-    }
-
-    showResult("firestoreResult", result, "success");
   } catch (error) {
     showResult("firestoreResult", `エラー: ${error.message}`, "error");
   }
@@ -732,7 +746,9 @@ async function loadXLSXLibrary() {
 
 // グローバル関数として公開
 window.addDocument = addDocument;
-window.getAllDocuments = getAllDocuments;
+window.getAllScanItems = getAllScanItems;
+window.getAllItems = getAllItems;
+window.getAllUsers = getAllUsers;
 window.callHelloWorld = callHelloWorld;
 window.downloadItemsTemplate = downloadItemsTemplateFromHosting;
 window.downloadUsersTemplate = downloadUsersTemplateFromHosting;
@@ -745,8 +761,7 @@ window.closeModal = closeModal;
 window.closeDownloadResultModal = closeDownloadResultModal;
 window.submitAddData = submitAddData;
 window.addToCurrentCollection = addToCurrentCollection;
-window.getAllItems = getAllItems;
-window.getAllUsers = getAllUsers;
+
 window.downloadItemsTemplateFromHosting = downloadItemsTemplateFromHosting;
 window.downloadUsersTemplateFromHosting = downloadUsersTemplateFromHosting;
 window.downloadSelectedTemplate = downloadSelectedTemplate;

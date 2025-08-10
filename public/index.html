@@ -258,6 +258,52 @@
             background: #c82333;
         }
 
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.4);
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 8px;
+            max-width: 500px;
+            margin: 80px auto;
+            padding: 30px;
+            position: relative;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        .form-group input:focus {
+            border-color: #4285f4;
+            outline: none;
+        }
+
         @media (max-width: 768px) {
             .action-buttons {
                 grid-template-columns: 1fr;
@@ -273,7 +319,15 @@
 <body>
     <!-- ダッシュボードヘッダー -->
     <div class="dashboard-header">
-        <h1>🔥 Firebase QR Scan Dashboard</h1>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h1 style="margin: 0;">🔥 Firebase QR Scan Dashboard</h1>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <span id="userInfo" style="color: rgba(255,255,255,0.9); font-size: 14px;"></span>
+                <button onclick="UserSession.logout()" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
+                    ログアウト
+                </button>
+            </div>
+        </div>
         <p>データベース管理とQRスキャン機能を統合管理</p>
     </div>
 
@@ -303,7 +357,9 @@
         <button onclick="getAllUsers()" class="action-button">
           👥 usersコレクション取得
         </button>
-        
+        <button onclick="getAllScanItems()" class="action-button">
+          👥 ScanItemsコレクション取得
+        </button>
       </div>
       
       <!-- 3行目: ファイルアップロード -->
@@ -313,6 +369,9 @@
         </button>
         <button onclick="document.getElementById('usersFileInput').click()" class="action-button" style="border-color: #ff9800; color: #ff9800;">
           📤 Users Excel アップロード
+        </button>
+        <button onclick="createTestUsers()" class="action-button" style="border-color: #e74c3c; color: #e74c3c;">
+          👥 テストユーザー作成
         </button>
         <input type="file" id="itemsFileInput" accept=".xlsx,.xls" style="display: none;" onchange="uploadExcelFile('items', this)">
         <input type="file" id="usersFileInput" accept=".xlsx,.xls" style="display: none;" onchange="uploadExcelFile('users', this)">
@@ -338,17 +397,29 @@
                         </div>
                 </div>
 
+    <!-- データ追加モーダル -->
+    <div id="addDataModal" class="modal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100vw; height:100vh; background:rgba(0,0,0,0.4);">
+        <div style="background:white; border-radius:8px; max-width:500px; margin:80px auto; padding:30px; position:relative; box-shadow:0 2px 10px rgba(0,0,0,0.2);">
+            <h3 id="modalTitle" style="color:#4285f4; margin-top:0;">データ追加</h3>
+            <button onclick="closeModal()" class="btn-clear" style="position:absolute; top:18px; right:18px;">閉じる</button>
+            <form id="modalForm" style="margin-top:20px;">
+                <!-- フォームフィールドは動的に生成されます -->
+            </form>
+            <div style="margin-top:20px; text-align:right;">
+                <button type="button" onclick="closeModal()" class="btn-clear" style="margin-right:10px;">キャンセル</button>
+                <button type="button" onclick="submitAddData()" class="action-button">追加</button>
+            </div>
+        </div>
+    </div>
+
     <!-- データベース管理 -->
     <div class="dashboard-grid">
       <div class="dashboard-section">
         <div class="section-header">
           <h3 class="section-title">📊 データベース管理</h3>
-          <button onclick="openAddDataModal('items')" class="action-button">
-          ➕ アイテム追加
-        </button>
-        <button onclick="openAddDataModal('users')" class="action-button">
-          ➕ ユーザー追加
-        </button>
+          <button id="addDataButton" onclick="addToCurrentCollection()" class="action-button" style="display: none;">
+            ➕ データ追加
+          </button>
           <div id="firestoreResult-count" class="collection-count"></div>
           <div id="firestoreResult-collectionname" class="collection-title"></div>
         </div>
@@ -371,7 +442,8 @@
     </div>
 
     <!-- Firebase SDK -->
-    <script type="module" src="js/firebase-index.js"></script>
+    <script type="module" src="js/auth.js"></script>
+    <script type="module" src="js/firebase-index-new.js"></script>
 </body>
 
 </html>
