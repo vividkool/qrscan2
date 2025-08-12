@@ -408,6 +408,10 @@
                 style="border-color: #ff9800; color: #ff9800;">
                 📤 Users Excel アップロード
             </button>
+            <button onclick="document.getElementById('staffFileInput').click()" class="action-button"
+                style="border-color: #9c27b0; color: #9c27b0;">
+                👥 Staff Excel アップロード
+            </button>
             <!--
             <button onclick="createTestUsers()" class="action-button" style="border-color: #e74c3c; color: #e74c3c;">
                 👥 テストユーザー作成
@@ -416,6 +420,8 @@
             <input type="file" id="itemsFileInput" accept=".xlsx,.xls" style="display: none;"
                 onchange="uploadExcelFile('items', this)">
             <input type="file" id="usersFileInput" accept=".xlsx,.xls" style="display: none;"
+                onchange="uploadExcelFile('users', this)">
+            <input type="file" id="staffFileInput" accept=".xlsx,.xls" style="display: none;"
                 onchange="uploadExcelFile('users', this)">
 
         </div>

@@ -354,7 +354,9 @@ async function downloadStaffTemplate() {
     console.log("Fetch response:", response.status, response.statusText);
 
     if (!response.ok) {
-      throw new Error(`テンプレートファイルが見つかりません (${response.status}: ${response.statusText})`);
+      throw new Error(
+        `テンプレートファイルが見つかりません (${response.status}: ${response.statusText})`
+      );
     }
 
     const blob = await response.blob();
@@ -387,6 +389,7 @@ async function uploadExcelFile(collectionType, fileInput) {
 
   const file = fileInput.files[0];
   const fileExtension = file.name.split(".").pop().toLowerCase();
+  const fileName = file.name.toLowerCase();
 
   if (fileExtension !== "xlsx" && fileExtension !== "xls") {
     showResult(
@@ -407,18 +410,58 @@ async function uploadExcelFile(collectionType, fileInput) {
 
     const data = await file.arrayBuffer();
     const workbook = XLSX.read(data, { type: "array" });
-    const firstSheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[firstSheetName];
+
+    // ファイル名とコレクションタイプに基づいて適切なシートを選択
+    let targetSheetName;
+    let actualCollectionType = collectionType;
+
+    if (fileName.includes("items.xlsx")) {
+      targetSheetName = "items";
+      actualCollectionType = "items";
+    } else if (fileName.includes("users.xlsx")) {
+      targetSheetName = "users";
+      actualCollectionType = "users";
+    } else if (fileName.includes("staff.xlsx")) {
+      targetSheetName = "staff";
+      actualCollectionType = "users"; // staffはusersコレクションに保存
+    } else {
+      // ファイル名で判定できない場合は、コレクションタイプに基づいてシート名を決定
+      if (collectionType === "items") {
+        targetSheetName = "items";
+      } else if (collectionType === "users") {
+        targetSheetName = "users";
+      } else {
+        targetSheetName = workbook.SheetNames[0]; // フォールバック：最初のシート
+      }
+    }
+
+    // 指定したシートが存在するかチェック
+    if (!workbook.SheetNames.includes(targetSheetName)) {
+      showResult(
+        "firestoreResult",
+        `指定されたシート「${targetSheetName}」が見つかりません。\n利用可能なシート: ${workbook.SheetNames.join(
+          ", "
+        )}`,
+        "error"
+      );
+      return;
+    }
+
+    const worksheet = workbook.Sheets[targetSheetName];
     const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
     if (jsonData.length === 0) {
       showResult(
         "firestoreResult",
-        "Excelファイルにデータがありません",
+        `シート「${targetSheetName}」にデータがありません`,
         "error"
       );
       return;
     }
+
+    console.log(
+      `Processing sheet: ${targetSheetName}, Collection: ${actualCollectionType}, Rows: ${jsonData.length}`
+    );
 
     let successCount = 0;
     let errorCount = 0;
@@ -429,44 +472,46 @@ async function uploadExcelFile(collectionType, fileInput) {
       try {
         let documentData;
 
-        if (collectionType === "items") {
+        if (actualCollectionType === "items") {
           documentData = {
-            name: row["name"] || row["名前"] || "",
-            description: row["description"] || row["説明"] || "",
-            category: row["category"] || row["カテゴリ"] || "",
+            item_no: row["item_no"] || row["アイテム番号"] || "",
+            item_name: row["item_name"] || row["アイテム名"] || "",
+            category_name: row["category_name"] || row["カテゴリ名"] || "",
+            company_name: row["company_name"] || row["会社名"] || "",
+            maker_code: row["maker_code"] || row["メーカーコード"] || "",
             price: row["price"] || row["価格"] || 0,
+            standard: row["standard"] || row["規格"] || "",
+            shape: row["shape"] || row["形状"] || "",
             createdAt: new Date(),
             updatedAt: new Date(),
           };
-        } else if (collectionType === "users") {
-          documentData = {
-            user_id: row["user_id"] || row["ユーザーID"] || "",
-            user_name: row["user_name"] || row["ユーザー名"] || "",
-            email: row["email"] || row["メール"] || "",
-            role: row["role"] || row["役割"] || "",
-            department: row["department"] || row["部署"] || "",
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          };
-        } else if (collectionType === "staff") {
+        } else if (actualCollectionType === "users") {
           documentData = {
             user_id: row["user_id"] || row["ユーザーID"] || "",
             user_name: row["user_name"] || row["ユーザー名"] || "",
             email: row["email"] || row["メール"] || "",
             phone: row["phone"] || row["電話番号"] || "",
             company_name: row["company_name"] || row["会社名"] || "",
-            status: row["status"] || row["ステータス"] || "active",
-            user_role: row["user_role"] || row["権限"] || "staff",
-            print_status: row["print_status"] || row["印刷状況"] || "not_printed",
+            department: row["department"] || row["部署"] || "",
+            status: row["status"] || row["ステータス"] || "",
+            user_role: row["user_role"] || row["役割"] || "",
+            print_status: row["print_status"] || row["印刷状況"] || "",
             createdAt: new Date(),
             updatedAt: new Date(),
           };
         } else {
-          throw new Error(`未対応のコレクションタイプ: ${collectionType}`);
+          throw new Error(
+            `未対応のコレクションタイプ: ${actualCollectionType}`
+          );
         }
 
-        await addDoc(collection(db, collectionType), documentData);
+        await addDoc(collection(db, actualCollectionType), documentData);
         successCount++;
+
+        // デバッグ情報
+        const displayId =
+          documentData.item_no || documentData.user_id || `Row ${index + 1}`;
+        console.log(`Saved to ${actualCollectionType}: ${displayId}`);
       } catch (error) {
         errorCount++;
         errors.push(`行 ${index + 2}: ${error.message}`);
@@ -475,7 +520,8 @@ async function uploadExcelFile(collectionType, fileInput) {
     }
 
     // 結果表示
-    let resultMessage = `アップロード完了<br>`;
+    let resultMessage = `シート「${targetSheetName}」のアップロード完了<br>`;
+    resultMessage += `コレクション: ${actualCollectionType}<br>`;
     resultMessage += `成功: ${successCount}件<br>`;
     if (errorCount > 0) {
       resultMessage += `エラー: ${errorCount}件<br>`;
