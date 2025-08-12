@@ -291,6 +291,49 @@
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
         }
 
+        .upload-options {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .option-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            padding: 20px;
+            text-align: left;
+            min-height: 80px;
+            justify-content: center;
+        }
+
+        .option-btn small {
+            font-size: 14px;
+            font-weight: normal;
+            margin-top: 5px;
+            opacity: 0.8;
+        }
+
+        .option-replace {
+            border-color: #e74c3c;
+            color: #e74c3c;
+        }
+
+        .option-replace:hover {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .file-name-display {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 15px 0;
+            font-family: monospace;
+            border-left: 4px solid #4285f4;
+        }
+
         .form-group {
             margin-bottom: 15px;
         }
@@ -400,29 +443,17 @@
 
         <!-- 3行目: ファイルアップロード -->
         <div class="action-buttons-row">
-            <button onclick="document.getElementById('itemsFileInput').click()" class="action-button"
+            <button onclick="document.getElementById('excelFileInput').click()" class="action-button"
                 style="border-color: #ff9800; color: #ff9800;">
-                📤 Items Excel アップロード
-            </button>
-            <button onclick="document.getElementById('usersFileInput').click()" class="action-button"
-                style="border-color: #ff9800; color: #ff9800;">
-                📤 Users Excel アップロード
-            </button>
-            <button onclick="document.getElementById('staffFileInput').click()" class="action-button"
-                style="border-color: #9c27b0; color: #9c27b0;">
-                👥 Staff Excel アップロード
+                📤 Excel ファイルアップロード
             </button>
             <!--
             <button onclick="createTestUsers()" class="action-button" style="border-color: #e74c3c; color: #e74c3c;">
                 👥 テストユーザー作成
             </button>
             -->
-            <input type="file" id="itemsFileInput" accept=".xlsx,.xls" style="display: none;"
-                onchange="uploadExcelFile('items', this)">
-            <input type="file" id="usersFileInput" accept=".xlsx,.xls" style="display: none;"
-                onchange="uploadExcelFile('users', this)">
-            <input type="file" id="staffFileInput" accept=".xlsx,.xls" style="display: none;"
-                onchange="uploadExcelFile('users', this)">
+            <input type="file" id="excelFileInput" accept=".xlsx,.xls" style="display: none;"
+                onchange="showUploadOptionsModal(this)">
 
         </div>
     </div>
@@ -496,6 +527,25 @@
 
         <div id="functionResult" class="result"></div>
     </div>
+    </div>
+
+    <!-- アップロードオプション選択モーダル -->
+    <div id="uploadOptionsModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeUploadOptionsModal()">&times;</span>
+            <h2>アップロード方法を選択してください</h2>
+            <p id="uploadFileName" class="file-name-display"></p>
+            <div class="upload-options">
+                <button onclick="handleUploadOption('add')" class="action-button option-btn">
+                    📝 データを追加
+                    <small>既存のデータを保持して新規データを追加します</small>
+                </button>
+                <button onclick="handleUploadOption('replace')" class="action-button option-btn option-replace">
+                    🔄 データを全消去して置き換え
+                    <small>既存のデータを全て削除してから新規データを保存します</small>
+                </button>
+            </div>
+        </div>
     </div>
 
     <!-- Firebase SDK -->

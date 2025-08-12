@@ -31,6 +31,55 @@ const db = getFirestore(app);
 
 // ====== モーダル関連関数 ======
 
+// アップロードオプション選択モーダル
+let selectedFile = null;
+
+function showUploadOptionsModal(inputElement) {
+  const file = inputElement.files[0];
+  if (!file) return;
+
+  selectedFile = file;
+
+  // ファイル名を表示
+  const fileNameDisplay = document.getElementById("uploadFileName");
+  if (fileNameDisplay) {
+    fileNameDisplay.textContent = `ファイル: ${file.name}`;
+  }
+
+  // モーダルを表示
+  const modal = document.getElementById("uploadOptionsModal");
+  if (modal) {
+    modal.style.display = "block";
+  }
+}
+
+function closeUploadOptionsModal() {
+  const modal = document.getElementById("uploadOptionsModal");
+  if (modal) {
+    modal.style.display = "none";
+  }
+  selectedFile = null;
+
+  // ファイル入力をクリア
+  const fileInput = document.getElementById("excelFileInput");
+  if (fileInput) {
+    fileInput.value = "";
+  }
+}
+
+function handleUploadOption(mode) {
+  if (!selectedFile) {
+    alert("ファイルが選択されていません。");
+    return;
+  }
+
+  // モーダルを閉じる
+  closeUploadOptionsModal();
+
+  // アップロード実行
+  uploadExcelFile(selectedFile, mode);
+}
+
 function showResult(elementId, message, type = "") {
   const element = document.getElementById(elementId);
   if (element) {
@@ -381,13 +430,12 @@ async function downloadStaffTemplate() {
 
 // ====== Excel ファイルアップロード処理 ======
 
-async function uploadExcelFile(collectionType, fileInput) {
-  if (!fileInput.files || fileInput.files.length === 0) {
+async function uploadExcelFile(file, mode = "add") {
+  if (!file) {
     showResult("firestoreResult", "ファイルが選択されていません", "error");
     return;
   }
 
-  const file = fileInput.files[0];
   const fileExtension = file.name.split(".").pop().toLowerCase();
   const fileName = file.name.toLowerCase();
 
@@ -411,28 +459,23 @@ async function uploadExcelFile(collectionType, fileInput) {
     const data = await file.arrayBuffer();
     const workbook = XLSX.read(data, { type: "array" });
 
-    // ファイル名とコレクションタイプに基づいて適切なシートを選択
+    // ファイル名に基づいて適切なシートとコレクションを自動判定
     let targetSheetName;
-    let actualCollectionType = collectionType;
+    let collectionType;
 
     if (fileName.includes("items.xlsx")) {
       targetSheetName = "items";
-      actualCollectionType = "items";
+      collectionType = "items";
     } else if (fileName.includes("users.xlsx")) {
       targetSheetName = "users";
-      actualCollectionType = "users";
+      collectionType = "users";
     } else if (fileName.includes("staff.xlsx")) {
       targetSheetName = "staff";
-      actualCollectionType = "users"; // staffはusersコレクションに保存
+      collectionType = "users"; // staffはusersコレクションに保存
     } else {
-      // ファイル名で判定できない場合は、コレクションタイプに基づいてシート名を決定
-      if (collectionType === "items") {
-        targetSheetName = "items";
-      } else if (collectionType === "users") {
-        targetSheetName = "users";
-      } else {
-        targetSheetName = workbook.SheetNames[0]; // フォールバック：最初のシート
-      }
+      // ファイル名で判定できない場合は、最初のシートを使用
+      targetSheetName = workbook.SheetNames[0];
+      collectionType = "items"; // デフォルト
     }
 
     // 指定したシートが存在するかチェック
@@ -460,8 +503,35 @@ async function uploadExcelFile(collectionType, fileInput) {
     }
 
     console.log(
-      `Processing sheet: ${targetSheetName}, Collection: ${actualCollectionType}, Rows: ${jsonData.length}`
+      `Processing sheet: ${targetSheetName}, Collection: ${collectionType}, Rows: ${jsonData.length}, Mode: ${mode}`
     );
+
+    // replaceモードの場合、既存データを全削除
+    if (mode === "replace") {
+      try {
+        showLoading("firestoreResult");
+
+        // 既存データを取得して削除
+        const collectionRef = collection(db, collectionType);
+        const snapshot = await getDocs(collectionRef);
+
+        if (!snapshot.empty) {
+          const deletePromises = snapshot.docs.map((doc) => deleteDoc(doc.ref));
+          await Promise.all(deletePromises);
+          console.log(
+            `Deleted ${snapshot.docs.length} existing documents from ${collectionType} collection`
+          );
+        }
+      } catch (deleteError) {
+        console.error("Error deleting existing data:", deleteError);
+        showResult(
+          "firestoreResult",
+          `既存データの削除中にエラーが発生しました: ${deleteError.message}`,
+          "error"
+        );
+        return;
+      }
+    }
 
     let successCount = 0;
     let errorCount = 0;
@@ -472,7 +542,7 @@ async function uploadExcelFile(collectionType, fileInput) {
       try {
         let documentData;
 
-        if (actualCollectionType === "items") {
+        if (collectionType === "items") {
           documentData = {
             item_no: row["item_no"] || row["アイテム番号"] || "",
             item_name: row["item_name"] || row["アイテム名"] || "",
@@ -485,7 +555,7 @@ async function uploadExcelFile(collectionType, fileInput) {
             createdAt: new Date(),
             updatedAt: new Date(),
           };
-        } else if (actualCollectionType === "users") {
+        } else if (collectionType === "users") {
           documentData = {
             user_id: row["user_id"] || row["ユーザーID"] || "",
             user_name: row["user_name"] || row["ユーザー名"] || "",
@@ -500,18 +570,16 @@ async function uploadExcelFile(collectionType, fileInput) {
             updatedAt: new Date(),
           };
         } else {
-          throw new Error(
-            `未対応のコレクションタイプ: ${actualCollectionType}`
-          );
+          throw new Error(`未対応のコレクションタイプ: ${collectionType}`);
         }
 
-        await addDoc(collection(db, actualCollectionType), documentData);
+        await addDoc(collection(db, collectionType), documentData);
         successCount++;
 
         // デバッグ情報
         const displayId =
           documentData.item_no || documentData.user_id || `Row ${index + 1}`;
-        console.log(`Saved to ${actualCollectionType}: ${displayId}`);
+        console.log(`Saved to ${collectionType}: ${displayId}`);
       } catch (error) {
         errorCount++;
         errors.push(`行 ${index + 2}: ${error.message}`);
@@ -520,8 +588,9 @@ async function uploadExcelFile(collectionType, fileInput) {
     }
 
     // 結果表示
-    let resultMessage = `シート「${targetSheetName}」のアップロード完了<br>`;
-    resultMessage += `コレクション: ${actualCollectionType}<br>`;
+    const modeText = mode === "replace" ? "（全消去後）" : "（追加）";
+    let resultMessage = `シート「${targetSheetName}」のアップロード完了${modeText}<br>`;
+    resultMessage += `コレクション: ${collectionType}<br>`;
     resultMessage += `成功: ${successCount}件<br>`;
     if (errorCount > 0) {
       resultMessage += `エラー: ${errorCount}件<br>`;
@@ -535,9 +604,6 @@ async function uploadExcelFile(collectionType, fileInput) {
       resultMessage,
       successCount > 0 ? "success" : "error"
     );
-
-    // ファイル入力をクリア
-    fileInput.value = "";
 
     console.log(
       `Upload completed: ${successCount} success, ${errorCount} errors`
@@ -582,6 +648,9 @@ window.downloadStaffTemplate = downloadStaffTemplateFromHosting;
 
 // アップロード関数
 window.uploadExcelFile = uploadExcelFile;
+window.showUploadOptionsModal = showUploadOptionsModal;
+window.closeUploadOptionsModal = closeUploadOptionsModal;
+window.handleUploadOption = handleUploadOption;
 
 console.log(
   "Template Utils (テンプレート・モーダル・アップロード機能) が初期化されました"
@@ -601,4 +670,7 @@ export {
   downloadUsersTemplateFromHosting,
   downloadStaffTemplateFromHosting,
   uploadExcelFile,
+  showUploadOptionsModal,
+  closeUploadOptionsModal,
+  handleUploadOption,
 };
