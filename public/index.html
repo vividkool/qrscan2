@@ -390,8 +390,11 @@
             <button onclick="getAllUsers()" class="action-button">
                 👥 usersコレクション取得
             </button>
+            <button onclick="getAllStaff()" class="action-button">
+                👨‍💼 staffコレクション取得
+            </button>
             <button onclick="getAllScanItems()" class="action-button">
-                👥 ScanItemsコレクション取得
+                � ScanItemsコレクション取得
             </button>
         </div>
 
@@ -414,6 +417,7 @@
                 onchange="uploadExcelFile('items', this)">
             <input type="file" id="usersFileInput" accept=".xlsx,.xls" style="display: none;"
                 onchange="uploadExcelFile('users', this)">
+
         </div>
     </div>
 
@@ -432,6 +436,7 @@
                     style="margin:0 10px 0 5px; padding:6px 12px; border-radius:4px; border:1px solid #ddd;">
                     <option value="items">items（アイテム）</option>
                     <option value="users">users（ユーザー）</option>
+                    <option value="staff">staff（スタッフ）</option>
                     <!-- 追加予定コレクションはここにoption追加 -->
                 </select>
                 <button onclick="downloadSelectedTemplate()" class="action-button excel"

@@ -76,6 +76,9 @@ function openAddDataModal(collectionType) {
     } else if (collectionType === "users") {
       instructionElement.textContent =
         "ユーザー情報を入力してください（名前、メール、役割など）";
+    } else if (collectionType === "staff") {
+      instructionElement.textContent =
+        "スタッフ情報を入力してください（名前、メール、役割など）";
     } else {
       instructionElement.textContent = "データを入力してください";
     }
@@ -106,10 +109,15 @@ function submitAddData() {
 function downloadSelectedTemplate() {
   const select = document.getElementById("templateSelect");
   const selectedValue = select.value;
+  console.log("Selected template:", selectedValue);
+
   if (selectedValue === "items") {
     downloadItemsTemplateFromHosting();
   } else if (selectedValue === "users") {
     downloadUsersTemplateFromHosting();
+  } else if (selectedValue === "staff") {
+    console.log("Calling downloadStaffTemplateFromHosting...");
+    downloadStaffTemplateFromHosting();
   } else {
     showDownloadResultModal("未対応のコレクションです", "error");
   }
@@ -123,7 +131,18 @@ async function downloadItemsTemplateFromHosting() {
     const querySnapshot = await getDocs(collection(db, "items"));
 
     if (querySnapshot.empty) {
-      showResult("firestoreResult", "アイテムデータがありません", "error");
+      console.log("No items data found, downloading empty template file...");
+      // データが存在しない場合は、静的なテンプレートファイルをダウンロード
+      await downloadItemsTemplate();
+
+      const html = `
+            <div style="color: green;">
+                ✅ アイテムテンプレート (空) をダウンロードしました<br>
+                <small>テンプレートファイルを編集して、アップロード機能で一括登録できます</small>
+            </div>
+        `;
+      showResult("firestoreResult", html, "success");
+      console.log("Empty items template download completed");
       return;
     }
 
@@ -167,7 +186,18 @@ async function downloadUsersTemplateFromHosting() {
     const querySnapshot = await getDocs(collection(db, "users"));
 
     if (querySnapshot.empty) {
-      showResult("firestoreResult", "ユーザーデータがありません", "error");
+      console.log("No users data found, downloading empty template file...");
+      // データが存在しない場合は、静的なテンプレートファイルをダウンロード
+      await downloadUsersTemplate();
+
+      const html = `
+            <div style="color: green;">
+                ✅ ユーザーテンプレート (空) をダウンロードしました<br>
+                <small>テンプレートファイルを編集して、アップロード機能で一括登録できます</small>
+            </div>
+        `;
+      showResult("firestoreResult", html, "success");
+      console.log("Empty users template download completed");
       return;
     }
 
@@ -199,6 +229,68 @@ async function downloadUsersTemplateFromHosting() {
     console.log("Users template download completed:", data.length, "users");
   } catch (error) {
     console.error("Users template download error:", error);
+    showResult("firestoreResult", `取得エラー: ${error.message}`, "error");
+  }
+}
+
+async function downloadStaffTemplateFromHosting() {
+  try {
+    console.log("Starting staff template download from hosting...");
+    showLoading("firestoreResult");
+
+    // Firestoreからスタッフデータを取得
+    const querySnapshot = await getDocs(collection(db, "staff"));
+    console.log("Staff data query result:", querySnapshot.size, "documents");
+
+    if (querySnapshot.empty) {
+      console.log("No staff data found, downloading empty template file...");
+      // データが存在しない場合は、静的なテンプレートファイルをダウンロード
+      await downloadStaffTemplate();
+
+      const html = `
+            <div style="color: green;">
+                ✅ スタッフテンプレート (空) をダウンロードしました<br>
+                <small>テンプレートファイルを編集して、アップロード機能で一括登録できます</small>
+            </div>
+        `;
+      showResult("firestoreResult", html, "success");
+      console.log("Empty staff template download completed");
+      return;
+    }
+
+    const data = [];
+    querySnapshot.forEach((doc) => {
+      const docData = doc.data();
+      data.push({
+        id: doc.id,
+        user_id: docData.user_id || "",
+        user_name: docData.user_name || "",
+        email: docData.email || "",
+        phone: docData.phone || "",
+        company_name: docData.company_name || "",
+        status: docData.status || "",
+        user_role: docData.user_role || "",
+        print_status: docData.print_status || "",
+        createdAt: docData.createdAt ? docData.createdAt.toDate() : new Date(),
+      });
+    });
+
+    console.log("Staff data processed:", data.length, "items");
+
+    // Excel形式でダウンロード
+    await downloadStaffTemplate();
+
+    const html = `
+            <div style="color: green;">
+                ✅ スタッフテンプレート (${data.length}件) をダウンロードしました<br>
+                <small>テンプレートファイルを編集して、アップロード機能で一括登録できます</small>
+            </div>
+        `;
+    showResult("firestoreResult", html, "success");
+
+    console.log("Staff template download completed:", data.length, "staff");
+  } catch (error) {
+    console.error("Staff template download error:", error);
     showResult("firestoreResult", `取得エラー: ${error.message}`, "error");
   }
 }
@@ -251,6 +343,36 @@ async function downloadUsersTemplate() {
     console.log("Users template file downloaded");
   } catch (error) {
     console.error("Users template download error:", error);
+    throw error;
+  }
+}
+
+async function downloadStaffTemplate() {
+  try {
+    console.log("Attempting to download staff template...");
+    const response = await fetch("templates/staff.xlsx");
+    console.log("Fetch response:", response.status, response.statusText);
+
+    if (!response.ok) {
+      throw new Error(`テンプレートファイルが見つかりません (${response.status}: ${response.statusText})`);
+    }
+
+    const blob = await response.blob();
+    console.log("Blob created:", blob.size, "bytes");
+
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.style.display = "none";
+    a.href = url;
+    a.download = "staff.xlsx";
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+
+    console.log("Staff template file downloaded successfully");
+  } catch (error) {
+    console.error("Staff template download error:", error);
     throw error;
   }
 }
@@ -313,7 +435,6 @@ async function uploadExcelFile(collectionType, fileInput) {
             description: row["description"] || row["説明"] || "",
             category: row["category"] || row["カテゴリ"] || "",
             price: row["price"] || row["価格"] || 0,
-            stock: row["stock"] || row["在庫"] || 0,
             createdAt: new Date(),
             updatedAt: new Date(),
           };
@@ -324,7 +445,19 @@ async function uploadExcelFile(collectionType, fileInput) {
             email: row["email"] || row["メール"] || "",
             role: row["role"] || row["役割"] || "",
             department: row["department"] || row["部署"] || "",
-            password: row["password"] || row["パスワード"] || "password123",
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+        } else if (collectionType === "staff") {
+          documentData = {
+            user_id: row["user_id"] || row["ユーザーID"] || "",
+            user_name: row["user_name"] || row["ユーザー名"] || "",
+            email: row["email"] || row["メール"] || "",
+            phone: row["phone"] || row["電話番号"] || "",
+            company_name: row["company_name"] || row["会社名"] || "",
+            status: row["status"] || row["ステータス"] || "active",
+            user_role: row["user_role"] || row["権限"] || "staff",
+            print_status: row["print_status"] || row["印刷状況"] || "not_printed",
             createdAt: new Date(),
             updatedAt: new Date(),
           };
@@ -399,6 +532,7 @@ window.submitAddData = submitAddData;
 window.downloadSelectedTemplate = downloadSelectedTemplate;
 window.downloadItemsTemplate = downloadItemsTemplateFromHosting;
 window.downloadUsersTemplate = downloadUsersTemplateFromHosting;
+window.downloadStaffTemplate = downloadStaffTemplateFromHosting;
 
 // アップロード関数
 window.uploadExcelFile = uploadExcelFile;
@@ -419,5 +553,6 @@ export {
   downloadSelectedTemplate,
   downloadItemsTemplateFromHosting,
   downloadUsersTemplateFromHosting,
+  downloadStaffTemplateFromHosting,
   uploadExcelFile,
 };
