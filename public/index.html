@@ -14,14 +14,17 @@
             background: #fff;
             border-radius: 8px;
             overflow: hidden;
-            box-shadow: 0 2px 8px rgba(66,133,244,0.08);
+            box-shadow: 0 2px 8px rgba(66, 133, 244, 0.08);
         }
-        th, td {
+
+        th,
+        td {
             border: 1px solid #e0e0e0;
             padding: 10px 8px;
             text-align: left;
             font-size: 15px;
         }
+
         th {
             background: #4285f4;
             color: #fff;
@@ -30,24 +33,33 @@
             top: 0;
             z-index: 1;
         }
+
         tr:nth-child(even) {
             background: #f5f7fa;
         }
+
         tr:hover {
             background: #e3f0fd;
         }
+
         table thead {
             border-radius: 8px 8px 0 0;
         }
+
         table tbody {
             border-radius: 0 0 8px 8px;
         }
+
         @media (max-width: 768px) {
-            table, th, td {
+
+            table,
+            th,
+            td {
                 font-size: 13px;
                 padding: 7px 4px;
             }
         }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             max-width: 1200px;
@@ -266,7 +278,7 @@
             top: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0,0,0,0.4);
+            background-color: rgba(0, 0, 0, 0.4);
         }
 
         .modal-content {
@@ -276,7 +288,7 @@
             margin: 80px auto;
             padding: 30px;
             position: relative;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
         }
 
         .form-group {
@@ -345,7 +357,8 @@
             <h1 style="margin: 0;">QR Scan 管理ダッシュボード</h1>
             <div style="display: flex; align-items: center; gap: 15px;">
                 <span id="userInfo" style="color: rgba(255,255,255,0.9); font-size: 14px;"></span>
-                <button onclick="UserSession.logout()" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
+                <button onclick="UserSession.logout()"
+                    style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
                     ログアウト
                 </button>
             </div>
@@ -355,112 +368,123 @@
 
     <!-- アクションボタン -->
     <div class="action-buttons">
-      <!-- 1行目: 基本機能 -->
-      <div class="action-buttons-row">
-        <button
-          onclick="window.location.href='user.html'"
-          class="action-button qr"
-        >
-          📱 users.html
-        </button>
-                <button onclick="document.getElementById('downloadResultModal').style.display='block'" class="action-button excel">
-                    � テンプレートDL
-                </button>
-        <button onclick="clearResults('firestoreResult')" class="btn-clear action-button">
-          🗑️ 結果をクリア
-        </button>
-      </div>
-      
-      <!-- 2行目: Firestoreデータ操作 -->
-      <div class="action-buttons-row">
-        <button onclick="getAllItems()" class="action-button">
-          📦 itemsコレクション取得
-        </button>
-        <button onclick="getAllUsers()" class="action-button">
-          👥 usersコレクション取得
-        </button>
-        <button onclick="getAllScanItems()" class="action-button">
-          👥 ScanItemsコレクション取得
-        </button>
-      </div>
-      
-      <!-- 3行目: ファイルアップロード -->
-      <div class="action-buttons-row">
-        <button onclick="document.getElementById('itemsFileInput').click()" class="action-button" style="border-color: #ff9800; color: #ff9800;">
-          📤 Items Excel アップロード
-        </button>
-        <button onclick="document.getElementById('usersFileInput').click()" class="action-button" style="border-color: #ff9800; color: #ff9800;">
-          📤 Users Excel アップロード
-        </button>
-        <button onclick="createTestUsers()" class="action-button" style="border-color: #e74c3c; color: #e74c3c;">
-          👥 テストユーザー作成
-        </button>
-        <input type="file" id="itemsFileInput" accept=".xlsx,.xls" style="display: none;" onchange="uploadExcelFile('items', this)">
-        <input type="file" id="usersFileInput" accept=".xlsx,.xls" style="display: none;" onchange="uploadExcelFile('users', this)">
-      </div>
+        <!-- 1行目: 基本機能 -->
+        <div class="action-buttons-row">
+            <button onclick="window.location.href='user.html'" class="action-button qr">
+                📱 users.html
+            </button>
+            <button onclick="document.getElementById('downloadResultModal').style.display='block'"
+                class="action-button excel">
+                � テンプレートDL
+            </button>
+            <button onclick="clearResults('firestoreResult')" class="btn-clear action-button">
+                🗑️ 結果をクリア
+            </button>
+        </div>
+
+        <!-- 2行目: Firestoreデータ操作 -->
+        <div class="action-buttons-row">
+            <button onclick="getAllItems()" class="action-button">
+                📦 itemsコレクション取得
+            </button>
+            <button onclick="getAllUsers()" class="action-button">
+                👥 usersコレクション取得
+            </button>
+            <button onclick="getAllScanItems()" class="action-button">
+                👥 ScanItemsコレクション取得
+            </button>
+        </div>
+
+        <!-- 3行目: ファイルアップロード -->
+        <div class="action-buttons-row">
+            <button onclick="document.getElementById('itemsFileInput').click()" class="action-button"
+                style="border-color: #ff9800; color: #ff9800;">
+                📤 Items Excel アップロード
+            </button>
+            <button onclick="document.getElementById('usersFileInput').click()" class="action-button"
+                style="border-color: #ff9800; color: #ff9800;">
+                📤 Users Excel アップロード
+            </button>
+            <!--
+            <button onclick="createTestUsers()" class="action-button" style="border-color: #e74c3c; color: #e74c3c;">
+                👥 テストユーザー作成
+            </button>
+            -->
+            <input type="file" id="itemsFileInput" accept=".xlsx,.xls" style="display: none;"
+                onchange="uploadExcelFile('items', this)">
+            <input type="file" id="usersFileInput" accept=".xlsx,.xls" style="display: none;"
+                onchange="uploadExcelFile('users', this)">
+        </div>
     </div>
 
 
-                <!-- テンプレートダウンロード選択モーダル -->
-                <div id="downloadResultModal" class="modal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100vw; height:100vh; background:rgba(0,0,0,0.4);">
-                        <div style="background:white; border-radius:8px; max-width:500px; margin:80px auto; padding:30px; position:relative; box-shadow:0 2px 10px rgba(0,0,0,0.2);">
-                                <h3 style="color:#4285f4; margin-top:0;">テンプレートダウンロード</h3>
-                                <button onclick="closeDownloadResultModal()" class="btn-clear" style="position:absolute; top:18px; right:18px;">閉じる</button>
-                                <div style="margin-top:20px;">
-                                    <label for="templateSelect">コレクション選択：</label>
-                                    <select id="templateSelect" style="margin:0 10px 0 5px; padding:6px 12px; border-radius:4px; border:1px solid #ddd;">
-                                        <option value="items">items（アイテム）</option>
-                                        <option value="users">users（ユーザー）</option>
-                                        <!-- 追加予定コレクションはここにoption追加 -->
-                                    </select>
-                                    <button onclick="downloadSelectedTemplate()" class="action-button excel" style="margin-left:10px;">ダウンロード</button>
-                                </div>
-                                <div id="downloadResult" class="result" style="margin-top:20px;"></div>
-                        </div>
-                </div>
+    <!-- テンプレートダウンロード選択モーダル -->
+    <div id="downloadResultModal" class="modal"
+        style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100vw; height:100vh; background:rgba(0,0,0,0.4);">
+        <div
+            style="background:white; border-radius:8px; max-width:500px; margin:80px auto; padding:30px; position:relative; box-shadow:0 2px 10px rgba(0,0,0,0.2);">
+            <h3 style="color:#4285f4; margin-top:0;">テンプレートダウンロード</h3>
+            <button onclick="closeDownloadResultModal()" class="btn-clear"
+                style="position:absolute; top:18px; right:18px;">閉じる</button>
+            <div style="margin-top:20px;">
+                <label for="templateSelect">コレクション選択：</label>
+                <select id="templateSelect"
+                    style="margin:0 10px 0 5px; padding:6px 12px; border-radius:4px; border:1px solid #ddd;">
+                    <option value="items">items（アイテム）</option>
+                    <option value="users">users（ユーザー）</option>
+                    <!-- 追加予定コレクションはここにoption追加 -->
+                </select>
+                <button onclick="downloadSelectedTemplate()" class="action-button excel"
+                    style="margin-left:10px;">ダウンロード</button>
+            </div>
+            <div id="downloadResult" class="result" style="margin-top:20px;"></div>
+        </div>
+    </div>
 
     <!-- データ追加モーダル -->
-    <div id="addDataModal" class="modal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100vw; height:100vh; background:rgba(0,0,0,0.4);">
-        <div style="background:white; border-radius:8px; max-width:500px; margin:80px auto; padding:30px; position:relative; box-shadow:0 2px 10px rgba(0,0,0,0.2);">
+    <div id="addDataModal" class="modal"
+        style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100vw; height:100vh; background:rgba(0,0,0,0.4);">
+        <div
+            style="background:white; border-radius:8px; max-width:500px; margin:80px auto; padding:30px; position:relative; box-shadow:0 2px 10px rgba(0,0,0,0.2);">
             <h3 id="modalTitle" style="color:#4285f4; margin-top:0;">データ追加</h3>
-            <button onclick="closeModal()" class="btn-clear" style="position:absolute; top:18px; right:18px;">閉じる</button>
             <form id="modalForm" style="margin-top:20px;">
                 <!-- フォームフィールドは動的に生成されます -->
             </form>
             <div style="margin-top:20px; text-align:right;">
                 <button type="button" onclick="closeModal()" class="btn-clear" style="margin-right:10px;">キャンセル</button>
-                <button type="button" onclick="submitAddData()" class="action-button">追加</button>
+                <button type="button" id="submitDataBtn" onclick="submitAddData()" class="action-button">追加</button>
             </div>
         </div>
     </div>
 
     <!-- データベース管理 -->
     <div class="dashboard-grid">
-      <div class="dashboard-section">
-        <div class="section-header">
-          <h3 class="section-title">📊 データベース管理</h3>
-          <button id="addDataButton" onclick="addToCurrentCollection()" class="action-button" style="display: none;">
-            ➕ データ追加
-          </button>
-          <div id="firestoreResult-count" class="collection-count"></div>
-          <div id="firestoreResult-collectionname" class="collection-title"></div>
-        </div>
-        <div id="firestoreResult" class="result"></div>
-      </div>
-    </div>
-
         <div class="dashboard-section">
             <div class="section-header">
-                <h3 class="section-title">⚡ Cloud Functions</h3>
-                <button onclick="clearResults('functionResult')" class="btn-clear">クリア</button>
+                <h3 class="section-title">📊 データベース管理</h3>
+                <button id="addDataButton" onclick="addToCurrentCollection()" class="action-button"
+                    style="display: none;">
+                    ➕ データ追加
+                </button>
+                <div id="firestoreResult-count" class="collection-count"></div>
+                <div id="firestoreResult-collectionname" class="collection-title"></div>
             </div>
-
-            <div style="margin-bottom: 15px;">
-                <button onclick="callHelloWorld()">Hello World Function</button>
-            </div>
-
-            <div id="functionResult" class="result"></div>
+            <div id="firestoreResult" class="result"></div>
         </div>
+    </div>
+
+    <div class="dashboard-section">
+        <div class="section-header">
+            <h3 class="section-title">⚡ Cloud Functions</h3>
+            <button onclick="clearResults('functionResult')" class="btn-clear">クリア</button>
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <button onclick="callHelloWorld()">Hello World Function</button>
+        </div>
+
+        <div id="functionResult" class="result"></div>
+    </div>
     </div>
 
     <!-- Firebase SDK -->
