@@ -1,4 +1,4 @@
-// Firebase Index Page Functions (クリーンアップ版)
+﻿// Firebase Index Page Functions (クリーンアップ版)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
   getFirestore,
@@ -627,8 +627,9 @@ function generateFormFields(collectionType) {
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">ステータス</label>
           <select id="modal_status" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
+            <option value="-">-</option>
+            <option value="入場中">入場中</option>
+            <option value="退場済">退場済</option>
           </select>
         </div>
         <div style="margin-bottom:15px;">
@@ -674,8 +675,9 @@ function generateFormFields(collectionType) {
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">ステータス</label>
           <select id="modal_status" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
+            <option value="-">-</option>
+            <option value="入場中">入場中</option>
+            <option value="退場済">退場済</option>
           </select>
         </div>
         <div style="margin-bottom:15px;">
@@ -721,8 +723,9 @@ function generateFormFields(collectionType) {
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">ステータス</label>
           <select id="modal_status" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
+            <option value="-">-</option>
+            <option value="入場中">入場中</option>
+            <option value="退場済">退場済</option>
           </select>
         </div>
         <div style="margin-bottom:15px;">
@@ -861,7 +864,7 @@ async function submitAddData() {
         phone: document.getElementById("modal_phone")?.value || "",
         company_name:
           document.getElementById("modal_company_name")?.value || "",
-        status: document.getElementById("modal_status")?.value || "active",
+        status: document.getElementById("modal_status")?.value || "-",
         user_role:
           document.getElementById("modal_user_role")?.value ||
           (currentCollectionType === "staff" ? "staff" :
@@ -1042,10 +1045,12 @@ function generateEditFormFields(collectionType, currentData) {
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">ステータス</label>
           <select id="modal_status" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-            <option value="active" ${currentData.status === "active" ? "selected" : ""
-      }>Active</option>
-            <option value="inactive" ${currentData.status === "inactive" ? "selected" : ""
-      }>Inactive</option>
+            <option value="-" ${currentData.status === "-" ? "selected" : ""
+      }>-</option>
+            <option value="入場中" ${currentData.status === "入場中" ? "selected" : ""
+      }>入場中</option>
+            <option value="退場済" ${currentData.status === "退場済" ? "selected" : ""
+      }>退場済</option>
           </select>
         </div>
         <div style="margin-bottom:15px;">
@@ -1141,7 +1146,7 @@ async function submitEditData() {
         phone: document.getElementById("modal_phone")?.value || "",
         company_name:
           document.getElementById("modal_company_name")?.value || "",
-        status: document.getElementById("modal_status")?.value || "active",
+        status: document.getElementById("modal_status")?.value || "-",
         user_role:
           document.getElementById("modal_user_role")?.value ||
           (collectionType === "staff" ? "staff" :

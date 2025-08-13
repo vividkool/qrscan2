@@ -1,34 +1,34 @@
-// テストユーザー作成スクリプト
-// このスクリプトを一度実行してテストユーザーを作成
+// チE��トユーザー作�Eスクリプト
+// こ�Eスクリプトを一度実行してチE��トユーザーを作�E
 
 const testUsers = [
   {
     user_id: "ADMIN001",
-    user_name: "管理者テスト",
+    user_name: "管琁E��E��スチE,
     email: "admin@test.com",
     phone: "090-1111-1111",
-    department: "システム管理部",
-    status: "active",
+    department: "シスチE��管琁E��",
+    status: "-",
     role: "admin",
     print_status: "not_printed",
   },
   {
     user_id: "SCAN001",
-    user_name: "スキャナーテスト",
+    user_name: "スキャナ�EチE��チE,
     email: "scanner@test.com",
     phone: "090-2222-2222",
     department: "展示会運営",
-    status: "active",
+    status: "-",
     role: "scanner",
     print_status: "not_printed",
   },
   {
     user_id: "GUEST001",
-    user_name: "ゲストテスト",
+    user_name: "ゲストテスチE,
     email: "guest@test.com",
     phone: "090-3333-3333",
-    department: "来場者",
-    status: "active",
+    department: "来場老E,
+    status: "-",
     role: "guest",
     print_status: "not_printed",
   },
@@ -49,8 +49,8 @@ async function createTestUsers() {
 }
 
 // ブラウザのコンソールで createTestUsers() を実行してください
-console.log("テストユーザー作成の準備ができました。");
-console.log("ブラウザのコンソールで createTestUsers() を実行してください。");
+console.log("チE��トユーザー作�Eの準備ができました、E);
+console.log("ブラウザのコンソールで createTestUsers() を実行してください、E);
 
 window.createTestUsers = createTestUsers;
 window.testUsers = testUsers;

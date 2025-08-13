@@ -28,6 +28,9 @@ const db = getFirestore(app);
 // ユーザーロール定義
 const USER_ROLES = {
   ADMIN: "admin",
+  USER: "user",
+  STAFF: "staff",
+  MAKER: "maker",
   SCANNER: "scanner",
   GUEST: "guest",
 };
@@ -35,7 +38,7 @@ const USER_ROLES = {
 // ページアクセス権限定義
 const PAGE_PERMISSIONS = {
   "index.html": [USER_ROLES.ADMIN],
-  "user.html": [USER_ROLES.SCANNER, USER_ROLES.GUEST],
+  "user.html": [USER_ROLES.USER, USER_ROLES.STAFF, USER_ROLES.MAKER, USER_ROLES.SCANNER, USER_ROLES.GUEST],
   "/": [USER_ROLES.ADMIN],
 };
 
@@ -49,18 +52,19 @@ const SESSION_KEY = "qrscan_user_session";
 class UserSession {
   // セッション保存
   static saveSession(userData) {
+    // roleフィールドの正規化
+    const userRole = userData.user_role || userData.role;
+
     const sessionData = {
       user_id: userData.user_id,
       user_name: userData.user_name,
-      role: userData.role,
+      role: userRole, // 正規化されたroleを使用
       department: userData.department,
       timestamp: new Date().getTime(),
     };
     localStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
     currentUser = sessionData;
-  }
-
-  // セッション取得
+  }  // セッション取得
   static getSession() {
     const sessionData = localStorage.getItem(SESSION_KEY);
     if (!sessionData) return null;
@@ -126,18 +130,27 @@ class UserSession {
       const userDoc = querySnapshot.docs[0];
       const userData = userDoc.data();
 
+      // roleフィールドの正規化（user_roleがメインフィールドの場合）
+      const userRole = userData.user_role || userData.role;
+
       // ユーザーがアクティブかチェック
-      if (userData.status !== "active") {
-        throw new Error("このユーザーは無効です");
+      if (userData.status === "退場済") {
+        throw new Error("このユーザーは退場済みです");
       }
 
-      // セッション保存
-      this.saveSession(userData);
+      // セッション保存（正しいroleフィールドを使用）
+      const sessionData = {
+        ...userData,
+        role: userRole // 正規化されたroleを使用
+      };
+      this.saveSession(sessionData);
+
+      const redirectUrl = this.getRedirectUrl(userRole);
 
       return {
         success: true,
-        user: userData,
-        redirectUrl: this.getRedirectUrl(userData.role),
+        user: sessionData,
+        redirectUrl: redirectUrl,
       };
     } catch (error) {
       console.error("Login error:", error);
@@ -153,6 +166,9 @@ class UserSession {
     switch (role) {
       case USER_ROLES.ADMIN:
         return "index.html";
+      case USER_ROLES.USER:
+      case USER_ROLES.STAFF:
+      case USER_ROLES.MAKER:
       case USER_ROLES.SCANNER:
       case USER_ROLES.GUEST:
         return "user.html";

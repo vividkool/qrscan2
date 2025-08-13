@@ -1,425 +1,210 @@
 <!DOCTYPE html>
 <html lang="ja">
-  <head>
+
+<head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>QR Scan App - ログイン</title>
     <style>
-      body {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-          sans-serif;
-        background: linear-gradient(135deg, #4285f4, #34a853);
-        min-height: 100vh;
-        margin: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 20px;
-      }
-
-      .login-container {
-        background: white;
-        border-radius: 12px;
-        padding: 40px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-        max-width: 400px;
-        width: 100%;
-        text-align: center;
-      }
-
-      .app-logo {
-        font-size: 48px;
-        margin-bottom: 20px;
-      }
-
-      h1 {
-        color: #333;
-        margin-bottom: 30px;
-        font-size: 24px;
-      }
-
-      .login-form {
-        margin-bottom: 20px;
-      }
-
-      .form-group {
-        margin-bottom: 20px;
-        text-align: left;
-      }
-
-      label {
-        display: block;
-        margin-bottom: 8px;
-        font-weight: bold;
-        color: #555;
-      }
-
-      input[type="text"] {
-        width: 100%;
-        padding: 12px;
-        border: 2px solid #e0e0e0;
-        border-radius: 8px;
-        font-size: 16px;
-        box-sizing: border-box;
-        transition: border-color 0.3s ease;
-      }
-
-      input[type="text"]:focus {
-        border-color: #4285f4;
-        outline: none;
-      }
-
-      .login-button {
-        width: 100%;
-        background: #4285f4;
-        color: white;
-        border: none;
-        padding: 14px;
-        border-radius: 8px;
-        font-size: 16px;
-        font-weight: bold;
-        cursor: pointer;
-        transition: background-color 0.3s ease;
-      }
-
-      .login-button:hover {
-        background: #3367d6;
-      }
-
-      .login-button:disabled {
-        background: #ccc;
-        cursor: not-allowed;
-      }
-
-      .error-message {
-        background: #f8d7da;
-        border: 1px solid #f5c6cb;
-        color: #721c24;
-        padding: 12px;
-        border-radius: 8px;
-        margin-top: 15px;
-        display: none;
-      }
-
-      .loading {
-        display: none;
-        margin-top: 15px;
-      }
-
-      .spinner {
-        display: inline-block;
-        width: 20px;
-        height: 20px;
-        border: 3px solid #f3f3f3;
-        border-top: 3px solid #4285f4;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-      }
-
-      @keyframes spin {
-        0% {
-          transform: rotate(0deg);
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                sans-serif;
+            background: linear-gradient(135deg, #4285f4, #34a853);
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
         }
-        100% {
-          transform: rotate(360deg);
-        }
-      }
 
-      .demo-users {
-        margin-top: 30px;
-        padding: 20px;
-        background: #f8f9fa;
-        border-radius: 8px;
-        text-align: left;
-      }
-
-      .demo-users h3 {
-        margin-top: 0;
-        color: #4285f4;
-        text-align: center;
-      }
-
-      .demo-user {
-        margin-bottom: 10px;
-        padding: 8px;
-        background: white;
-        border-radius: 4px;
-        cursor: pointer;
-        transition: background-color 0.2s ease;
-      }
-
-      .demo-user:hover {
-        background: #e3f0fd;
-      }
-
-      .demo-user strong {
-        color: #4285f4;
-      }
-
-      @media (max-width: 480px) {
         .login-container {
-          padding: 30px 20px;
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <div class="login-container">
-      <div class="app-logo">🔥</div>
-      <h1>QR Scan Dashboard</h1>
-
-      <form class="login-form" id="loginForm">
-        <div class="form-group">
-          <label for="userId">ユーザーID</label>
-          <input
-            type="text"
-            id="userId"
-            name="userId"
-            placeholder="ユーザーIDを入力してください"
-            required
-          />
-        </div>
-
-        <button type="submit" class="login-button" id="loginButton">
-          ログイン
-        </button>
-      </form>
-
-      <div class="loading" id="loading">
-        <div class="spinner"></div>
-        <span style="margin-left: 10px">認証中...</span>
-      </div>
-
-      <div class="error-message" id="errorMessage"></div>
-
-      <!-- デモ用ユーザー一覧 -->
-      <div class="demo-users">
-        <h3>💡 テストユーザー</h3>
-        <div style="text-align: center; margin-bottom: 15px">
-          <button
-            onclick="createTestUsersFromLogin()"
-            style="
-              background: #28a745;
-              color: white;
-              border: none;
-              padding: 8px 16px;
-              border-radius: 4px;
-              cursor: pointer;
-              font-size: 14px;
-            "
-          >
-            👥 テストユーザーを作成
-          </button>
-        </div>
-        <div class="demo-user" onclick="fillUserId('ADMIN001')">
-          <strong>ADMIN001</strong> - 管理者 (データベース管理)
-        </div>
-        <div class="demo-user" onclick="fillUserId('SCAN001')">
-          <strong>SCAN001</strong> - スキャナー (QRコード読取)
-        </div>
-        <div class="demo-user" onclick="fillUserId('GUEST001')">
-          <strong>GUEST001</strong> - ゲスト (基本機能のみ)
-        </div>
-        <div
-          id="createUserStatus"
-          style="
-            margin-top: 10px;
-            padding: 8px;
-            border-radius: 4px;
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            width: 100%;
             text-align: center;
+        }
+
+        .app-logo {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 24px;
+        }
+
+        .login-form {
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            box-sizing: border-box;
+            transition: border-color 0.3s ease;
+        }
+
+        input[type="text"]:focus {
+            border-color: #4285f4;
+            outline: none;
+        }
+
+        .login-button {
+            width: 100%;
+            background: #4285f4;
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .login-button:hover {
+            background: #3367d6;
+        }
+
+        .login-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 15px;
             display: none;
-          "
-        ></div>
-      </div>
+        }
+
+        .loading {
+            display: none;
+            margin-top: 15px;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #4285f4;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .demo-users {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            text-align: left;
+        }
+
+        .demo-users h3 {
+            margin-top: 0;
+            color: #4285f4;
+            text-align: center;
+        }
+
+        .demo-user {
+            margin-bottom: 10px;
+            padding: 8px;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .demo-user:hover {
+            background: #e3f0fd;
+        }
+
+        .demo-user strong {
+            color: #4285f4;
+        }
+
+        @media (max-width: 480px) {
+            .login-container {
+                padding: 30px 20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="login-container">
+        <div class="app-logo">🔥</div>
+        <h1>QR Scan Dashboard</h1>
+
+        <form class="login-form" id="loginForm">
+            <div class="form-group">
+                <label for="userId">ユーザーID</label>
+                <input type="text" id="userId" name="userId" placeholder="ユーザーIDを入力してください" required />
+            </div>
+
+            <button type="submit" class="login-button" id="loginButton">
+                ログイン
+            </button>
+        </form>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <span style="margin-left: 10px">認証中...</span>
+        </div>
+
+        <div class="error-message" id="errorMessage"></div>
+
+        <!-- デモ用ユーザー一覧 -->
+        <div class="demo-users">
+            <h3>💡 テストユーザー</h3>
+            <div class="demo-user" onclick="fillUserId('ADMIN001')">
+                <strong>ADMIN001</strong> - 管理者 (データベース管理)
+            </div>
+            <div class="demo-user" onclick="fillUserId('SCAN001')">
+                <strong>SCAN001</strong> - スキャナー (QRコード読取)
+            </div>
+            <div class="demo-user" onclick="fillUserId('GUEST001')">
+                <strong>GUEST001</strong> - ゲスト (基本機能のみ)
+            </div>
+        </div>
     </div>
 
-    <script type="module">
-      import "./js/auth.js";
+    <script type="module" src="./js/login.js"></script>
+</body>
 
-      // フォーム要素取得
-      const loginForm = document.getElementById("loginForm");
-      const userIdInput = document.getElementById("userId");
-      const loginButton = document.getElementById("loginButton");
-      const loading = document.getElementById("loading");
-      const errorMessage = document.getElementById("errorMessage");
-
-      // エラーメッセージ表示
-      function showError(message) {
-        errorMessage.textContent = message;
-        errorMessage.style.display = "block";
-      }
-
-      // エラーメッセージ非表示
-      function hideError() {
-        errorMessage.style.display = "none";
-      }
-
-      // ローディング表示切り替え
-      function toggleLoading(show) {
-        loading.style.display = show ? "block" : "none";
-        loginButton.disabled = show;
-        if (show) {
-          loginButton.textContent = "認証中...";
-        } else {
-          loginButton.textContent = "ログイン";
-        }
-      }
-
-      // ログイン処理
-      async function handleLogin(event) {
-        event.preventDefault();
-
-        const userId = userIdInput.value.trim();
-        if (!userId) {
-          showError("ユーザーIDを入力してください");
-          return;
-        }
-
-        hideError();
-        toggleLoading(true);
-
-        try {
-          const result = await UserSession.login(userId);
-
-          if (result.success) {
-            // ログイン成功 - リダイレクト
-            window.location.href = result.redirectUrl;
-          } else {
-            showError(result.error);
-          }
-        } catch (error) {
-          console.error("Login error:", error);
-          showError("ログインに失敗しました。再度お試しください。");
-        } finally {
-          toggleLoading(false);
-        }
-      }
-
-      // ユーザーID自動入力
-      window.fillUserId = function (userId) {
-        userIdInput.value = userId;
-        hideError();
-      };
-
-      // テストユーザー作成（ログインページから実行）
-      window.createTestUsersFromLogin = async function () {
-        const createUserStatus = document.getElementById("createUserStatus");
-
-        try {
-          createUserStatus.style.display = "block";
-          createUserStatus.style.background = "#d1ecf1";
-          createUserStatus.style.color = "#0c5460";
-          createUserStatus.textContent = "⏳ テストユーザーを作成中...";
-
-          // Firebase設定（auth.jsから取得）
-          const { getFirestore, collection, doc, setDoc } = await import(
-            "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"
-          );
-          const { initializeApp } = await import(
-            "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"
-          );
-
-          const firebaseConfig = {
-            apiKey: "AIzaSyCWFL91baSHkjkvU_k-yTUv6QS191YTFlg",
-            authDomain: "qrscan2-99ffd.firebaseapp.com",
-            projectId: "qrscan2-99ffd",
-            storageBucket: "qrscan2-99ffd.firebasestorage.app",
-            messagingSenderId: "1089215781575",
-            appId: "1:1089215781575:web:bf9d05f6930b7123813ce2",
-            measurementId: "G-QZZWT3HW0W",
-          };
-
-          const app = initializeApp(firebaseConfig);
-          const db = getFirestore(app);
-
-          // UUID生成関数
-          function generateUUID() {
-            return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
-              /[xy]/g,
-              function (c) {
-                const r = (Math.random() * 16) | 0;
-                const v = c == "x" ? r : (r & 0x3) | 0x8;
-                return v.toString(16);
-              }
-            );
-          }
-
-          const testUsers = [
-            {
-              user_id: "ADMIN001",
-              user_name: "管理者テスト",
-              email: "admin@test.com",
-              phone: "090-1111-1111",
-              department: "システム管理部",
-              status: "active",
-              role: "admin",
-              print_status: "not_printed",
-            },
-            {
-              user_id: "SCAN001",
-              user_name: "スキャナーテスト",
-              email: "scanner@test.com",
-              phone: "090-2222-2222",
-              department: "展示会運営",
-              status: "active",
-              role: "scanner",
-              print_status: "not_printed",
-            },
-            {
-              user_id: "GUEST001",
-              user_name: "ゲストテスト",
-              email: "guest@test.com",
-              phone: "090-3333-3333",
-              department: "来場者",
-              status: "active",
-              role: "guest",
-              print_status: "not_printed",
-            },
-          ];
-
-          let successCount = 0;
-          for (const user of testUsers) {
-            const docId = generateUUID();
-            await setDoc(doc(db, "users", docId), user);
-            successCount++;
-            console.log(`Created user: ${user.user_id} (${user.user_name})`);
-          }
-
-          createUserStatus.style.background = "#d4edda";
-          createUserStatus.style.color = "#155724";
-          createUserStatus.textContent = `✅ テストユーザー ${successCount} 件を作成しました！`;
-
-          // 3秒後に非表示
-          setTimeout(() => {
-            createUserStatus.style.display = "none";
-          }, 3000);
-        } catch (error) {
-          console.error("テストユーザー作成エラー:", error);
-          createUserStatus.style.background = "#f8d7da";
-          createUserStatus.style.color = "#721c24";
-          createUserStatus.textContent = `❌ エラー: ${error.message}`;
-        }
-      };
-
-      // イベントリスナー
-      loginForm.addEventListener("submit", handleLogin);
-
-      // 既にログイン済みかチェック
-      document.addEventListener("DOMContentLoaded", function () {
-        const session = UserSession.getSession();
-        if (session) {
-          // 既にログイン済みの場合はリダイレクト
-          const redirectUrl = UserSession.getRedirectUrl(session.role);
-          window.location.href = redirectUrl;
-        }
-      });
-
-      // Enterキーでログイン
-      userIdInput.addEventListener("keypress", function (event) {
-        if (event.key === "Enter") {
-          handleLogin(event);
-        }
-      });
-    </script>
-  </body>
 </html>
