@@ -37,8 +37,14 @@ const USER_ROLES = {
 
 // ページアクセス権限定義
 const PAGE_PERMISSIONS = {
-  "index.html": [USER_ROLES.ADMIN],
-  "user.html": [USER_ROLES.USER, USER_ROLES.STAFF, USER_ROLES.MAKER, USER_ROLES.SCANNER, USER_ROLES.GUEST],
+  "admin.html": [USER_ROLES.ADMIN],
+  "user.html": [
+    USER_ROLES.USER,
+    USER_ROLES.STAFF,
+    USER_ROLES.MAKER,
+    USER_ROLES.SCANNER,
+    USER_ROLES.GUEST,
+  ],
   "/": [USER_ROLES.ADMIN],
 };
 
@@ -64,7 +70,7 @@ class UserSession {
     };
     localStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
     currentUser = sessionData;
-  }  // セッション取得
+  } // セッション取得
   static getSession() {
     const sessionData = localStorage.getItem(SESSION_KEY);
     if (!sessionData) return null;
@@ -141,7 +147,7 @@ class UserSession {
       // セッション保存（正しいroleフィールドを使用）
       const sessionData = {
         ...userData,
-        role: userRole // 正規化されたroleを使用
+        role: userRole, // 正規化されたroleを使用
       };
       this.saveSession(sessionData);
 
@@ -165,7 +171,7 @@ class UserSession {
   static getRedirectUrl(role) {
     switch (role) {
       case USER_ROLES.ADMIN:
-        return "index.html";
+        return "admin.html";
       case USER_ROLES.USER:
       case USER_ROLES.STAFF:
       case USER_ROLES.MAKER:
@@ -180,7 +186,7 @@ class UserSession {
   // ページアクセス権限チェック
   static checkPageAccess() {
     const currentPage =
-      window.location.pathname.split("/").pop() || "index.html";
+      window.location.pathname.split("/").pop() || "admin.html";
     const session = this.getSession();
 
     // セッションがない場合はログインページへ
@@ -220,7 +226,7 @@ class UserSession {
 // ページロード時の認証チェック
 document.addEventListener("DOMContentLoaded", function () {
   // ログインページ以外では認証チェック
-  const currentPage = window.location.pathname.split("/").pop() || "index.html";
+  const currentPage = window.location.pathname.split("/").pop() || "admin.html";
   if (currentPage !== "login.html") {
     UserSession.checkPageAccess();
   }

@@ -1,561 +1,153 @@
 <!DOCTYPE html>
 <html lang="ja">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QR Scan App</title>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="google-site-verification" content="4e4fa1e3c40dcc41" />
+    <title>QRスキャンシステム</title>
     <style>
-        /* テーブル装飾 */
-        table {
-            border-collapse: collapse;
-            width: 100%;
-            margin: 10px 0;
-            background: #fff;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(66, 133, 244, 0.08);
-        }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
 
-        th,
-        td {
-            border: 1px solid #e0e0e0;
-            padding: 10px 8px;
-            text-align: left;
-            font-size: 15px;
-        }
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
 
-        th {
-            background: #4285f4;
-            color: #fff;
-            font-weight: bold;
-            position: sticky;
-            top: 0;
-            z-index: 1;
-        }
+      .landing-container {
+        background: white;
+        border-radius: 20px;
+        padding: 60px 40px;
+        text-align: center;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+        max-width: 500px;
+        width: 90%;
+      }
 
-        tr:nth-child(even) {
-            background: #f5f7fa;
-        }
+      .logo {
+        font-size: 48px;
+        margin-bottom: 20px;
+      }
 
-        tr:hover {
-            background: #e3f0fd;
-        }
+      .title {
+        font-size: 28px;
+        color: #333;
+        margin-bottom: 15px;
+        font-weight: 600;
+      }
 
-        table thead {
-            border-radius: 8px 8px 0 0;
-        }
+      .subtitle {
+        color: #666;
+        margin-bottom: 40px;
+        font-size: 16px;
+        line-height: 1.6;
+      }
 
-        table tbody {
-            border-radius: 0 0 8px 8px;
-        }
+      .button-group {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+      }
 
-        @media (max-width: 768px) {
+      .btn {
+        padding: 15px 30px;
+        border: none;
+        border-radius: 50px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+      }
 
-            table,
-            th,
-            td {
-                font-size: 13px;
-                padding: 7px 4px;
-            }
-        }
+      .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+      }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+      }
 
-        .container {
-            background: white;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
-        }
+      .btn-secondary {
+        background: #f8f9fa;
+        color: #495057;
+        border: 2px solid #e9ecef;
+      }
 
-        h1 {
-            color: #333;
-            border-bottom: 3px solid #4285f4;
-            padding-bottom: 10px;
-        }
+      .btn-secondary:hover {
+        background: #e9ecef;
+        transform: translateY(-2px);
+      }
 
-        h2 {
-            color: #4285f4;
-            margin-top: 30px;
-        }
+      .features {
+        margin-top: 40px;
+        padding-top: 30px;
+        border-top: 1px solid #e9ecef;
+      }
 
-        button {
-            background-color: #4285f4;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
-            cursor: pointer;
-            margin: 5px;
-            font-size: 16px;
-        }
+      .feature-list {
+        display: grid;
+        gap: 15px;
+        text-align: left;
+      }
 
-        button:hover {
-            background-color: #3367d6;
-        }
+      .feature-item {
+        display: flex;
+        align-items: center;
+        color: #666;
+        font-size: 14px;
+      }
 
-        button:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
-        }
-
-        input,
-        textarea {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            margin: 5px 0;
-            font-size: 16px;
-        }
-
-        .result {
-            background-color: #f8f9fa;
-            border: 1px solid #e9ecef;
-            border-radius: 4px;
-            padding: 15px;
-            margin: 10px 0;
-            font-family: 'Courier New', monospace;
-            white-space: pre-wrap;
-            max-height: 300px;
-            overflow-y: auto;
-        }
-
-        .success {
-            background-color: #d4edda;
-            border-color: #c3e6cb;
-            color: #155724;
-        }
-
-        .error {
-            background-color: #f8d7da;
-            border-color: #f5c6cb;
-            color: #721c24;
-        }
-
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #4285f4;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(360deg);
-            }
-        }
-
-        .dashboard-header {
-            background: linear-gradient(135deg, #4285f4, #34a853);
-            color: white;
-            padding: 30px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        .dashboard-header h1 {
-            margin: 0;
-            color: white;
-            border: none;
-            padding: 0;
-        }
-
-        .action-buttons {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 30px;
-        }
-
-        .action-button {
-            background: white;
-            border: 2px solid #4285f4;
-            color: #4285f4;
-            padding: 15px 20px;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-
-        .action-button:hover {
-            background: #4285f4;
-            color: white;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(66, 133, 244, 0.3);
-        }
-
-        .action-button.excel {
-            border-color: #34a853;
-            color: #34a853;
-        }
-
-        .action-button.excel:hover {
-            background: #34a853;
-            color: white;
-        }
-
-        .action-button.qr {
-            border-color: #f39c12;
-            color: #f39c12;
-        }
-
-        .action-button.qr:hover {
-            background: #f39c12;
-            color: white;
-        }
-
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 20px;
-        }
-
-        .dashboard-section {
-            background: white;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #f0f0f0;
-        }
-
-        .section-title {
-            color: #4285f4;
-            margin: 0;
-            font-size: 1.2em;
-        }
-
-        .btn-clear {
-            background: #dc3545;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-
-        .btn-clear:hover {
-            background: #c82333;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.4);
-        }
-
-        .modal-content {
-            background: white;
-            border-radius: 8px;
-            max-width: 500px;
-            margin: 80px auto;
-            padding: 30px;
-            position: relative;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
-        }
-
-        .upload-options {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            margin-top: 20px;
-        }
-
-        .option-btn {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            padding: 20px;
-            text-align: left;
-            min-height: 80px;
-            justify-content: center;
-        }
-
-        .option-btn small {
-            font-size: 14px;
-            font-weight: normal;
-            margin-top: 5px;
-            opacity: 0.8;
-        }
-
-        .option-replace {
-            border-color: #e74c3c;
-            color: #e74c3c;
-        }
-
-        .option-replace:hover {
-            background: #e74c3c;
-            color: white;
-        }
-
-        .file-name-display {
-            background: #f8f9fa;
-            padding: 10px;
-            border-radius: 5px;
-            margin: 15px 0;
-            font-family: monospace;
-            border-left: 4px solid #4285f4;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-            color: #333;
-        }
-
-        .form-group input {
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-            box-sizing: border-box;
-        }
-
-        .form-group input:focus {
-            border-color: #4285f4;
-            outline: none;
-        }
-
-        @media (max-width: 768px) {
-            .action-buttons {
-                grid-template-columns: 1fr;
-            }
-
-            .dashboard-header {
-                padding: 20px;
-            }
-        }
-
-        /* 削除ボタンのスタイル */
-        .delete-btn {
-            background-color: #dc3545;
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: bold;
-            transition: all 0.2s ease;
-        }
-
-        .delete-btn:hover {
-            background-color: #c82333;
-            transform: scale(1.05);
-        }
-
-        .delete-btn:active {
-            transform: scale(0.95);
-        }
+      .feature-icon {
+        margin-right: 10px;
+        font-size: 16px;
+      }
     </style>
-</head>
+  </head>
 
-<body>
-    <!-- ダッシュボードヘッダー -->
-    <div class="dashboard-header">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <h1 style="margin: 0;">QR Scan 管理ダッシュボード</h1>
-            <div style="display: flex; align-items: center; gap: 15px;">
-                <span id="userInfo" style="color: rgba(255,255,255,0.9); font-size: 14px;"></span>
-                <button onclick="UserSession.logout()"
-                    style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
-                    ログアウト
-                </button>
-            </div>
+  <body>
+    <div class="landing-container">
+      <div class="logo">📱</div>
+      <h1 class="title">QRスキャンシステム</h1>
+      <p class="subtitle">
+        展示会用QRコード識別システム<br />効率的なデータ管理とスキャニング機能
+      </p>
+
+      <div class="button-group">
+        <a href="login.html" class="btn btn-primary">🔑 ログイン</a>
+        <a href="user.html" class="btn btn-secondary">📱 QRスキャン</a>
+      </div>
+
+      <div class="features">
+        <div class="feature-list">
+          <div class="feature-item">
+            <span class="feature-icon">✅</span>
+            <span>展示会QRコード識別（aaa形式）</span>
+          </div>
+          <div class="feature-item">
+            <span class="feature-icon">📊</span>
+            <span>Excel一括アップロード対応</span>
+          </div>
+          <div class="feature-item">
+            <span class="feature-icon">👥</span>
+            <span>ユーザー・スタッフ管理</span>
+          </div>
+          <div class="feature-item">
+            <span class="feature-icon">🔐</span>
+            <span>ロールベースアクセス制御</span>
+          </div>
         </div>
-        <p>データベース管理とQRスキャン機能を統合管理</p>
+      </div>
     </div>
-
-    <!-- アクションボタン -->
-    <div class="action-buttons">
-        <!-- 1行目: 基本機能 -->
-        <div class="action-buttons-row">
-            <button onclick="window.location.href='user.html'" class="action-button qr">
-                📱 users.html
-            </button>
-            <button onclick="document.getElementById('downloadResultModal').style.display='block'"
-                class="action-button excel">
-                � テンプレートDL
-            </button>
-            <button onclick="clearResults('firestoreResult')" class="btn-clear action-button">
-                🗑️ 結果をクリア
-            </button>
-        </div>
-
-        <!-- 2行目: Firestoreデータ操作 -->
-        <div class="action-buttons-row">
-            <button onclick="getAllItems()" class="action-button">
-                📦 itemsコレクション取得
-            </button>
-            <button onclick="getAllUsers()" class="action-button">
-                👥 usersコレクション取得
-            </button>
-            <button onclick="getAllStaff()" class="action-button">
-                👨‍💼 staffコレクション取得
-            </button>
-            <button onclick="getAllMaker()" class="action-button">
-                👨‍💼 makerコレクション取得
-            </button>
-            <button onclick="getAllScanItems()" class="action-button">
-                � ScanItemsコレクション取得
-            </button>
-        </div>
-
-        <!-- 3行目: ファイルアップロード -->
-        <div class="action-buttons-row">
-            <button onclick="document.getElementById('excelFileInput').click()" class="action-button"
-                style="border-color: #ff9800; color: #ff9800;">
-                📤 Excel ファイルアップロード
-            </button>
-            <!--
-            <button onclick="createTestUsers()" class="action-button" style="border-color: #e74c3c; color: #e74c3c;">
-                👥 テストユーザー作成
-            </button>
-            -->
-            <input type="file" id="excelFileInput" accept=".xlsx,.xls" style="display: none;"
-                onchange="showUploadOptionsModal(this)">
-
-        </div>
-    </div>
-
-
-    <!-- テンプレートダウンロード選択モーダル -->
-    <div id="downloadResultModal" class="modal"
-        style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100vw; height:100vh; background:rgba(0,0,0,0.4);">
-        <div
-            style="background:white; border-radius:8px; max-width:500px; margin:80px auto; padding:30px; position:relative; box-shadow:0 2px 10px rgba(0,0,0,0.2);">
-            <h3 style="color:#4285f4; margin-top:0;">テンプレートダウンロード</h3>
-            <button onclick="closeDownloadResultModal()" class="btn-clear"
-                style="position:absolute; top:18px; right:18px;">閉じる</button>
-            <div style="margin-top:20px;">
-                <label for="templateSelect">コレクション選択：</label>
-                <select id="templateSelect"
-                    style="margin:0 10px 0 5px; padding:6px 12px; border-radius:4px; border:1px solid #ddd;">
-                    <option value="items">items（アイテム）</option>
-                    <option value="users">users（ユーザー）</option>
-                    <option value="staff">staff（スタッフ）</option>
-                    <option value="maker">maker（メーカー）</option>
-                    <!-- 追加予定コレクションはここにoption追加 -->
-                </select>
-                <button onclick="downloadSelectedTemplate()" class="action-button excel"
-                    style="margin-left:10px;">ダウンロード</button>
-            </div>
-            <div id="downloadResult" class="result" style="margin-top:20px;"></div>
-        </div>
-    </div>
-
-    <!-- データ追加モーダル -->
-    <div id="addDataModal" class="modal"
-        style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100vw; height:100vh; background:rgba(0,0,0,0.4);">
-        <div
-            style="background:white; border-radius:8px; max-width:500px; margin:80px auto; padding:30px; position:relative; box-shadow:0 2px 10px rgba(0,0,0,0.2);">
-            <h3 id="modalTitle" style="color:#4285f4; margin-top:0;">データ追加</h3>
-            <form id="modalForm" style="margin-top:20px;">
-                <!-- フォームフィールドは動的に生成されます -->
-            </form>
-            <div style="margin-top:20px; text-align:right;">
-                <button type="button" onclick="closeModal()" class="btn-clear" style="margin-right:10px;">キャンセル</button>
-                <button type="button" id="submitDataBtn" onclick="submitAddData()" class="action-button">追加</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- データベース管理 -->
-    <div class="dashboard-grid">
-        <div class="dashboard-section">
-            <div class="section-header">
-                <h3 class="section-title">📊 データベース管理</h3>
-                <button id="addDataButton" onclick="addToCurrentCollection()" class="action-button"
-                    style="display: none;">
-                    ➕ データ追加
-                </button>
-                <div id="firestoreResult-count" class="collection-count"></div>
-                <div id="firestoreResult-collectionname" class="collection-title"></div>
-            </div>
-            <div id="firestoreResult" class="result"></div>
-        </div>
-    </div>
-
-    <div class="dashboard-section">
-        <div class="section-header">
-            <h3 class="section-title">⚡ Cloud Functions</h3>
-            <button onclick="clearResults('functionResult')" class="btn-clear">クリア</button>
-        </div>
-
-        <div style="margin-bottom: 15px;">
-            <button onclick="callHelloWorld()">Hello World Function</button>
-        </div>
-
-        <div id="functionResult" class="result"></div>
-    </div>
-    </div>
-
-    <!-- アップロードオプション選択モーダル -->
-    <div id="uploadOptionsModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeUploadOptionsModal()">&times;</span>
-            <h2>アップロード方法を選択してください</h2>
-            <p id="uploadFileName" class="file-name-display"></p>
-            <div class="upload-options">
-                <button onclick="handleUploadOption('add')" class="action-button option-btn">
-                    📝 データを追加
-                    <small>既存のデータを保持して新規データを追加します</small>
-                </button>
-                <button onclick="handleUploadOption('replace')" class="action-button option-btn option-replace">
-                    🔄 データを全消去して置き換え
-                    <small>既存のデータを全て削除してから新規データを保存します</small>
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Firebase SDK -->
-    <script type="module" src="js/auth.js"></script>
-    <script type="module" src="js/template-utils.js"></script>
-    <script type="module" src="js/firebase-index-new.js"></script>
-</body>
-
+  </body>
 </html>
