@@ -202,7 +202,7 @@ class UserSession {
   // ページアクセス権限チェック
   static checkPageAccess() {
     const currentPage = window.location.pathname.split("/").pop() || "index.html";
-    
+
     // Firebase Auth認証状態をチェック
     if (!auth.currentUser || !currentUser) {
       if (currentPage !== "login.html") {
@@ -243,7 +243,7 @@ class UserSession {
 // Firebase Auth状態変化監視
 onAuthStateChanged(auth, async (user) => {
   console.log("Auth state changed:", user?.uid);
-  
+
   if (user) {
     // 認証済み：ユーザーデータを取得
     if (!currentUser) {
@@ -251,7 +251,7 @@ onAuthStateChanged(auth, async (user) => {
         // カスタムクレームからuser_idを取得（トークンに含まれている場合）
         const idTokenResult = await user.getIdTokenResult();
         const userId = idTokenResult.claims.user_id;
-        
+
         if (userId) {
           // Firestoreからユーザーデータを取得
           const usersQuery = query(
@@ -259,7 +259,7 @@ onAuthStateChanged(auth, async (user) => {
             where("user_id", "==", userId)
           );
           const querySnapshot = await getDocs(usersQuery);
-          
+
           if (!querySnapshot.empty) {
             const userData = querySnapshot.docs[0].data();
             const userRole = userData.user_role || userData.role;

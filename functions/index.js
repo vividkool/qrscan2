@@ -24,10 +24,10 @@ exports.createCustomToken = functions.https.onRequest(async (req, res) => {
   }
 
   try {
-    const {userId} = req.body;
+    const { userId } = req.body;
 
     if (!userId) {
-      res.status(400).json({error: "userId is required"});
+      res.status(400).json({ error: "userId is required" });
       return;
     }
 
@@ -37,7 +37,7 @@ exports.createCustomToken = functions.https.onRequest(async (req, res) => {
     const querySnapshot = await usersQuery.get();
 
     if (querySnapshot.empty) {
-      res.status(404).json({error: "User not found"});
+      res.status(404).json({ error: "User not found" });
       return;
     }
 
@@ -45,7 +45,7 @@ exports.createCustomToken = functions.https.onRequest(async (req, res) => {
 
     // ステータスチェック
     if (userData.status === "退場済") {
-      res.status(403).json({error: "User is not active"});
+      res.status(403).json({ error: "User is not active" });
       return;
     }
 
@@ -66,6 +66,6 @@ exports.createCustomToken = functions.https.onRequest(async (req, res) => {
     });
   } catch (error) {
     console.error("Error creating custom token:", error);
-    res.status(500).json({error: "Internal server error"});
+    res.status(500).json({ error: "Internal server error" });
   }
 });

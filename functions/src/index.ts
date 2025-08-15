@@ -6,7 +6,7 @@ import { getAuth } from "firebase-admin/auth";
 
 // Firebase Admin初期化
 if (!getApps().length) {
-  initializeApp();
+    initializeApp();
 }
 const db = getFirestore();
 

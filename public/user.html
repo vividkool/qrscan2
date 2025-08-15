@@ -1,663 +1,672 @@
 <!DOCTYPE html>
 <html lang="ja">
-
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>user page</title>
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-        sans-serif;
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 20px;
-      padding-bottom: 160px;
-      /* 固定ボタンのための余白 */
-      background-color: #f5f5f5;
-    }
-
-    .container {
-      background: white;
-      border-radius: 8px;
-      padding: 20px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-      margin-bottom: 20px;
-    }
-
-    h1 {
-      color: #333;
-      border-bottom: 3px solid #4285f4;
-      padding-bottom: 10px;
-      text-align: center;
-    }
-
-    button {
-      background-color: #4285f4;
-      color: white;
-      border: none;
-      padding: 12px 24px;
-      border-radius: 4px;
-      cursor: pointer;
-      margin: 5px;
-      font-size: 16px;
-      width: 100%;
-      max-width: 300px;
-    }
-
-    button:hover {
-      background-color: #3367d6;
-    }
-
-    button:disabled {
-      background-color: #ccc;
-      cursor: not-allowed;
-    }
-
-    .scan-button {
-      background-color: #27ae60;
-      font-size: 20px;
-      padding: 15px 30px;
-      flex: 1;
-    }
-
-    .scan-button:hover {
-      background-color: #2ecc71;
-    }
-
-    .stop-button {
-      background-color: #e74c3c;
-      font-size: 20px;
-      padding: 15px 30px;
-      flex: 1;
-    }
-
-    .stop-button:hover {
-      background-color: #c0392b;
-    }
-
-    .back-button {
-      background-color: #95a5a6;
-      flex: 1;
-      margin: 0;
-    }
-
-    .back-button:hover {
-      background-color: #7f8c8d;
-    }
-
-    .camera-container {
-      display: none;
-      text-align: center;
-      margin: 20px 0;
-      padding: 20px;
-      background-color: #ecf0f1;
-      border-radius: 8px;
-    }
-
-    .camera-container.active {
-      display: block;
-    }
-
-    #camera {
-      width: 100%;
-      max-width: 400px;
-      height: 300px;
-      border: 2px solid #3498db;
-      border-radius: 8px;
-      background-color: #000;
-    }
-
-    .result {
-      background-color: #f8f9fa;
-      border: 1px solid #e9ecef;
-      border-radius: 4px;
-      padding: 15px;
-      margin: 10px 0;
-      font-family: "Courier New", monospace;
-      white-space: pre-wrap;
-      max-height: 200px;
-      overflow-y: auto;
-    }
-
-    .success {
-      background-color: #d4edda;
-      border-color: #c3e6cb;
-      color: #155724;
-    }
-
-    .error {
-      background-color: #f8d7da;
-      border-color: #f5c6cb;
-      color: #721c24;
-    }
-
-    .scan-history {
-      margin-top: 20px;
-    }
-
-    .scan-item {
-      background-color: #ffffff;
-      border: 1px solid #dee2e6;
-      border-radius: 4px;
-      padding: 10px;
-      margin: 10px 0;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    }
-
-    .scan-timestamp {
-      color: #6c757d;
-      font-size: 12px;
-    }
-
-    .controls {
-      position: fixed;
-      bottom: 20px;
-      width: 100%;
-      left: 20px;
-      right: 20px;
-      background-color: white;
-      padding: 15px;
-      border-radius: 8px;
-      box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
-      z-index: 100;
-      display: flex;
-      gap: 10px;
-      margin: auto;
-      justify-content: center;
-      align-items: center;
-    }
-
-    .loading {
-      display: inline-block;
-      width: 20px;
-      height: 20px;
-      border: 3px solid #f3f3f3;
-      border-top: 3px solid #4285f4;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-      0% {
-        transform: rotate(0deg);
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>user page</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        padding-bottom: 160px;
+        /* 固定ボタンのための余白 */
+        background-color: #f5f5f5;
       }
 
-      100% {
-        transform: rotate(360deg);
-      }
-    }
-
-    /* モーダル関連のスタイル */
-    .modal {
-      display: none;
-      position: fixed;
-      z-index: 1000;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.5);
-      animation: fadeIn 0.3s ease-in-out;
-    }
-
-    .modal.show {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .modal-content {
-      background-color: #fff;
-      padding: 30px;
-      border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-      text-align: center;
-      max-width: 400px;
-      width: 90%;
-      position: relative;
-      animation: slideIn 0.3s ease-out;
-    }
-
-    .modal-header {
-      font-size: 24px;
-      color: #27ae60;
-      margin-bottom: 15px;
-    }
-
-    .modal-body {
-      margin: 20px 0;
-      padding: 15px;
-      background-color: #f8f9fa;
-      border-radius: 8px;
-      border-left: 4px solid #27ae60;
-    }
-
-    .modal-close {
-      background-color: #27ae60;
-      color: white;
-      border: none;
-      padding: 12px 30px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 16px;
-      margin-top: 15px;
-    }
-
-    .modal-close:hover {
-      background-color: #2ecc71;
-    }
-
-    /* エラーモーダル専用スタイル */
-    .error-header {
-      color: #e74c3c !important;
-    }
-
-    #errorModal .modal-body {
-      border-left: 4px solid #e74c3c;
-      background-color: #fdf2f2;
-      color: #721c24;
-    }
-
-    #errorModal .modal-close {
-      background-color: #e74c3c;
-    }
-
-    #errorModal .modal-close:hover {
-      background-color: #c0392b;
-    }
-
-    .hidden {
-      display: none !important;
-    }
-
-    /* スキャナーステータス用CSS */
-    .scanner-status {
-      border-radius: 8px;
-      padding: 12px;
-      margin-bottom: 15px;
-      text-align: center;
-      font-weight: bold;
-    }
-
-    .status.info {
-      background: #d1ecf1;
-      border: 1px solid #bee5eb;
-      color: #0c5460;
-    }
-
-    .status.success {
-      background: #d4edda;
-      border: 1px solid #c3e6cb;
-      color: #155724;
-    }
-
-    .status.warning {
-      background: #fff3cd;
-      border: 1px solid #ffeaa7;
-      color: #856404;
-    }
-
-    .status.error {
-      background: #f8d7da;
-      border: 1px solid #f5c6cb;
-      color: #721c24;
-    }
-
-    @keyframes fadeIn {
-      from {
-        opacity: 0;
+      .container {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
       }
 
-      to {
-        opacity: 1;
-      }
-    }
-
-    @keyframes slideIn {
-      from {
-        transform: translateY(-50px);
-        opacity: 0;
+      h1 {
+        color: #333;
+        border-bottom: 3px solid #4285f4;
+        padding-bottom: 10px;
+        text-align: center;
       }
 
-      to {
-        transform: translateY(0);
-        opacity: 1;
+      button {
+        background-color: #4285f4;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 4px;
+        cursor: pointer;
+        margin: 5px;
+        font-size: 16px;
+        width: 100%;
+        max-width: 300px;
       }
-    }
 
-    /* スキャン履歴のスタイル */
-    .history-list {
-      max-height: 400px;
-      overflow-y: auto;
-      margin-top: 10px;
-    }
+      button:hover {
+        background-color: #3367d6;
+      }
 
-    .history-item {
-      background: #ffffff;
-      border: 1px solid #e9ecef;
-      border-radius: 6px;
-      padding: 12px;
-      margin-bottom: 8px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-      transition: all 0.2s ease;
-    }
+      button:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+      }
 
-    .history-item:hover {
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-      border-color: #3498db;
-    }
+      .scan-button {
+        background-color: #27ae60;
+        font-size: 20px;
+        padding: 15px 30px;
+        flex: 1;
+      }
 
-    .history-content {
-      font-weight: bold;
-      color: #2c3e50;
-      margin-bottom: 6px;
-      word-break: break-all;
-    }
+      .scan-button:hover {
+        background-color: #2ecc71;
+      }
 
-    .history-meta {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 12px;
-      color: #6c757d;
-    }
+      .stop-button {
+        background-color: #e74c3c;
+        font-size: 20px;
+        padding: 15px 30px;
+        flex: 1;
+      }
 
-    .history-time {
-      flex: 1;
-    }
+      .stop-button:hover {
+        background-color: #c0392b;
+      }
 
-    .history-mode {
-      background: #e9ecef;
-      padding: 2px 6px;
-      border-radius: 12px;
-      font-size: 10px;
-      font-weight: bold;
-      text-transform: uppercase;
-    }
+      .back-button {
+        background-color: #95a5a6;
+        flex: 1;
+        margin: 0;
+      }
 
-    .history-footer {
-      text-align: center;
-      color: #6c757d;
-      font-size: 12px;
-      margin-top: 10px;
-      padding: 8px;
-      background: #f8f9fa;
-      border-radius: 4px;
-    }
+      .back-button:hover {
+        background-color: #7f8c8d;
+      }
 
-    .loading,
-    .no-data,
-    .error {
-      text-align: center;
-      padding: 20px;
-      color: #6c757d;
-      font-style: italic;
-    }
+      .camera-container {
+        display: none;
+        text-align: center;
+        margin: 20px 0;
+        padding: 20px;
+        background-color: #ecf0f1;
+        border-radius: 8px;
+      }
 
-    .error {
-      color: #dc3545;
-    }
+      .camera-container.active {
+        display: block;
+      }
 
-    /* スキャン履歴テーブルのスタイル */
-    .history-table-container {
-      max-height: 500px;
-      overflow: auto;
-      margin-top: 10px;
-      border: 1px solid #e9ecef;
-      border-radius: 6px;
-    }
+      #camera {
+        width: 100%;
+        max-width: 400px;
+        height: 300px;
+        border: 2px solid #3498db;
+        border-radius: 8px;
+        background-color: #000;
+      }
 
-    .history-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 14px;
-    }
+      .result {
+        background-color: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 4px;
+        padding: 15px;
+        margin: 10px 0;
+        font-family: "Courier New", monospace;
+        white-space: pre-wrap;
+        max-height: 200px;
+        overflow-y: auto;
+      }
 
-    .history-table thead {
-      background: #f8f9fa;
-      position: sticky;
-      top: 0;
-      z-index: 10;
-    }
+      .success {
+        background-color: #d4edda;
+        border-color: #c3e6cb;
+        color: #155724;
+      }
 
-    .history-table th {
-      padding: 12px 8px;
-      text-align: left;
-      font-weight: bold;
-      border-bottom: 2px solid #dee2e6;
-      white-space: nowrap;
-    }
+      .error {
+        background-color: #f8d7da;
+        border-color: #f5c6cb;
+        color: #721c24;
+      }
 
-    .history-table td {
-      padding: 10px 8px;
-      border-bottom: 1px solid #e9ecef;
-      vertical-align: top;
-    }
+      .scan-history {
+        margin-top: 20px;
+      }
 
-    .history-table tbody tr:hover {
-      background-color: #f5f5f5;
-    }
+      .scan-item {
+        background-color: #ffffff;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 10px;
+        margin: 10px 0;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      }
 
-    .time-cell {
-      width: 80px;
-      font-size: 12px;
-      color: #6c757d;
-      white-space: nowrap;
-    }
+      .scan-timestamp {
+        color: #6c757d;
+        font-size: 12px;
+      }
 
-    .content-cell {
-      min-width: 120px;
-      max-width: 200px;
-      word-break: break-all;
-      font-weight: bold;
-      color: #2c3e50;
-    }
+      .controls {
+        position: fixed;
+        bottom: 20px;
+        width: 100%;
+        left: 20px;
+        right: 20px;
+        background-color: white;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+        z-index: 100;
+        display: flex;
+        gap: 10px;
+        margin: auto;
+        justify-content: center;
+        align-items: center;
+      }
 
-    .user-cell {
-      width: 100px;
-      font-size: 13px;
-    }
+      .loading {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #4285f4;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
 
-    .role-cell {
-      width: 60px;
-      font-size: 12px;
-      text-align: center;
-    }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
 
-    .company-cell {
-      width: 100px;
-      font-size: 12px;
-    }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
 
-    .mode-cell {
-      width: 80px;
-      font-size: 11px;
-      text-align: center;
-    }
+      /* モーダル関連のスタイル */
+      .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        animation: fadeIn 0.3s ease-in-out;
+      }
 
-    .mode-cell {
-      background: #e9ecef;
-      padding: 4px 8px;
-      border-radius: 12px;
-      font-weight: bold;
-      text-transform: uppercase;
-    }
-  </style>
-</head>
+      .modal.show {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
 
-<body>
-  <div class="container">
-    <!-- ユーザー情報表示 -->
-    <div id="userInfo" style="
+      .modal-content {
+        background-color: #fff;
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        text-align: center;
+        max-width: 400px;
+        width: 90%;
+        position: relative;
+        animation: slideIn 0.3s ease-out;
+      }
+
+      .modal-header {
+        font-size: 24px;
+        color: #27ae60;
+        margin-bottom: 15px;
+      }
+
+      .modal-body {
+        margin: 20px 0;
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        border-left: 4px solid #27ae60;
+      }
+
+      .modal-close {
+        background-color: #27ae60;
+        color: white;
+        border: none;
+        padding: 12px 30px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 16px;
+        margin-top: 15px;
+      }
+
+      .modal-close:hover {
+        background-color: #2ecc71;
+      }
+
+      /* エラーモーダル専用スタイル */
+      .error-header {
+        color: #e74c3c !important;
+      }
+
+      #errorModal .modal-body {
+        border-left: 4px solid #e74c3c;
+        background-color: #fdf2f2;
+        color: #721c24;
+      }
+
+      #errorModal .modal-close {
+        background-color: #e74c3c;
+      }
+
+      #errorModal .modal-close:hover {
+        background-color: #c0392b;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      /* スキャナーステータス用CSS */
+      .scanner-status {
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 15px;
+        text-align: center;
+        font-weight: bold;
+      }
+
+      .status.info {
+        background: #d1ecf1;
+        border: 1px solid #bee5eb;
+        color: #0c5460;
+      }
+
+      .status.success {
+        background: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+      }
+
+      .status.warning {
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        color: #856404;
+      }
+
+      .status.error {
+        background: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+
+        to {
+          opacity: 1;
+        }
+      }
+
+      @keyframes slideIn {
+        from {
+          transform: translateY(-50px);
+          opacity: 0;
+        }
+
+        to {
+          transform: translateY(0);
+          opacity: 1;
+        }
+      }
+
+      /* スキャン履歴のスタイル */
+      .history-list {
+        max-height: 400px;
+        overflow-y: auto;
+        margin-top: 10px;
+      }
+
+      .history-item {
+        background: #ffffff;
+        border: 1px solid #e9ecef;
+        border-radius: 6px;
+        padding: 12px;
+        margin-bottom: 8px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        transition: all 0.2s ease;
+      }
+
+      .history-item:hover {
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        border-color: #3498db;
+      }
+
+      .history-content {
+        font-weight: bold;
+        color: #2c3e50;
+        margin-bottom: 6px;
+        word-break: break-all;
+      }
+
+      .history-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+        color: #6c757d;
+      }
+
+      .history-time {
+        flex: 1;
+      }
+
+      .history-mode {
+        background: #e9ecef;
+        padding: 2px 6px;
+        border-radius: 12px;
+        font-size: 10px;
+        font-weight: bold;
+        text-transform: uppercase;
+      }
+
+      .history-footer {
+        text-align: center;
+        color: #6c757d;
+        font-size: 12px;
+        margin-top: 10px;
+        padding: 8px;
+        background: #f8f9fa;
+        border-radius: 4px;
+      }
+
+      .loading,
+      .no-data,
+      .error {
+        text-align: center;
+        padding: 20px;
+        color: #6c757d;
+        font-style: italic;
+      }
+
+      .error {
+        color: #dc3545;
+      }
+
+      /* スキャン履歴テーブルのスタイル */
+      .history-table-container {
+        max-height: 500px;
+        overflow: auto;
+        margin-top: 10px;
+        border: 1px solid #e9ecef;
+        border-radius: 6px;
+      }
+
+      .history-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+
+      .history-table thead {
+        background: #f8f9fa;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+
+      .history-table th {
+        padding: 12px 8px;
+        text-align: left;
+        font-weight: bold;
+        border-bottom: 2px solid #dee2e6;
+        white-space: nowrap;
+      }
+
+      .history-table td {
+        padding: 10px 8px;
+        border-bottom: 1px solid #e9ecef;
+        vertical-align: top;
+      }
+
+      .history-table tbody tr:hover {
+        background-color: #f5f5f5;
+      }
+
+      .time-cell {
+        width: 80px;
+        font-size: 12px;
+        color: #6c757d;
+        white-space: nowrap;
+      }
+
+      .content-cell {
+        min-width: 120px;
+        max-width: 200px;
+        word-break: break-all;
+        font-weight: bold;
+        color: #2c3e50;
+      }
+
+      .user-cell {
+        width: 100px;
+        font-size: 13px;
+      }
+
+      .role-cell {
+        width: 60px;
+        font-size: 12px;
+        text-align: center;
+      }
+
+      .company-cell {
+        width: 100px;
+        font-size: 12px;
+      }
+
+      .mode-cell {
+        width: 80px;
+        font-size: 11px;
+        text-align: center;
+      }
+
+      .mode-cell {
+        background: #e9ecef;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-weight: bold;
+        text-transform: uppercase;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <!-- ユーザー情報表示 -->
+      <div
+        id="userInfo"
+        style="
           text-align: center;
           margin-bottom: 20px;
           padding: 12px;
           background: #f8f9fa;
           border-radius: 8px;
           border: 1px solid #e9ecef;
-        ">
-      <span style="color: #4285f4; font-weight: bold">ログイン中...</span>
-    </div>
+        "
+      >
+        <span style="color: #4285f4; font-weight: bold">ログイン中...</span>
+      </div>
 
-    <div id="cameraContainer" class="camera-container">
-      <h1>📱 QRコードスキャン</h1>
+      <div id="cameraContainer" class="camera-container">
+        <h1>📱 QRコードスキャン</h1>
 
-      <!-- スキャナーステータス -->
-      <div id="scannerStatus" style="
+        <!-- スキャナーステータス -->
+        <div
+          id="scannerStatus"
+          style="
             display: none;
             margin-bottom: 15px;
             padding: 12px;
             border-radius: 8px;
             text-align: center;
             font-weight: bold;
-          "></div>
+          "
+        ></div>
 
-      <video id="camera" autoplay></video>
-      <canvas id="canvas" style="display: none"></canvas>
-      <div style="margin-top: 10px">
-        <p id="scanStatus">QRコードをカメラに向けてください</p>
-        <div style="font-size: 12px; color: #666; margin-top: 5px">
-          📷 高性能スキャナー (ZXing優先 + フォールバック対応)
+        <video id="camera" autoplay></video>
+        <canvas id="canvas" style="display: none"></canvas>
+        <div style="margin-top: 10px">
+          <p id="scanStatus">QRコードをカメラに向けてください</p>
+          <div style="font-size: 12px; color: #666; margin-top: 5px">
+            📷 高性能スキャナー (ZXing優先 + フォールバック対応)
+          </div>
         </div>
+        <div id="result" class="result"></div>
       </div>
-      <div id="result" class="result"></div>
     </div>
-  </div>
 
-  <div id="scanHistoryContainer" class="container">
-    <div id="scanHistory" class="scan-history"></div>
-  </div>
-
-  <div class="controls">
-    <button onclick="window.location.href='index.html'" class="back-button">
-      ← ホームに戻る
-    </button>
-    <button id="startScanBtn" class="scan-button" onclick="startScan()">
-      📷 カメラを開始
-    </button>
-    <button id="stopScanBtn" class="stop-button" onclick="stopScan()" style="display: none">
-      ⏹️ カメラを停止
-    </button>
-  </div>
-
-  <!-- 成功モーダル -->
-  <div id="successModal" class="modal">
-    <div class="modal-content">
-      <div class="modal-header">✅ スキャン成功！</div>
-      <div class="modal-body" id="modalBody">
-        <!-- スキャン結果がここに表示されます -->
-      </div>
-      <button class="modal-close" onclick="closeModal()">閉じる</button>
+    <div id="scanHistoryContainer" class="container">
+      <div id="scanHistory" class="scan-history"></div>
     </div>
-  </div>
 
-  <!-- エラーモーダル -->
-  <div id="errorModal" class="modal">
-    <div class="modal-content">
-      <div class="modal-header error-header">
-        ❌ <span id="errorTitle">エラー</span>
-      </div>
-      <div class="modal-body" id="errorModalBody">
-        <!-- エラーメッセージがここに表示されます -->
-      </div>
-      <button class="modal-close" onclick="closeErrorModal()">閉じる</button>
+    <div class="controls">
+      <button onclick="window.location.href='admin.html'" class="back-button">
+        ← ホームに戻る
+      </button>
+      <button id="startScanBtn" class="scan-button" onclick="startScan()">
+        📷 カメラを開始
+      </button>
+      <button
+        id="stopScanBtn"
+        class="stop-button"
+        onclick="stopScan()"
+        style="display: none"
+      >
+        ⏹️ カメラを停止
+      </button>
     </div>
-  </div>
 
-  <!-- Firebase SDK & QRスキャナー -->
-  <script src="https://unpkg.com/@zxing/library@latest/umd/index.min.js"></script>
-  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-  <script type="module" src="js/auth.js"></script>
-  <script type="module" src="js/smart-qr-scanner.js"></script>
-  <script type="module">
-    // ページロード時の初期化
-    document.addEventListener("DOMContentLoaded", function () {
+    <!-- 成功モーダル -->
+    <div id="successModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">✅ スキャン成功！</div>
+        <div class="modal-body" id="modalBody">
+          <!-- スキャン結果がここに表示されます -->
+        </div>
+        <button class="modal-close" onclick="closeModal()">閉じる</button>
+      </div>
+    </div>
+
+    <!-- エラーモーダル -->
+    <div id="errorModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header error-header">
+          ❌ <span id="errorTitle">エラー</span>
+        </div>
+        <div class="modal-body" id="errorModalBody">
+          <!-- エラーメッセージがここに表示されます -->
+        </div>
+        <button class="modal-close" onclick="closeErrorModal()">閉じる</button>
+      </div>
+    </div>
+
+    <!-- Firebase SDK & QRスキャナー -->
+    <script src="https://unpkg.com/@zxing/library@latest/umd/index.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script type="module" src="js/auth.js"></script>
+    <script type="module" src="js/smart-qr-scanner.js"></script>
+    <script type="module">
+      // ページロード時の初期化
+      document.addEventListener("DOMContentLoaded", function () {
+        // ユーザー情報表示
+        displayUserInfo();
+
+        // スキャン履歴の読み込み
+        if (window.smartScanner && window.smartScanner.displayScanHistory) {
+          window.smartScanner.displayScanHistory();
+        }
+
+        // 自動スキャン開始は無効化（手動でボタンを押した時のみスキャン開始）
+        // if (window.smartScanner) {
+        //   setTimeout(() => {
+        //     window.smartScanner.startScan();
+        //   }, 1000);
+        // }
+      });
+
       // ユーザー情報表示
-      displayUserInfo();
-
-      // スキャン履歴の読み込み
-      if (window.smartScanner && window.smartScanner.displayScanHistory) {
-        window.smartScanner.displayScanHistory();
-      }
-
-      // 自動スキャン開始は無効化（手動でボタンを押した時のみスキャン開始）
-      // if (window.smartScanner) {
-      //   setTimeout(() => {
-      //     window.smartScanner.startScan();
-      //   }, 1000);
-      // }
-
-    });
-
-    // ユーザー情報表示
-    function displayUserInfo() {
-      const userInfoElement = document.getElementById("userInfo");
-      if (userInfoElement && window.UserSession) {
-        const user = UserSession.getCurrentUser();
-        if (user) {
-          userInfoElement.innerHTML = `
+      function displayUserInfo() {
+        const userInfoElement = document.getElementById("userInfo");
+        if (userInfoElement && window.UserSession) {
+          const user = UserSession.getCurrentUser();
+          if (user) {
+            userInfoElement.innerHTML = `
                         <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <span>${user.user_name} (${user.role}) - ${user.department || ""
+                            <span>${user.user_name} (${user.role}) - ${
+              user.department || ""
             }</span>
                             <button onclick="UserSession.logout()" style="background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">
                                 ログアウト
                             </button>
                         </div>
                     `;
-        } else {
-          userInfoElement.innerHTML =
-            '<span style="color: #dc3545;">ユーザー情報を取得できませんでした</span>';
+          } else {
+            userInfoElement.innerHTML =
+              '<span style="color: #dc3545;">ユーザー情報を取得できませんでした</span>';
+          }
         }
       }
-    }
 
-    // 成功モーダル表示関数
-    function showSuccessModal(qrData, docId) {
-      const modal = document.getElementById("successModal");
-      const modalBody = document.getElementById("modalBody");
+      // 成功モーダル表示関数
+      function showSuccessModal(qrData, docId) {
+        const modal = document.getElementById("successModal");
+        const modalBody = document.getElementById("modalBody");
 
-      modalBody.innerHTML = `
+        modalBody.innerHTML = `
           <div><strong>スキャン結果:</strong></div>
           <div style="margin: 10px 0; padding: 10px; background: #e8f5e8; border-radius: 4px; font-family: monospace;">${qrData}</div>
           <div style="font-size: 12px; color: #666;">ドキュメントID: ${docId}</div>
         `;
 
-      modal.classList.add("show");
-    }
+        modal.classList.add("show");
+      }
 
-    // エラーモーダル表示関数
-    function showErrorModal(title, message) {
-      const modal = document.getElementById("errorModal");
-      const titleElement = document.getElementById("errorTitle");
-      const modalBody = document.getElementById("errorModalBody");
+      // エラーモーダル表示関数
+      function showErrorModal(title, message) {
+        const modal = document.getElementById("errorModal");
+        const titleElement = document.getElementById("errorTitle");
+        const modalBody = document.getElementById("errorModalBody");
 
-      titleElement.textContent = title;
-      modalBody.innerHTML = `
+        titleElement.textContent = title;
+        modalBody.innerHTML = `
           <div style="white-space: pre-line; line-height: 1.5;">${message}</div>
         `;
 
-      modal.classList.add("show");
-    }
+        modal.classList.add("show");
+      }
 
-    // 成功モーダル閉じる
-    function closeModal() {
-      const modal = document.getElementById("successModal");
-      modal.classList.remove("show");
-    }
+      // 成功モーダル閉じる
+      function closeModal() {
+        const modal = document.getElementById("successModal");
+        modal.classList.remove("show");
+      }
 
-    // エラーモーダル閉じる
-    function closeErrorModal() {
-      const modal = document.getElementById("errorModal");
-      modal.classList.remove("show");
-    }
+      // エラーモーダル閉じる
+      function closeErrorModal() {
+        const modal = document.getElementById("errorModal");
+        modal.classList.remove("show");
+      }
 
-    // グローバル関数として登録
-    window.showSuccessModal = showSuccessModal;
-    window.showErrorModal = showErrorModal;
-    window.closeModal = closeModal;
-    window.closeErrorModal = closeErrorModal;
-  </script>
-</body>
-
+      // グローバル関数として登録
+      window.showSuccessModal = showSuccessModal;
+      window.showErrorModal = showErrorModal;
+      window.closeModal = closeModal;
+      window.closeErrorModal = closeErrorModal;
+    </script>
+  </body>
 </html>
