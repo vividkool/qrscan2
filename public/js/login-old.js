@@ -1,4 +1,4 @@
-// Login Page Functions with Invite Code Support (Passwordless)
+// Login Page Functions with Invite Code Support
 import "./auth.js";
 
 // DOM要素取得
@@ -50,45 +50,68 @@ function hideMessages() {
   successMessage.style.display = "none";
 }
 
-// ローディング状態切り替え
-function toggleLoading(show, text = "処理中...") {
+// ローディング表示切り替え
+function toggleLoading(show, text = "認証中...") {
+  loading.style.display = show ? "block" : "none";
+  loadingText.textContent = text;
+
+  if (loginButton) loginButton.disabled = show;
+  if (registerSubmitButton) registerSubmitButton.disabled = show;
+  if (googleRegisterButton) googleRegisterButton.disabled = show;
+
   if (show) {
-    loading.style.display = "flex";
-    loadingText.textContent = text;
-    loginButton.disabled = true;
-    if (registerSubmitButton) registerSubmitButton.disabled = true;
-    if (googleRegisterButton) googleRegisterButton.disabled = true;
+    if (loginButton) loginButton.textContent = "認証中...";
+    if (registerSubmitButton) registerSubmitButton.textContent = "登録中...";
   } else {
-    loading.style.display = "none";
-    loginButton.disabled = false;
-    if (registerSubmitButton) registerSubmitButton.disabled = false;
-    if (googleRegisterButton) googleRegisterButton.disabled = false;
+    if (loginButton) loginButton.textContent = "ログイン";
+    if (registerSubmitButton) registerSubmitButton.textContent = "登録する";
   }
 }
 
-// 招待コード検出と表示
+// 招待コード検出・表示
 function detectAndShowInviteCode() {
   const urlParams = new URLSearchParams(window.location.search);
-  const inviteCode = urlParams.get("invite");
+  const inviteCode = urlParams.get("invite") || urlParams.get("code");
 
-  if (inviteCode) {
+  if (inviteCode && FirebaseAuthManager.isValidInviteCode(inviteCode)) {
     currentInviteCode = inviteCode;
+
+    // 招待情報を表示
     inviteCodeDisplay.textContent = inviteCode;
     inviteInfo.style.display = "block";
+
+    // 新規登録ボタンを表示
     registerPrompt.style.display = "block";
 
-    // 招待コード別のメッセージ設定
-    const inviteMessages = {
-      STAFF2024: "スタッフとしてイベントに参加いただけます",
-      MAKER2024: "制作者として参加いただけます",
-      GUEST2024: "ゲストとして参加いただけます",
-      ADMIN_INVITE: "管理者権限が付与されます",
-      INVITE_202408: "2024年8月イベントへの招待です",
+    // デモユーザーを非表示
+    demoUsers.style.display = "none";
+
+    // タイトルを変更
+    pageTitle.textContent = "イベント招待 - 新規登録";
+
+    // 招待コードに応じたメッセージ
+    const roleMessages = {
+      STAFF2024: "スタッフとしてご招待されています",
+      MAKER2024: "メーカー関係者としてご招待されています",
+      GUEST2024: "ゲストとしてご招待されています",
+      ADMIN_INVITE: "管理者としてご招待されています",
     };
 
-    inviteMessage.textContent =
-      inviteMessages[inviteCode] ||
-      "イベントへの招待です。新規登録してご参加ください。";
+    const currentMonth = new Date().toISOString().slice(0, 7).replace("-", "");
+    if (
+      inviteCode === `INVITE_${currentMonth}` ||
+      inviteCode === `QR_${currentMonth}`
+    ) {
+      inviteMessage.textContent = `${new Date().getFullYear()}年${
+        new Date().getMonth() + 1
+      }月のイベントへの招待です`;
+    } else {
+      inviteMessage.textContent =
+        roleMessages[inviteCode] ||
+        "イベントへの招待です。新規登録してご参加ください。";
+    }
+
+    console.log("招待コードを検出:", inviteCode);
     return true;
   }
 
@@ -125,27 +148,17 @@ async function handleLogin(event) {
     const result = await UserSession.login(userId);
 
     if (result.success) {
+      // ログイン成功 - リダイレクト
       showSuccess("ログイン成功！リダイレクトしています...");
-
-      // 安全なリダイレクト処理
       setTimeout(() => {
-        const redirectUrl = UserSession.getRedirectUrl(result.user.role);
-        console.log("ログイン後のリダイレクト:", redirectUrl);
-
-        // リダイレクトフラグを設定
-        window.isRedirecting = true;
-
-        // リダイレクト実行
-        setTimeout(() => {
-          window.location.href = redirectUrl;
-        }, 500);
+        window.location.href = result.redirectUrl;
       }, 1000);
     } else {
       showError(result.error || "ログインに失敗しました");
     }
   } catch (error) {
     console.error("Login error:", error);
-    showError("ログイン中にエラーが発生しました");
+    showError("ログイン処理中にエラーが発生しました");
   } finally {
     toggleLoading(false);
   }
@@ -189,14 +202,15 @@ async function handleGoogleRegister() {
 function showGoogleRegistrationForm(firebaseUser) {
   const registerForm = document.getElementById("registerForm");
   const nameInput = document.getElementById("registerName");
-
+  
   // Googleアカウントの表示名を初期値として設定
   if (firebaseUser.displayName) {
     nameInput.value = firebaseUser.displayName;
   }
-
+  
   registerForm.style.display = "block";
   showSuccess("Google認証成功！追加情報を入力してください。");
+}
 }
 
 // 追加情報入力の完了ハンドラ（パスワードレス）
@@ -225,24 +239,13 @@ async function handleAdditionalInfoSubmit(event) {
     if (result.success) {
       if (result.autoApproved) {
         showSuccess("登録完了！自動承認されました。リダイレクトしています...");
-
-        // 安全なリダイレクト処理
         setTimeout(() => {
           const redirectUrl = UserSession.getRedirectUrl(result.user.user_role);
-          console.log("登録完了後のリダイレクト:", redirectUrl);
-
-          // リダイレクトフラグを設定
-          window.isRedirecting = true;
-
-          // リダイレクト実行
-          setTimeout(() => {
-            window.location.href = redirectUrl;
-          }, 500);
+          window.location.href = redirectUrl;
         }, 2000);
       } else {
         showSuccess("登録申請を受け付けました。管理者の承認をお待ちください。");
         document.getElementById("registerForm").reset();
-        // 承認待ちの場合はリダイレクトしない
       }
     } else {
       showError(result.error || "登録の完了に失敗しました");
@@ -254,7 +257,9 @@ async function handleAdditionalInfoSubmit(event) {
     toggleLoading(false);
   }
 }
-
+      showError(result.error || "メール認証登録に失敗しました");
+    }
+  } catch (error) {
 // ユーザーID自動入力
 window.fillUserId = function (userId) {
   userIdInput.value = userId;
@@ -303,4 +308,4 @@ document.addEventListener("DOMContentLoaded", function () {
   setupEventListeners();
 });
 
-console.log("Login page with invite code support loaded (Passwordless)");
+console.log("Login page with invite code support loaded");

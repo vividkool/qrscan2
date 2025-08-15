@@ -535,8 +535,19 @@
     </div>
 
     <div class="controls">
-      <button onclick="window.location.href='admin.html'" class="back-button">
-        ← ホームに戻る
+      <button
+        onclick="UserSession.logout()"
+        style="
+          background: #dc3545;
+          color: white;
+          border: none;
+          padding: 6px 12px;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 12px;
+        "
+      >
+        ログアウト
       </button>
       <button id="startScanBtn" class="scan-button" onclick="startScan()">
         📷 カメラを開始
@@ -580,93 +591,6 @@
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <script type="module" src="js/auth.js"></script>
     <script type="module" src="js/smart-qr-scanner.js"></script>
-    <script type="module">
-      // ページロード時の初期化
-      document.addEventListener("DOMContentLoaded", function () {
-        // ユーザー情報表示
-        displayUserInfo();
-
-        // スキャン履歴の読み込み
-        if (window.smartScanner && window.smartScanner.displayScanHistory) {
-          window.smartScanner.displayScanHistory();
-        }
-
-        // 自動スキャン開始は無効化（手動でボタンを押した時のみスキャン開始）
-        // if (window.smartScanner) {
-        //   setTimeout(() => {
-        //     window.smartScanner.startScan();
-        //   }, 1000);
-        // }
-      });
-
-      // ユーザー情報表示
-      function displayUserInfo() {
-        const userInfoElement = document.getElementById("userInfo");
-        if (userInfoElement && window.UserSession) {
-          const user = UserSession.getCurrentUser();
-          if (user) {
-            userInfoElement.innerHTML = `
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <span>${user.user_name} (${user.role}) - ${
-              user.department || ""
-            }</span>
-                            <button onclick="UserSession.logout()" style="background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px;">
-                                ログアウト
-                            </button>
-                        </div>
-                    `;
-          } else {
-            userInfoElement.innerHTML =
-              '<span style="color: #dc3545;">ユーザー情報を取得できませんでした</span>';
-          }
-        }
-      }
-
-      // 成功モーダル表示関数
-      function showSuccessModal(qrData, docId) {
-        const modal = document.getElementById("successModal");
-        const modalBody = document.getElementById("modalBody");
-
-        modalBody.innerHTML = `
-          <div><strong>スキャン結果:</strong></div>
-          <div style="margin: 10px 0; padding: 10px; background: #e8f5e8; border-radius: 4px; font-family: monospace;">${qrData}</div>
-          <div style="font-size: 12px; color: #666;">ドキュメントID: ${docId}</div>
-        `;
-
-        modal.classList.add("show");
-      }
-
-      // エラーモーダル表示関数
-      function showErrorModal(title, message) {
-        const modal = document.getElementById("errorModal");
-        const titleElement = document.getElementById("errorTitle");
-        const modalBody = document.getElementById("errorModalBody");
-
-        titleElement.textContent = title;
-        modalBody.innerHTML = `
-          <div style="white-space: pre-line; line-height: 1.5;">${message}</div>
-        `;
-
-        modal.classList.add("show");
-      }
-
-      // 成功モーダル閉じる
-      function closeModal() {
-        const modal = document.getElementById("successModal");
-        modal.classList.remove("show");
-      }
-
-      // エラーモーダル閉じる
-      function closeErrorModal() {
-        const modal = document.getElementById("errorModal");
-        modal.classList.remove("show");
-      }
-
-      // グローバル関数として登録
-      window.showSuccessModal = showSuccessModal;
-      window.showErrorModal = showErrorModal;
-      window.closeModal = closeModal;
-      window.closeErrorModal = closeErrorModal;
-    </script>
+    <script type="module" src="js/user.js"></script>
   </body>
 </html>

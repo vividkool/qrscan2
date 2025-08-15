@@ -5,8 +5,12 @@ import {
   collection,
   addDoc,
   getDocs,
+  doc,
+  getDoc,
+  deleteDoc,
   orderBy,
   query,
+  where,
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 // Firebase設定
@@ -350,14 +354,77 @@ class SmartQRScanner {
         return;
       }
 
-      // 2番目のパラメータを取得（コンテンツとして保存）
-      const content = params[1]?.trim();
-      if (!content) {
-        this.debugLog("コンテンツパラメータが見つかりません");
+      // 2番目のパラメータを取得（item_no として使用）
+      const itemNo = params[1]?.trim();
+      if (!itemNo) {
+        this.debugLog("item_noパラメータが見つかりません");
 
         this.showErrorModal(
           "データ不足",
-          "QRコードの2番目のパラメータ（コンテンツ）が見つかりません。"
+          "QRコードの2番目のパラメータ（item_no）が見つかりません。"
+        );
+
+        await this.stopScan();
+        return;
+      }
+
+      this.showStatus("🔍 アイテム情報を検索中...", "info");
+
+      // itemsコレクションからitem_noで詳細情報を取得
+      let itemDetails = null;
+      try {
+        // 文字列として検索を試行
+        let itemsQuery = query(
+          collection(db, "items"),
+          where("item_no", "==", itemNo)
+        );
+        let querySnapshot = await getDocs(itemsQuery);
+
+        // 文字列で見つからない場合は数値として検索
+        if (querySnapshot.empty) {
+          const itemNoAsNumber = parseInt(itemNo, 10);
+          if (!isNaN(itemNoAsNumber)) {
+            this.debugLog("文字列検索で見つからないため数値で再検索", {
+              original: itemNo,
+              number: itemNoAsNumber,
+            });
+
+            itemsQuery = query(
+              collection(db, "items"),
+              where("item_no", "==", itemNoAsNumber)
+            );
+            querySnapshot = await getDocs(itemsQuery);
+          }
+        }
+
+        if (!querySnapshot.empty) {
+          // 最初にマッチしたドキュメントを使用
+          const itemDoc = querySnapshot.docs[0];
+          itemDetails = itemDoc.data();
+          this.debugLog("アイテム詳細情報取得成功", itemDetails);
+        } else {
+          this.debugLog(
+            "アイテム情報が見つかりません（文字列・数値両方で検索済み）",
+            {
+              stringSearch: itemNo,
+              numberSearch: parseInt(itemNo, 10),
+            }
+          );
+
+          this.showErrorModal(
+            "アイテム未登録",
+            `アイテム番号「${itemNo}」は登録されていません。\n\n管理者にお問い合わせください。`
+          );
+
+          await this.stopScan();
+          return;
+        }
+      } catch (error) {
+        this.debugLog("アイテム検索エラー", error);
+
+        this.showErrorModal(
+          "検索エラー",
+          `アイテム情報の検索中にエラーが発生しました。\n\n${error.message}`
         );
 
         await this.stopScan();
@@ -369,34 +436,54 @@ class SmartQRScanner {
       // 現在のユーザー情報を取得
       const currentUser = this.getCurrentUserInfo();
 
-      const docRef = await addDoc(collection(db, "scanItems"), {
-        content: content, // 2番目のパラメータをコンテンツとして保存
+      // scanItemsコレクションに保存するデータを構築
+      const scanData = {
+        // QRコード基本情報
+        content: itemNo, // item_noをcontentとして保存（後方互換性）
+        item_no: itemNo, // item_no
         originalQrCode: qrData, // 元のQRコードデータも保存
         identifier: firstParam, // 識別子も保存
+
+        // アイテム詳細情報（itemsコレクションから取得）
+        item_name: itemDetails?.item_name || "",
+        category_name: itemDetails?.category_name || "",
+        maker_name: itemDetails?.company_name || "", // company_nameをmaker_nameとして保存
+        maker_code: itemDetails?.maker_code || "",
+
+        // スキャン情報
         timestamp: new Date().toISOString(),
         createdAt: new Date(),
         scannerMode: this.currentMode,
         deviceInfo: this.getDeviceInfo(),
         userAgent: navigator.userAgent.substr(0, 100),
-        // ユーザー情報を追加
+
+        // ユーザー情報
         role: currentUser.role || "",
         user_id: currentUser.user_id || "",
         user_name: currentUser.user_name || "",
-        company_name: currentUser.company_name || "", // テストユーザーには後で追加予定
+        company_name: currentUser.company_name || "",
+      };
+
+      const docRef = await addDoc(collection(db, "scanItems"), scanData);
+
+      this.debugLog("展示会データ保存完了", {
+        docId: docRef.id,
+        itemNo,
+        itemName: itemDetails?.item_name,
+        makerName: itemDetails?.company_name,
       });
 
-      this.debugLog("展示会データ保存完了", { docId: docRef.id, content });
-
-      // 成功モーダル表示
-      this.showSuccessModal(content, docRef.id);
+      // 成功モーダル表示（アイテム名を表示）
+      const displayContent = itemDetails?.item_name
+        ? `${itemDetails.item_name} (${itemNo})`
+        : itemNo;
+      this.showSuccessModal(displayContent, docRef.id);
 
       // UIリセット
       this.resetUI();
 
       // 履歴更新
-      if (typeof loadScanHistory === "function") {
-        loadScanHistory();
-      }
+      await this.displayScanHistory();
     } catch (error) {
       this.debugLog("保存エラー", error);
       this.showError(`保存エラー: ${error.message}`);
@@ -630,7 +717,17 @@ class SmartQRScanner {
         scanData.push({
           id: doc.id,
           content: data.content,
+          item_no: data.item_no || data.content, // item_noを取得、後方互換性でcontentも使用
+          item_name: data.item_name || "",
+          category_name: data.category_name || "",
+          maker_name: data.maker_name || "",
+          maker_code: data.maker_code || "",
           company_name: data.company_name || "",
+          timestamp: data.timestamp,
+          createdAt: data.createdAt,
+          scannerMode: data.scannerMode,
+          user_name: data.user_name,
+          role: data.role,
         });
       });
 
@@ -647,8 +744,11 @@ class SmartQRScanner {
       html += '<table class="history-table">';
       html += "<thead>";
       html += "<tr>";
-      html += "<th>内容</th>";
-      html += "<th>会社</th>";
+      html += "<th>番号</th>";
+      html += "<th>カテゴリ</th>";
+      html += "<th>メーカー</th>";
+      html += "<th>アイテム名</th>";
+      html += "<th>削除</th>";
       html += "</tr>";
       html += "</thead>";
       html += "<tbody>";
@@ -661,14 +761,25 @@ class SmartQRScanner {
           hour: "2-digit",
           minute: "2-digit",
         });
-        const mode = item.scannerMode || "unknown";
-        const userName = item.user_name || item.user_id || "-";
-        const role = item.role || "-";
-        const company = item.company_name || "-";
+
+        // 表示用の名前を生成
+        /*
+        const displayName = item.item_name
+          ? `${item.item_name} (${item.item_no})`
+          : item.item_no || item.content;
+        */
+        const category = item.category_name || "-";
+        const maker = item.maker_name || "-";
 
         html += "<tr>";
-        html += `<td class="content-cell">${item.content}</td>`;
-        html += `<td class="company-cell">${company}</td>`;
+        html += `<td class="content-cell">${item.item_no}</td>`;
+        html += `<td class="category-cell">${category}</td>`;
+        html += `<td class="maker-cell">${maker}</td>`;
+        html += `<td class="content-cell">${item.item_name}</td>`;
+        html += `<td class="delete-cell">
+          <button class="delete-btn" onclick="window.smartScanner.deleteScanItem('${item.id}')" 
+                  title="この記録を削除">削除</button>
+        </td>`;
         html += "</tr>";
       });
 
@@ -703,6 +814,39 @@ class SmartQRScanner {
     const statusElement = document.getElementById("scannerStatus");
     if (statusElement) {
       statusElement.style.display = "none";
+    }
+  }
+
+  // スキャン記録削除メソッド
+  async deleteScanItem(docId) {
+    try {
+      // 確認ダイアログを表示
+      if (!confirm("この記録を削除しますか？\n削除すると元に戻せません。")) {
+        return;
+      }
+
+      this.debugLog("スキャン記録削除開始", docId);
+      this.showStatus("🗑️ 記録を削除中...", "info");
+
+      // Firestoreからドキュメントを削除
+      await deleteDoc(doc(db, "scanItems", docId));
+
+      this.debugLog("スキャン記録削除完了", docId);
+      this.showStatus("✅ 記録を削除しました", "success");
+
+      // 履歴を再読み込み
+      await this.displayScanHistory();
+
+      // 2秒後にステータスを非表示
+      setTimeout(() => {
+        const statusElement = document.getElementById("scannerStatus");
+        if (statusElement) {
+          statusElement.style.display = "none";
+        }
+      }, 2000);
+    } catch (error) {
+      this.debugLog("スキャン記録削除エラー", error);
+      this.showError(`削除エラー: ${error.message}`);
     }
   }
 }

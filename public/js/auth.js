@@ -5,10 +5,9 @@ import {
   signInWithEmailAndPassword,
   signInWithPopup,
   GoogleAuthProvider,
-  createUserWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
-  signInAnonymously,
+  updateProfile,
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import {
   getFirestore,
@@ -20,6 +19,8 @@ import {
   getDoc,
   setDoc,
   updateDoc,
+  addDoc,
+  limit,
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
@@ -40,10 +41,15 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
 
-// 認証状態の設定
+// Google認証プロバイダの設定を修正
 googleProvider.setCustomParameters({
   prompt: "select_account",
+  hd: null, // 特定ドメイン制限を解除
 });
+
+// Google認証スコープ設定
+googleProvider.addScope("email");
+googleProvider.addScope("profile");
 
 // ユーザーロール定義
 const USER_ROLES = {
@@ -65,6 +71,8 @@ const PAGE_PERMISSIONS = {
     USER_ROLES.SCANNER,
     USER_ROLES.GUEST,
   ],
+  "index.html": [], // 公開ページ
+  "login.html": [], // 公開ページ
   "/": [USER_ROLES.ADMIN],
 };
 
@@ -74,10 +82,9 @@ let currentFirebaseUser = null;
 
 // 認証タイプ
 const AUTH_TYPES = {
-  LEGACY: "legacy", // 従来の匿名認証
+  LEGACY: "legacy", // 従来の認証
   EMAIL: "email", // メール認証
   GOOGLE: "google", // Google認証
-  ANONYMOUS: "anonymous", // Firebase匿名認証
 };
 
 // ローカルストレージキー
@@ -88,8 +95,13 @@ class FirebaseAuthManager {
   // Google認証
   static async signInWithGoogle() {
     try {
+      console.log("Google認証を開始...");
+
+      // ポップアップでGoogle認証
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
+
+      console.log("Google認証成功:", user.uid, user.email);
 
       // Firestoreでユーザー情報を確認・作成
       const userData = await this.syncUserWithFirestore(
@@ -99,7 +111,22 @@ class FirebaseAuthManager {
       return { success: true, user: userData };
     } catch (error) {
       console.error("Google認証エラー:", error);
-      return { success: false, error: error.message };
+
+      // 具体的なエラーメッセージを提供
+      let errorMessage = "Google認証に失敗しました";
+      if (error.code === "auth/operation-not-allowed") {
+        errorMessage =
+          "Google認証が有効化されていません。管理者にお問い合わせください。";
+      } else if (error.code === "auth/popup-closed-by-user") {
+        errorMessage = "認証ポップアップが閉じられました。再度お試しください。";
+      } else if (error.code === "auth/popup-blocked") {
+        errorMessage =
+          "ポップアップがブロックされています。ブラウザ設定を確認してください。";
+      } else if (error.code === "auth/cancelled-popup-request") {
+        errorMessage = "認証がキャンセルされました。";
+      }
+
+      return { success: false, error: errorMessage, code: error.code };
     }
   }
 
@@ -143,22 +170,6 @@ class FirebaseAuthManager {
     }
   }
 
-  // 匿名認証（後方互換性）
-  static async signInAnonymously() {
-    try {
-      const result = await signInAnonymously(auth);
-      const user = result.user;
-
-      return {
-        success: true,
-        user: { uid: user.uid, authType: AUTH_TYPES.ANONYMOUS },
-      };
-    } catch (error) {
-      console.error("匿名認証エラー:", error);
-      return { success: false, error: error.message };
-    }
-  }
-
   // ログアウト
   static async signOut() {
     try {
@@ -192,26 +203,49 @@ class FirebaseAuthManager {
           photoURL: firebaseUser.photoURL || userData.photoURL,
         });
       } else {
-        // 新規ユーザーの作成
+        // 新規ユーザーの作成（招待コードベース承認）
+        const isFirstUser = await this.isFirstUser();
+        const inviteCode = this.getInviteCodeFromURL();
+        const autoApprove = isFirstUser || this.isValidInviteCode(inviteCode);
+
         userData = {
           user_id: firebaseUser.uid,
           user_name:
             additionalData.user_name ||
             firebaseUser.displayName ||
             firebaseUser.email?.split("@")[0] ||
-            "匿名ユーザー",
+            "登録ユーザー",
           email: firebaseUser.email || "",
           photoURL: firebaseUser.photoURL || "",
-          user_role: additionalData.user_role || USER_ROLES.USER,
-          status: "active",
+          user_role: isFirstUser
+            ? USER_ROLES.ADMIN
+            : additionalData.user_role || USER_ROLES.USER,
+          status: autoApprove ? "active" : "pending",
           authType: authType,
+          department: additionalData.department || "",
+          inviteCode: inviteCode || null,
           createdAt: serverTimestamp(),
           lastLoginAt: serverTimestamp(),
+          approvedBy: autoApprove
+            ? isFirstUser
+              ? "system"
+              : "invite_code"
+            : null,
+          approvedAt: autoApprove ? serverTimestamp() : null,
           ...additionalData,
         };
         await setDoc(userRef, userData);
-      }
 
+        if (autoApprove) {
+          console.log(
+            isFirstUser ? "初回管理者ユーザー作成:" : "招待コードで自動承認:",
+            userData.user_name
+          );
+        } else {
+          console.log("新規ユーザー登録 - 管理者承認待ち:", userData.user_name);
+          await this.notifyAdminOfNewUser(userData);
+        }
+      }
       return {
         ...userData,
         uid: firebaseUser.uid,
@@ -220,6 +254,179 @@ class FirebaseAuthManager {
     } catch (error) {
       console.error("Firestoreユーザー同期エラー:", error);
       throw error;
+    }
+  }
+
+  // 初回ユーザーかどうか確認
+  static async isFirstUser() {
+    try {
+      const usersQuery = query(collection(db, "users"), limit(1));
+      const snapshot = await getDocs(usersQuery);
+      return snapshot.empty;
+    } catch (error) {
+      console.error("ユーザー確認エラー:", error);
+      return false;
+    }
+  }
+
+  // 管理者に新規ユーザー通知
+  static async notifyAdminOfNewUser(userData) {
+    try {
+      const notificationRef = collection(db, "notifications");
+      await addDoc(notificationRef, {
+        type: "new_user_registration",
+        message: `新規ユーザー「${userData.user_name}」が登録申請しました`,
+        userData: {
+          uid: userData.user_id,
+          user_name: userData.user_name,
+          email: userData.email,
+          department: userData.department,
+        },
+        status: "unread",
+        createdAt: serverTimestamp(),
+      });
+      console.log("管理者通知を送信しました");
+    } catch (error) {
+      console.error("通知送信エラー:", error);
+    }
+  }
+
+  // URLから招待コード取得
+  static getInviteCodeFromURL() {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get("invite") || urlParams.get("code") || null;
+  }
+
+  // 招待コード有効性確認
+  static isValidInviteCode(inviteCode) {
+    if (!inviteCode) return false;
+
+    // 簡単な招待コード検証（実際の運用に応じて調整）
+    const validCodes = [
+      "STAFF2024", // スタッフ用
+      "MAKER2024", // メーカー用
+      "GUEST2024", // ゲスト用
+      "ADMIN_INVITE", // 管理者招待用
+    ];
+
+    // 時限付きコード（年月ベース）
+    const currentMonth = new Date().toISOString().slice(0, 7).replace("-", "");
+    const timeBasedCodes = [
+      `INVITE_${currentMonth}`, // 月次招待コード
+      `QR_${currentMonth}`, // QRコード用
+    ];
+
+    return (
+      validCodes.includes(inviteCode) || timeBasedCodes.includes(inviteCode)
+    );
+  }
+
+  // 招待コードに基づく初期ロール決定
+  static getDefaultRoleFromInviteCode(inviteCode) {
+    if (!inviteCode) return USER_ROLES.USER;
+
+    const roleMap = {
+      STAFF2024: USER_ROLES.STAFF,
+      MAKER2024: USER_ROLES.MAKER,
+      GUEST2024: USER_ROLES.GUEST,
+      ADMIN_INVITE: USER_ROLES.ADMIN,
+    };
+
+    return roleMap[inviteCode] || USER_ROLES.USER;
+  }
+
+  // 招待コード付きGoogle認証（ログインページ用）
+  static async registerWithGoogleAndInvite(department = "") {
+    try {
+      const inviteCode = this.getInviteCodeFromURL();
+      const defaultRole = this.getDefaultRoleFromInviteCode(inviteCode);
+
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+
+      const userData = await this.syncUserWithFirestore(
+        user,
+        AUTH_TYPES.GOOGLE,
+        {
+          department: department,
+          user_role: defaultRole,
+        }
+      );
+
+      return {
+        success: true,
+        user: userData,
+        isNewUser: userData.status === "pending",
+        autoApproved:
+          userData.status === "active" && userData.approvedBy === "invite_code",
+      };
+    } catch (error) {
+      console.error("Google招待登録エラー:", error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // Google認証での新規登録（部署情報付き）
+  static async registerWithGoogle(department = "") {
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+
+      // 部署情報を含めて同期
+      const userData = await this.syncUserWithFirestore(
+        user,
+        AUTH_TYPES.GOOGLE,
+        { department: department }
+      );
+
+      return {
+        success: true,
+        user: userData,
+        isNewUser: userData.status === "pending",
+      };
+    } catch (error) {
+      console.error("Google新規登録エラー:", error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // 追加情報の更新（パスワードレス登録用）
+  static async updateUserAdditionalInfo(
+    displayName,
+    department = "",
+    inviteCode = null
+  ) {
+    try {
+      const firebaseUser = auth.currentUser;
+      if (!firebaseUser) {
+        throw new Error("認証されたユーザーがいません");
+      }
+
+      // Firebase Authのプロフィールを更新
+      await updateProfile(firebaseUser, {
+        displayName: displayName,
+      });
+
+      // Firestoreのユーザー情報を更新
+      const userData = await this.syncUserWithFirestore(
+        firebaseUser,
+        AUTH_TYPES.GOOGLE,
+        {
+          user_name: displayName,
+          department: department,
+        }
+      );
+
+      return {
+        success: true,
+        user: userData,
+        isNewUser: userData.status === "pending",
+        autoApproved:
+          userData.status === "active" && userData.approvedBy === "invite_code",
+      };
+    } catch (error) {
+      console.error("追加情報更新エラー:", error);
+      return { success: false, error: error.message };
     }
   }
 
@@ -245,6 +452,30 @@ class FirebaseAuthManager {
               uid: firebaseUser.uid,
               firebaseUser: firebaseUser,
             };
+
+            // 承認待ちユーザーの処理
+            if (userData.status === "pending") {
+              console.log("承認待ちユーザー:", userData.user_name);
+              callback({
+                ...userData,
+                isPending: true,
+                message:
+                  "アカウントは管理者の承認待ちです。承認後にご利用いただけます。",
+              });
+              return;
+            }
+
+            // 退場済みユーザーの処理
+            if (userData.status === "退場済") {
+              console.log("退場済みユーザー:", userData.user_name);
+              callback({
+                ...userData,
+                isInactive: true,
+                message: "このアカウントは無効化されています。",
+              });
+              return;
+            }
+
             console.log(
               "Firebase認証ユーザー詳細取得:",
               userData.user_name,
@@ -295,24 +526,31 @@ class FirebaseAuthManager {
 
 // ユーザーセッション管理（レガシー対応）
 class UserSession {
-  // セッション保存（Firebase Auth対応）
+  // セッション保存（Firebase Auth対応 + セキュリティ強化）
   static saveSession(userData) {
     // roleフィールドの正規化
     const userRole = userData.user_role || userData.role;
 
+    // セキュアなセッションデータ（機密情報は除外）
     const sessionData = {
-      uid: userData.uid || userData.user_id, // Firebase UID対応
-      user_id: userData.user_id,
-      user_name: userData.user_name,
-      email: userData.email || "",
-      photoURL: userData.photoURL || "",
-      role: userRole,
-      department: userData.department,
+      uid: userData.uid || userData.user_id, // Firebase UID（公開情報）
+      user_id: userData.user_id, // アプリケーションID
+      user_name: userData.user_name, // 表示名
+      role: userRole, // 権限情報
+      department: userData.department, // 部署情報
       authType: userData.authType || AUTH_TYPES.LEGACY,
       timestamp: new Date().getTime(),
+      // 注意: email, photoURL, 機密データは保存しない
     };
-    localStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
-    currentUser = sessionData;
+
+    try {
+      localStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
+      currentUser = sessionData;
+      console.log("セッション保存完了:", sessionData.user_name);
+    } catch (error) {
+      console.error("セッション保存エラー:", error);
+      // localStorage容量超過等のエラーハンドリング
+    }
   } // セッション取得
   // セッション取得（Firebase + レガシー対応）
   static getSession() {
@@ -444,8 +682,11 @@ class UserSession {
       case USER_ROLES.ADMIN:
         return "admin.html";
       case USER_ROLES.USER:
+        return "user.html";
       case USER_ROLES.STAFF:
+        return "staff.html";
       case USER_ROLES.MAKER:
+        return "maker.html";
       case USER_ROLES.SCANNER:
       case USER_ROLES.GUEST:
         return "user.html";
@@ -459,39 +700,105 @@ class UserSession {
     const currentPage =
       window.location.pathname.split("/").pop() || "admin.html";
 
+    console.log("=== ページアクセスチェック開始 ===");
+    console.log("現在のページ:", currentPage);
+    console.log("リダイレクト中フラグ:", window.isRedirecting);
+
+    // リダイレクト中フラグで無限ループを防止
+    if (window.isRedirecting) {
+      console.log("リダイレクト処理中のため、チェックをスキップ");
+      return true;
+    }
+
     // セッション取得（Firebaseまたはレガシー）
     const session = this.getSession();
+    console.log(
+      "現在のセッション:",
+      session ? `${session.user_name} (${session.role})` : "なし"
+    );
 
     // セッションがない場合はログインページへ
     if (!session) {
       console.log("認証セッションなし - ログインページへリダイレクト");
+      if (currentPage !== "login.html" && currentPage !== "index.html") {
+        this.redirectTo("login.html");
+      }
+      return false;
+    }
+
+    // 承認待ちユーザーの処理
+    if (session.status === "pending") {
+      console.log("承認待ちユーザー:", session.user_name);
       if (currentPage !== "login.html") {
-        window.location.href = "login.html";
+        alert("アカウントは管理者の承認待ちです。承認後にご利用いただけます。");
+        this.redirectTo("login.html");
       }
       return false;
     }
 
     // セッションのタイプを判定してログ出力
     if (session.uid) {
-      console.log("Firebase認証ユーザーでアクセス:", session.user_name);
+      console.log(
+        "Firebase認証ユーザーでアクセス:",
+        session.user_name,
+        session.role
+      );
     } else {
-      console.log("レガシー認証ユーザーでアクセス:", session.user_name);
+      console.log(
+        "レガシー認証ユーザーでアクセス:",
+        session.user_name,
+        session.role
+      );
     }
 
     // ページアクセス権限チェック
     const allowedRoles = PAGE_PERMISSIONS[currentPage] || [];
+    console.log("ページの許可ロール:", allowedRoles);
+    console.log("ユーザーのロール:", session.role);
+
     if (allowedRoles.length > 0 && !allowedRoles.includes(session.role)) {
-      // 権限がない場合は適切なページにリダイレクト
       const redirectUrl = this.getRedirectUrl(session.role);
-      console.log(`権限不足 - ${redirectUrl}へリダイレクト`);
-      if (currentPage !== redirectUrl.replace(".html", "")) {
-        window.location.href = redirectUrl;
+      console.log(
+        `権限不足 - 現在のロール: ${
+          session.role
+        }, 必要なロール: [${allowedRoles.join(", ")}]`
+      );
+      console.log(`${redirectUrl}へリダイレクト`);
+
+      const targetPage = redirectUrl.replace(".html", "");
+      const currentPageName = currentPage.replace(".html", "");
+
+      console.log("リダイレクト先ページ:", targetPage);
+      console.log("現在のページ名:", currentPageName);
+
+      if (currentPageName !== targetPage) {
+        this.redirectTo(redirectUrl);
+      } else {
+        console.log("既に正しいページにいるため、リダイレクトをスキップ");
       }
       return false;
     }
 
     console.log(`アクセス許可: ${currentPage} (${session.role})`);
+    console.log("=== ページアクセスチェック完了 ===");
     return true;
+  }
+
+  // 安全なリダイレクト関数
+  static redirectTo(url) {
+    if (window.isRedirecting) {
+      console.log("リダイレクト処理中のため、新しいリダイレクトをスキップ");
+      return;
+    }
+
+    window.isRedirecting = true;
+    console.log(`リダイレクト実行: ${url}`);
+
+    // ページアクセス権限チェックを一時的に無効化
+    setTimeout(() => {
+      console.log(`実際にリダイレクト: ${url}`);
+      window.location.href = url;
+    }, 500); // 少し長めの遅延でリダイレクト実行
   } // ログアウト
   static logout() {
     this.clearSession();
@@ -501,6 +808,161 @@ class UserSession {
   // 現在のユーザー情報取得
   static getCurrentUser() {
     return this.getSession();
+  }
+
+  // 管理者用：ユーザー承認
+  static async approveUser(userId, approvedRole = USER_ROLES.USER) {
+    try {
+      const userRef = doc(db, "users", userId);
+      const userSnap = await getDoc(userRef);
+
+      if (!userSnap.exists()) {
+        throw new Error("ユーザーが見つかりません");
+      }
+
+      const currentSession = this.getSession();
+      if (!currentSession || currentSession.role !== USER_ROLES.ADMIN) {
+        throw new Error("管理者権限が必要です");
+      }
+
+      await updateDoc(userRef, {
+        status: "active",
+        user_role: approvedRole,
+        approvedBy: currentSession.user_id,
+        approvedAt: serverTimestamp(),
+      });
+
+      console.log("ユーザー承認完了:", userId);
+      return { success: true };
+    } catch (error) {
+      console.error("ユーザー承認エラー:", error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // 管理者用：ユーザー拒否
+  static async rejectUser(userId) {
+    try {
+      const userRef = doc(db, "users", userId);
+      await updateDoc(userRef, {
+        status: "rejected",
+        rejectedBy: this.getSession()?.user_id,
+        rejectedAt: serverTimestamp(),
+      });
+
+      console.log("ユーザー拒否完了:", userId);
+      return { success: true };
+    } catch (error) {
+      console.error("ユーザー拒否エラー:", error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // 承認待ちユーザー一覧取得
+  static async getPendingUsers() {
+    try {
+      const pendingQuery = query(
+        collection(db, "users"),
+        where("status", "==", "pending")
+      );
+      const snapshot = await getDocs(pendingQuery);
+
+      return snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+    } catch (error) {
+      console.error("承認待ちユーザー取得エラー:", error);
+      return [];
+    }
+  }
+
+  // 一括承認機能（効率的な管理）
+  static async bulkApproveUsers(userIds, defaultRole = USER_ROLES.USER) {
+    try {
+      const currentSession = this.getSession();
+      if (!currentSession || currentSession.role !== USER_ROLES.ADMIN) {
+        throw new Error("管理者権限が必要です");
+      }
+
+      const results = [];
+      for (const userId of userIds) {
+        try {
+          const userRef = doc(db, "users", userId);
+          await updateDoc(userRef, {
+            status: "active",
+            user_role: defaultRole,
+            approvedBy: currentSession.user_id,
+            approvedAt: serverTimestamp(),
+          });
+          results.push({ userId, success: true });
+        } catch (error) {
+          results.push({ userId, success: false, error: error.message });
+        }
+      }
+
+      console.log("一括承認完了:", results);
+      return { success: true, results };
+    } catch (error) {
+      console.error("一括承認エラー:", error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // 招待コード別一括承認（同じ招待コードのユーザーを一括承認）
+  static async approveByInviteCode(inviteCode, targetRole = null) {
+    try {
+      const pendingQuery = query(
+        collection(db, "users"),
+        where("status", "==", "pending"),
+        where("inviteCode", "==", inviteCode)
+      );
+      const snapshot = await getDocs(pendingQuery);
+
+      if (snapshot.empty) {
+        return {
+          success: true,
+          message: "該当する承認待ちユーザーがありません",
+        };
+      }
+
+      const userIds = snapshot.docs.map((doc) => doc.id);
+      const defaultRole =
+        targetRole || this.getDefaultRoleFromInviteCode(inviteCode);
+
+      const result = await this.bulkApproveUsers(userIds, defaultRole);
+
+      console.log(`招待コード「${inviteCode}」での一括承認完了:`, result);
+      return result;
+    } catch (error) {
+      console.error("招待コード別一括承認エラー:", error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // 自動承認設定（特定の条件で自動承認を有効化）
+  static async enableAutoApprovalForInviteCode(
+    inviteCode,
+    targetRole,
+    expiryHours = 24
+  ) {
+    try {
+      const autoApprovalRef = collection(db, "auto_approvals");
+      await addDoc(autoApprovalRef, {
+        inviteCode: inviteCode,
+        targetRole: targetRole,
+        enabled: true,
+        createdAt: serverTimestamp(),
+        expiresAt: new Date(Date.now() + expiryHours * 60 * 60 * 1000),
+        createdBy: this.getSession()?.user_id,
+      });
+
+      console.log(`招待コード「${inviteCode}」の自動承認を有効化しました`);
+      return { success: true };
+    } catch (error) {
+      console.error("自動承認設定エラー:", error);
+      return { success: false, error: error.message };
+    }
   }
 }
 
@@ -518,19 +980,40 @@ FirebaseAuthManager.onAuthStateChanged((user) => {
     currentUser = null;
   }
 
-  // ページアクセスチェック（ログインページ以外）
+  // ページアクセスチェック（公開ページ以外）
   const currentPage = window.location.pathname.split("/").pop() || "admin.html";
-  if (currentPage !== "login.html" && currentPage !== "index.html") {
-    UserSession.checkPageAccess();
+
+  // ログインページ、インデックスページ、リダイレクト中の場合はチェックしない
+  if (
+    currentPage !== "login.html" &&
+    currentPage !== "index.html" &&
+    !window.isRedirecting
+  ) {
+    // 認証状態監視による自動チェックは控えめに実行
+    setTimeout(() => {
+      console.log("認証状態監視からのページアクセスチェック実行");
+      UserSession.checkPageAccess();
+    }, 1000); // より長い遅延でチェック
   }
 });
 
 // ページロード時の認証チェック
 document.addEventListener("DOMContentLoaded", function () {
-  // ログインページ以外では認証チェック
+  // リダイレクトフラグをリセット
+  window.isRedirecting = false;
+
+  console.log("DOMContentLoaded: ページロード時の認証チェック開始");
+
+  // 公開ページ以外では認証チェック
   const currentPage = window.location.pathname.split("/").pop() || "admin.html";
-  if (currentPage !== "login.html") {
-    UserSession.checkPageAccess();
+  console.log("現在のページ:", currentPage);
+
+  if (currentPage !== "login.html" && currentPage !== "index.html") {
+    // より長い遅延で初期化完了を確実に待つ
+    setTimeout(() => {
+      console.log("DOMContentLoadedからのページアクセスチェック実行");
+      UserSession.checkPageAccess();
+    }, 2000); // 2秒遅延で確実に初期化完了を待つ
   }
 });
 
@@ -539,6 +1022,7 @@ window.FirebaseAuthManager = FirebaseAuthManager;
 window.UserSession = UserSession;
 window.AUTH_TYPES = AUTH_TYPES;
 window.USER_ROLES = USER_ROLES;
+window.db = db; // Firestoreインスタンスをグローバルに公開
 
 console.log("認証システムが初期化されました");
 

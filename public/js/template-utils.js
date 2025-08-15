@@ -74,7 +74,10 @@ function closeUploadOptionsModal() {
     modal.style.display = "none";
   }
   // selectedFile = null; // アップロード完了後までnullにしない
-  console.log("[DEBUG] Upload options modal closed, selectedFile preserved:", selectedFile);
+  console.log(
+    "[DEBUG] Upload options modal closed, selectedFile preserved:",
+    selectedFile
+  );
 
   // ファイル入力はクリアしない（アップロード完了後にクリア）
   // const fileInput = document.getElementById("excelFileInput");
@@ -97,7 +100,10 @@ function handleUploadOption(mode) {
   closeUploadOptionsModal();
 
   // アップロード実行
-  console.log("[DEBUG] Calling uploadExcelFile with:", { file: selectedFile, mode });
+  console.log("[DEBUG] Calling uploadExcelFile with:", {
+    file: selectedFile,
+    mode,
+  });
   uploadExcelFile(selectedFile, mode);
 }
 
@@ -279,7 +285,7 @@ async function downloadUsersTemplateFromHosting() {
       const docData = doc.data();
       data.push({
         id: doc.id,
-        user_id: docData.user_id || "",
+        user_id: String(docData.user_id || ""), // 文字列に変換
         user_name: docData.user_name || "",
         email: docData.email || "",
         role: docData.role || "",
@@ -336,7 +342,7 @@ async function downloadStaffTemplateFromHosting() {
       const docData = doc.data();
       data.push({
         id: doc.id,
-        user_id: docData.user_id || "",
+        user_id: String(docData.user_id || ""), // 文字列に変換
         user_name: docData.user_name || "",
         email: docData.email || "",
         phone: docData.phone || "",
@@ -399,7 +405,10 @@ async function downloadMakerTemplateFromHosting() {
         return;
       }
     } catch (staticError) {
-      console.log("Static template download failed, creating dynamic template:", staticError);
+      console.log(
+        "Static template download failed, creating dynamic template:",
+        staticError
+      );
     }
 
     // 静的ファイルがない場合は動的に生成
@@ -539,7 +548,10 @@ async function downloadMakerTemplate() {
 // ====== Excel ファイルアップロード処理 ======
 
 async function uploadExcelFile(file, mode = "add") {
-  console.log("[DEBUG] uploadExcelFile called with:", { fileName: file?.name, mode });
+  console.log("[DEBUG] uploadExcelFile called with:", {
+    fileName: file?.name,
+    mode,
+  });
 
   if (!file) {
     console.error("[DEBUG] No file provided");
@@ -554,7 +566,7 @@ async function uploadExcelFile(file, mode = "add") {
     originalName: file.name,
     fileName,
     fileExtension,
-    fileSize: file.size
+    fileSize: file.size,
   });
 
   if (fileExtension !== "xlsx" && fileExtension !== "xls") {
@@ -607,7 +619,10 @@ async function uploadExcelFile(file, mode = "add") {
       // ファイル名で判定できない場合は、最初のシートを使用
       targetSheetName = workbook.SheetNames[0];
       collectionType = "items"; // デフォルト
-      console.log("[DEBUG] Unknown file type, using first sheet:", targetSheetName);
+      console.log(
+        "[DEBUG] Unknown file type, using first sheet:",
+        targetSheetName
+      );
     }
 
     console.log("[DEBUG] Target settings:");
@@ -616,7 +631,12 @@ async function uploadExcelFile(file, mode = "add") {
 
     // 指定したシートが存在するかチェック
     if (!workbook.SheetNames.includes(targetSheetName)) {
-      console.error("[DEBUG] Sheet not found:", targetSheetName, "Available:", workbook.SheetNames);
+      console.error(
+        "[DEBUG] Sheet not found:",
+        targetSheetName,
+        "Available:",
+        workbook.SheetNames
+      );
       showResult(
         "firestoreResult",
         `指定されたシート「${targetSheetName}」が見つかりません。\n利用可能なシート: ${workbook.SheetNames.join(
@@ -703,7 +723,7 @@ async function uploadExcelFile(file, mode = "add") {
           console.log(`[DEBUG] Created items document:`, documentData);
         } else if (collectionType === "users") {
           documentData = {
-            user_id: row["user_id"] || row["ユーザーID"] || "",
+            user_id: String(row["user_id"] || row["ユーザーID"] || ""), // 文字列に変換
             user_name: row["user_name"] || row["ユーザー名"] || "",
             email: row["email"] || row["メール"] || "",
             phone: row["phone"] || row["電話番号"] || "",
@@ -721,15 +741,22 @@ async function uploadExcelFile(file, mode = "add") {
           throw new Error(`未対応のコレクションタイプ: ${collectionType}`);
         }
 
-        console.log(`[DEBUG] Saving to Firestore collection '${collectionType}':`, documentData);
+        console.log(
+          `[DEBUG] Saving to Firestore collection '${collectionType}':`,
+          documentData
+        );
         await addDoc(collection(db, collectionType), documentData);
         successCount++;
-        console.log(`[DEBUG] Successfully saved row ${index + 1} to ${collectionType}`);
+        console.log(
+          `[DEBUG] Successfully saved row ${index + 1} to ${collectionType}`
+        );
 
         // デバッグ情報
         const displayId =
           documentData.item_no || documentData.user_id || `Row ${index + 1}`;
-        console.log(`[DEBUG] Saved document: ${displayId} to ${collectionType}`);
+        console.log(
+          `[DEBUG] Saved document: ${displayId} to ${collectionType}`
+        );
       } catch (error) {
         errorCount++;
         console.error(`[DEBUG] Error processing row ${index + 2}:`, error);
@@ -739,7 +766,9 @@ async function uploadExcelFile(file, mode = "add") {
       }
     }
 
-    console.log(`[DEBUG] Upload completed - Success: ${successCount}, Errors: ${errorCount}`);
+    console.log(
+      `[DEBUG] Upload completed - Success: ${successCount}, Errors: ${errorCount}`
+    );
     console.log(`[DEBUG] Final results for ${collectionType} collection`);
 
     // 結果表示
@@ -770,8 +799,9 @@ async function uploadExcelFile(file, mode = "add") {
     if (fileInput) {
       fileInput.value = "";
     }
-    console.log("[DEBUG] selectedFile and file input cleared after upload completion");
-
+    console.log(
+      "[DEBUG] selectedFile and file input cleared after upload completion"
+    );
   } catch (error) {
     console.error("[DEBUG] Upload error occurred:", error);
 
