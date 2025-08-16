@@ -3,9 +3,21 @@ import "./auth.js";
 import "./smart-qr-scanner.js";
 
 // ページロード時の初期化
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", async function () {
+  // ページ読み込み時のデバッグ情報
+  console.log("=== user.htmlページ読み込み ===");
+  console.log("現在のURL:", window.location.href);
+  console.log("セッション存在確認:", !!localStorage.getItem("currentUser"));
+  console.log("セッションデータ:", localStorage.getItem("currentUser"));
+  console.log("================================");
+
   // ユーザー情報表示
-  displayUserInfo();
+  await displayUserInfo(); // await追加
+
+  // 処理完了後にアラート表示
+  setTimeout(() => {
+    alert(`user.htmlページの処理が完了しました！\nURL: ${window.location.href}\nセッション: ${localStorage.getItem("currentUser") ? "あり" : "なし"}\n処理完了時刻: ${new Date().toLocaleTimeString()}`);
+  }, 1000);
 
   // スキャン履歴の読み込み
   if (window.smartScanner && window.smartScanner.displayScanHistory) {
@@ -14,7 +26,7 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 // ユーザー情報表示
-function displayUserInfo() {
+async function displayUserInfo() {
   const userInfoElement = document.getElementById("userInfo");
   if (userInfoElement) {
     try {
@@ -26,7 +38,7 @@ function displayUserInfo() {
         window.UserSession &&
         typeof UserSession.getCurrentUser === "function"
       ) {
-        user = UserSession.getCurrentUser();
+        user = await UserSession.getCurrentUser(); // await追加
         console.log("UserSession経由でユーザー情報取得:", user);
       }
 

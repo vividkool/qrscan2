@@ -1,5 +1,5 @@
 // Login Page Functions with Invite Code Support (Passwordless)
-import "./auth.js";
+import "./login-auth.js";
 
 // DOM要素取得
 const loginForm = document.getElementById("loginForm");
@@ -122,22 +122,30 @@ async function handleLogin(event) {
   toggleLoading(true);
 
   try {
-    const result = await UserSession.login(userId);
+    const result = await LoginAuth.login(userId);
 
     if (result.success) {
       showSuccess("ログイン成功！リダイレクトしています...");
 
+      // デバッグ用のアラートとログ
+      console.log("=== ログイン成功デバッグ情報 ===");
+      console.log("ユーザー情報:", result.user);
+      console.log("リダイレクトURL:", result.redirectUrl);
+      console.log("セッションデータ:", localStorage.getItem("currentUser"));
+      console.log("================================");
+      
+      alert(`ログイン成功！\nユーザー: ${result.user.user_name}\nロール: ${result.user.role}\nリダイレクト先: ${result.redirectUrl}`);
+
       // 安全なリダイレクト処理
       setTimeout(() => {
-        const redirectUrl = UserSession.getRedirectUrl(result.user.role);
-        console.log("ログイン後のリダイレクト:", redirectUrl);
-
-        // リダイレクトフラグを設定
-        window.isRedirecting = true;
+        console.log("リダイレクト実行前の最終チェック:");
+        console.log("- URL:", result.redirectUrl);
+        console.log("- セッション存在確認:", !!localStorage.getItem("currentUser"));
 
         // リダイレクト実行
         setTimeout(() => {
-          window.location.href = redirectUrl;
+          console.log("リダイレクト実行中...", result.redirectUrl);
+          window.location.href = result.redirectUrl;
         }, 500);
       }, 1000);
     } else {
@@ -162,11 +170,11 @@ async function handleGoogleRegister() {
   toggleLoading(true, "Google認証中...");
 
   try {
-    const result = await FirebaseAuthManager.signInWithGoogle();
+    const result = await LoginAuth.signInWithGoogle();
 
     if (result.success) {
       // Google認証成功後、追加情報フォームを表示
-      showGoogleRegistrationForm(result.user);
+      showGoogleRegistrationForm(result.firebaseUser);
     } else {
       // Google認証が無効な場合のガイダンスを表示
       if (result.error.includes("operation-not-allowed")) {
@@ -216,7 +224,7 @@ async function handleAdditionalInfoSubmit(event) {
 
   try {
     // 現在のFirebaseユーザーに追加情報を設定
-    const result = await FirebaseAuthManager.updateUserAdditionalInfo(
+    const result = await LoginAuth.updateUserAdditionalInfo(
       name,
       department,
       currentInviteCode
@@ -228,7 +236,7 @@ async function handleAdditionalInfoSubmit(event) {
 
         // 安全なリダイレクト処理
         setTimeout(() => {
-          const redirectUrl = UserSession.getRedirectUrl(result.user.user_role);
+          const redirectUrl = LoginAuth.getRedirectUrl(result.user.user_role);
           console.log("登録完了後のリダイレクト:", redirectUrl);
 
           // リダイレクトフラグを設定
@@ -283,9 +291,9 @@ function setupEventListeners() {
 // ページ初期化
 document.addEventListener("DOMContentLoaded", function () {
   // 既にログイン済みかチェック
-  const session = UserSession.getSession();
+  const session = LoginAuth.getSession();
   if (session) {
-    const redirectUrl = UserSession.getRedirectUrl(session.role);
+    const redirectUrl = LoginAuth.getRedirectUrl(session.role);
     window.location.href = redirectUrl;
     return;
   }

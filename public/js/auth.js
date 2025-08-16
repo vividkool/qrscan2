@@ -64,6 +64,8 @@ const USER_ROLES = {
 // ページアクセス権限定義
 const PAGE_PERMISSIONS = {
   "admin.html": [USER_ROLES.ADMIN],
+  "staff.html": [USER_ROLES.STAFF],
+  "maker.html": [USER_ROLES.MAKER],
   "user.html": [
     USER_ROLES.USER,
     USER_ROLES.STAFF,
@@ -88,7 +90,7 @@ const AUTH_TYPES = {
 };
 
 // ローカルストレージキー
-const SESSION_KEY = "qrscan_user_session";
+const SESSION_KEY = "currentUser";
 
 // Firebase Authentication管理
 class FirebaseAuthManager {
@@ -536,6 +538,7 @@ class UserSession {
       uid: userData.uid || userData.user_id, // Firebase UID（公開情報）
       user_id: userData.user_id, // アプリケーションID
       user_name: userData.user_name, // 表示名
+      company_name: userData.company_name, // 会社名
       role: userRole, // 権限情報
       department: userData.department, // 部署情報
       authType: userData.authType || AUTH_TYPES.LEGACY,
@@ -553,8 +556,23 @@ class UserSession {
     }
   } // セッション取得
   // セッション取得（Firebase + レガシー対応）
-  static getSession() {
-    // Firebase認証状態を優先的にチェック
+  static async getSession() {
+    // ログイン画面では簡易セッションチェックのみ
+    const currentPage =
+      window.location.pathname.split("/").pop() || "admin.html";
+    if (currentPage === "login.html" || currentPage === "index.html") {
+      const sessionData = localStorage.getItem(SESSION_KEY);
+      if (!sessionData) {
+        return null;
+      }
+      try {
+        return JSON.parse(sessionData);
+      } catch {
+        return null;
+      }
+    }
+
+    // Firebase認証状態を優先的にチェック（保護されたページのみ）
     if (currentFirebaseUser) {
       // Firebase認証ユーザーがいる場合、firebaseSessionDataを確認
       const firebaseSessionData = localStorage.getItem("firebaseSessionData");
@@ -574,9 +592,26 @@ class UserSession {
     }
 
     // Firebase認証がないか、セッションデータがない場合はレガシーセッションを確認
+    console.log("=== getSession デバッグ ===");
+    console.log("SESSION_KEY:", SESSION_KEY);
+    
     const sessionData = localStorage.getItem(SESSION_KEY);
+    console.log("取得したセッションデータ:", sessionData);
+    
+    // 他のキーも確認
+    console.log("currentUserキーの値:", localStorage.getItem("currentUser"));
+    console.log("qrscan_user_sessionキーの値:", localStorage.getItem("qrscan_user_session"));
+    console.log("==========================");
+    
     if (!sessionData) {
-      console.log("セッションデータが見つかりません");
+      const currentPage =
+        window.location.pathname.split("/").pop() || "admin.html";
+      if (currentPage === "login.html" || currentPage === "index.html") {
+        // ログイン画面では正常な状態なのでログレベルを下げる
+        console.log("ログイン画面: セッションなし（正常）");
+      } else {
+        console.log("セッションデータが見つかりません");
+      }
       return null;
     }
 
@@ -593,6 +628,33 @@ class UserSession {
       }
 
       console.log("レガシーセッションを取得:", parsed.user_name);
+
+      // company_nameが不足している場合は、Firestoreから再取得して補完
+      if (!parsed.company_name && parsed.user_id) {
+        console.log(
+          "company_nameが不足しているため、Firestoreから再取得します"
+        );
+        try {
+          const usersQuery = query(
+            collection(db, "users"),
+            where("user_id", "==", parsed.user_id)
+          );
+          const querySnapshot = await getDocs(usersQuery);
+
+          if (!querySnapshot.empty) {
+            const userData = querySnapshot.docs[0].data();
+            if (userData.company_name) {
+              parsed.company_name = userData.company_name;
+              // 更新されたセッションを保存
+              this.saveSession(parsed);
+              console.log("company_nameを補完しました:", userData.company_name);
+            }
+          }
+        } catch (error) {
+          console.error("company_name補完エラー:", error);
+        }
+      }
+
       currentUser = parsed;
       return parsed;
     } catch (error) {
@@ -696,13 +758,22 @@ class UserSession {
   }
 
   // ページアクセス権限チェック（Firebase Auth + レガシー対応）
-  static checkPageAccess() {
+  static async checkPageAccess() {
     const currentPage =
       window.location.pathname.split("/").pop() || "admin.html";
 
     console.log("=== ページアクセスチェック開始 ===");
     console.log("現在のページ:", currentPage);
     console.log("リダイレクト中フラグ:", window.isRedirecting);
+    
+    // 権限チェック実行をアラートで通知
+    alert(`権限チェック実行中！\nページ: ${currentPage}\nリダイレクト中: ${window.isRedirecting}\n時刻: ${new Date().toLocaleTimeString()}`);
+
+    // ログイン画面の場合は認証チェックをスキップ
+    if (currentPage === "login.html" || currentPage === "index.html") {
+      console.log("ログイン画面のため認証チェックをスキップ");
+      return true;
+    }
 
     // リダイレクト中フラグで無限ループを防止
     if (window.isRedirecting) {
@@ -711,7 +782,7 @@ class UserSession {
     }
 
     // セッション取得（Firebaseまたはレガシー）
-    const session = this.getSession();
+    const session = await this.getSession(); // await追加
     console.log(
       "現在のセッション:",
       session ? `${session.user_name} (${session.role})` : "なし"
@@ -753,8 +824,11 @@ class UserSession {
 
     // ページアクセス権限チェック
     const allowedRoles = PAGE_PERMISSIONS[currentPage] || [];
+    console.log("=== 権限チェック詳細 ===");
     console.log("ページの許可ロール:", allowedRoles);
     console.log("ユーザーのロール:", session.role);
+    console.log("権限チェック結果:", allowedRoles.length > 0 && !allowedRoles.includes(session.role));
+    console.log("=====================");
 
     if (allowedRoles.length > 0 && !allowedRoles.includes(session.role)) {
       const redirectUrl = this.getRedirectUrl(session.role);
@@ -768,10 +842,14 @@ class UserSession {
       const targetPage = redirectUrl.replace(".html", "");
       const currentPageName = currentPage.replace(".html", "");
 
+      console.log("=== リダイレクト判定 ===");
       console.log("リダイレクト先ページ:", targetPage);
       console.log("現在のページ名:", currentPageName);
+      console.log("リダイレクト必要か:", currentPageName !== targetPage);
+      console.log("====================");
 
       if (currentPageName !== targetPage) {
+        console.log("リダイレクト実行中...");
         this.redirectTo(redirectUrl);
       } else {
         console.log("既に正しいページにいるため、リダイレクトをスキップ");
@@ -786,6 +864,16 @@ class UserSession {
 
   // 安全なリダイレクト関数
   static redirectTo(url) {
+    const currentPage =
+      window.location.pathname.split("/").pop() || "admin.html";
+
+    // ログイン画面から他のページへのリダイレクトは許可
+    // ログイン画面内でのリダイレクトは防止
+    if (currentPage === "login.html" && url.includes("login.html")) {
+      console.log("ログイン画面内でのリダイレクトを防止");
+      return;
+    }
+
     if (window.isRedirecting) {
       console.log("リダイレクト処理中のため、新しいリダイレクトをスキップ");
       return;
@@ -793,6 +881,9 @@ class UserSession {
 
     window.isRedirecting = true;
     console.log(`リダイレクト実行: ${url}`);
+    
+    // リダイレクト実行をアラートで通知
+    alert(`リダイレクト実行中！\n現在のページ: ${currentPage}\nリダイレクト先: ${url}\n時刻: ${new Date().toLocaleTimeString()}`);
 
     // ページアクセス権限チェックを一時的に無効化
     setTimeout(() => {
@@ -806,8 +897,8 @@ class UserSession {
   }
 
   // 現在のユーザー情報取得
-  static getCurrentUser() {
-    return this.getSession();
+  static async getCurrentUser() {
+    return await this.getSession();
   }
 
   // 管理者用：ユーザー承認
@@ -966,36 +1057,61 @@ class UserSession {
   }
 }
 
-// 認証状態監視の開始
-FirebaseAuthManager.onAuthStateChanged((user) => {
-  if (user) {
-    console.log(
-      "認証状態監視: 認証済み -",
-      user.user_name,
-      "(" + user.user_role + ")"
-    );
-    currentUser = user;
-  } else {
-    console.log("認証状態監視: 未認証状態");
-    currentUser = null;
-  }
+// 認証状態監視の開始（ログイン画面以外でのみ有効）
+const currentPageForAuth =
+  window.location.pathname.split("/").pop() || "admin.html";
 
-  // ページアクセスチェック（公開ページ以外）
-  const currentPage = window.location.pathname.split("/").pop() || "admin.html";
+if (
+  currentPageForAuth !== "login.html" &&
+  currentPageForAuth !== "index.html"
+) {
+  console.log("保護されたページのため認証監視を開始します");
 
-  // ログインページ、インデックスページ、リダイレクト中の場合はチェックしない
-  if (
-    currentPage !== "login.html" &&
-    currentPage !== "index.html" &&
-    !window.isRedirecting
-  ) {
-    // 認証状態監視による自動チェックは控えめに実行
-    setTimeout(() => {
-      console.log("認証状態監視からのページアクセスチェック実行");
-      UserSession.checkPageAccess();
-    }, 1000); // より長い遅延でチェック
-  }
-});
+  FirebaseAuthManager.onAuthStateChanged((user) => {
+    if (user) {
+      console.log(
+        "認証状態監視: 認証済み -",
+        user.user_name,
+        "(" + user.user_role + ")"
+      );
+      currentUser = user;
+    } else {
+      console.log("認証状態監視: 未認証状態");
+      currentUser = null;
+    }
+
+    // ページアクセスチェック（公開ページ以外）
+    const currentPage =
+      window.location.pathname.split("/").pop() || "admin.html";
+
+    // ログインページ、インデックスページでは一切の認証チェックを行わない
+    if (currentPage === "login.html" || currentPage === "index.html") {
+      console.log("ログイン画面のため認証監視をスキップします");
+      return;
+    }
+
+    // リダイレクト中の場合もスキップ
+    if (window.isRedirecting) {
+      console.log("リダイレクト中のため認証監視をスキップします");
+      return;
+    }
+
+    // 保護されたページでのみ認証チェックを実行
+    if (
+      currentPage !== "login.html" &&
+      currentPage !== "index.html" &&
+      !window.isRedirecting
+    ) {
+      // 認証状態監視による自動チェックは控えめに実行
+      setTimeout(async () => {
+        console.log("認証状態監視からのページアクセスチェック実行");
+        await UserSession.checkPageAccess(); // await追加
+      }, 1000); // より長い遅延でチェック
+    }
+  });
+} else {
+  console.log("ログイン画面のため認証監視を完全に無効化します");
+}
 
 // ページロード時の認証チェック
 document.addEventListener("DOMContentLoaded", function () {
@@ -1008,11 +1124,18 @@ document.addEventListener("DOMContentLoaded", function () {
   const currentPage = window.location.pathname.split("/").pop() || "admin.html";
   console.log("現在のページ:", currentPage);
 
+  // ログイン画面では一切の認証チェックを行わない
+  if (currentPage === "login.html" || currentPage === "index.html") {
+    console.log("ログイン画面のため認証チェックをスキップします");
+    return;
+  }
+
+  // 保護されたページでのみ認証チェックを実行
   if (currentPage !== "login.html" && currentPage !== "index.html") {
     // より長い遅延で初期化完了を確実に待つ
-    setTimeout(() => {
+    setTimeout(async () => {
       console.log("DOMContentLoadedからのページアクセスチェック実行");
-      UserSession.checkPageAccess();
+      await UserSession.checkPageAccess(); // await追加
     }, 2000); // 2秒遅延で確実に初期化完了を待つ
   }
 });
@@ -1026,20 +1149,45 @@ window.db = db; // Firestoreインスタンスをグローバルに公開
 
 console.log("認証システムが初期化されました");
 
-// 初期化時のセッション状態確認
-const currentSession = UserSession.getSession();
-const firebaseSessionData = localStorage.getItem("firebaseSessionData");
-const legacySessionData = localStorage.getItem(SESSION_KEY);
+// ログイン画面では初期化時のセッション確認をスキップ
+const currentPageForInit =
+  window.location.pathname.split("/").pop() || "admin.html";
 
-console.log("=== セッション状態確認 ===");
-console.log(
-  "現在のセッション:",
-  currentSession ? currentSession.user_name : "なし"
-);
-console.log("Firebaseセッションデータ:", firebaseSessionData ? "あり" : "なし");
-console.log("レガシーセッションデータ:", legacySessionData ? "あり" : "なし");
-console.log(
-  "currentFirebaseUser:",
-  currentFirebaseUser ? currentFirebaseUser.uid : "なし"
-);
-console.log("========================");
+if (
+  currentPageForInit !== "login.html" &&
+  currentPageForInit !== "index.html"
+) {
+  console.log("保護されたページのため、セッション状態を確認します");
+
+  // 初期化時のセッション状態確認（非同期処理）
+  setTimeout(async () => {
+    try {
+      const currentSession = await UserSession.getSession();
+      const firebaseSessionData = localStorage.getItem("firebaseSessionData");
+      const legacySessionData = localStorage.getItem(SESSION_KEY);
+
+      console.log("=== セッション状態確認 ===");
+      console.log(
+        "現在のセッション:",
+        currentSession ? currentSession.user_name : "なし"
+      );
+      console.log(
+        "Firebaseセッションデータ:",
+        firebaseSessionData ? "あり" : "なし"
+      );
+      console.log(
+        "レガシーセッションデータ:",
+        legacySessionData ? "あり" : "なし"
+      );
+      console.log(
+        "currentFirebaseUser:",
+        currentFirebaseUser ? currentFirebaseUser.uid : "なし"
+      );
+      console.log("========================");
+    } catch (error) {
+      console.error("セッション状態確認エラー:", error);
+    }
+  }, 100); // 短い遅延で実行
+} else {
+  console.log("ログイン画面のため、初期化時のセッション確認をスキップします");
+}

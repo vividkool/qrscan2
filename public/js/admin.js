@@ -31,6 +31,20 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+// ページ読み込み時のデバッグ情報
+document.addEventListener("DOMContentLoaded", function() {
+  console.log("=== admin.htmlページ読み込み ===");
+  console.log("現在のURL:", window.location.href);
+  console.log("セッション存在確認:", !!localStorage.getItem("currentUser"));
+  console.log("セッションデータ:", localStorage.getItem("currentUser"));
+  console.log("================================");
+  
+  // 処理完了後にアラート表示
+  setTimeout(() => {
+    alert(`admin.htmlページの処理が完了しました！\nURL: ${window.location.href}\nセッション: ${localStorage.getItem("currentUser") ? "あり" : "なし"}\n処理完了時刻: ${new Date().toLocaleTimeString()}`);
+  }, 1000);
+});
+
 // 現在表示中のコレクション状態を管理
 let currentCollectionType = null;
 
