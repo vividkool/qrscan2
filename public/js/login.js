@@ -133,14 +133,15 @@ async function handleLogin(event) {
       console.log("リダイレクトURL:", result.redirectUrl);
       console.log("セッションデータ:", localStorage.getItem("currentUser"));
       console.log("================================");
-      
-      alert(`ログイン成功！\nユーザー: ${result.user.user_name}\nロール: ${result.user.role}\nリダイレクト先: ${result.redirectUrl}`);
 
       // 安全なリダイレクト処理
       setTimeout(() => {
         console.log("リダイレクト実行前の最終チェック:");
         console.log("- URL:", result.redirectUrl);
-        console.log("- セッション存在確認:", !!localStorage.getItem("currentUser"));
+        console.log(
+          "- セッション存在確認:",
+          !!localStorage.getItem("currentUser")
+        );
 
         // リダイレクト実行
         setTimeout(() => {

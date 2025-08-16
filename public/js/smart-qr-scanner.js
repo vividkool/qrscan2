@@ -585,19 +585,22 @@ class SmartQRScanner {
 
   getCurrentUserInfo() {
     try {
-      // UserSessionクラスからユーザー情報を取得
-      if (typeof UserSession !== "undefined" && UserSession.getCurrentUser) {
-        const user = UserSession.getCurrentUser();
-        this.debugLog("ユーザー情報取得", user);
-        return user || {};
-      }
-
-      // フォールバック: localStorageから直接取得
+      // 直接localStorageから取得（最も確実な方法）
       const userStr = localStorage.getItem("currentUser");
       if (userStr) {
         const user = JSON.parse(userStr);
         this.debugLog("localStorage からユーザー情報取得", user);
         return user;
+      }
+
+      // フォールバック: UserSessionクラスから取得（非同期の場合があるので注意）
+      if (typeof UserSession !== "undefined" && UserSession.getSession) {
+        const user = UserSession.getSession();
+        this.debugLog("UserSession.getSession からユーザー情報取得", user);
+        if (user && typeof user === "object" && !user.then) {
+          // Promiseではない場合のみ
+          return user;
+        }
       }
 
       this.debugLog("ユーザー情報が見つかりません");
@@ -700,13 +703,70 @@ class SmartQRScanner {
       historyElement.innerHTML =
         '<div class="loading">📜 履歴を読み込み中...</div>';
 
-      // Firestoreからスキャン履歴を取得
-      const querySnapshot = await getDocs(collection(db, "scanItems"));
+      // 現在のユーザー情報を取得
+      const currentUser = this.getCurrentUserInfo();
+
+      this.debugLog("取得したユーザー情報の詳細", {
+        fullUser: currentUser,
+        userId: currentUser.user_id,
+        userIdType: typeof currentUser.user_id,
+        userName: currentUser.user_name,
+        hasUserId: !!currentUser.user_id,
+      });
+
+      const currentUserId = currentUser.user_id;
+
+      if (!currentUserId) {
+        this.debugLog("ユーザーIDが取得できません", {
+          currentUser: currentUser,
+          userIdValue: currentUserId,
+          localStorageRaw: localStorage.getItem("currentUser"),
+        });
+        historyElement.innerHTML =
+          '<div class="error">ユーザー情報が取得できません。再ログインしてください。</div>';
+        return;
+      }
+
+      this.debugLog("現在のユーザーID", currentUserId);
+
+      // Firestoreからスキャン履歴を取得（user_idでフィルタ）
+      let querySnapshot;
+      try {
+        // まず文字列のuser_idで検索
+        const userQuery = query(
+          collection(db, "scanItems"),
+          where("user_id", "==", String(currentUserId))
+        );
+        querySnapshot = await getDocs(userQuery);
+
+        // 文字列で見つからない場合は数値で検索
+        if (querySnapshot.empty) {
+          const userIdAsNumber = parseInt(currentUserId, 10);
+          if (!isNaN(userIdAsNumber)) {
+            this.debugLog("文字列検索で見つからないため数値で再検索", {
+              original: currentUserId,
+              number: userIdAsNumber,
+            });
+
+            const numberQuery = query(
+              collection(db, "scanItems"),
+              where("user_id", "==", userIdAsNumber)
+            );
+            querySnapshot = await getDocs(numberQuery);
+          }
+        }
+      } catch (error) {
+        this.debugLog("Firestoreクエリエラー", error);
+        historyElement.innerHTML =
+          '<div class="error">履歴の検索中にエラーが発生しました</div>';
+        return;
+      }
 
       if (querySnapshot.empty) {
-        historyElement.innerHTML =
-          '<div class="no-data">📝 スキャン履歴がありません</div>';
-        this.debugLog("スキャン履歴なし");
+        historyElement.innerHTML = `<div class="no-data">📝 ${
+          currentUser.user_name || "あなた"
+        }のスキャン履歴がありません</div>`;
+        this.debugLog("該当ユーザーのスキャン履歴なし", currentUserId);
         return;
       }
 
@@ -727,6 +787,7 @@ class SmartQRScanner {
           createdAt: data.createdAt,
           scannerMode: data.scannerMode,
           user_name: data.user_name,
+          user_id: data.user_id,
           role: data.role,
         });
       });
@@ -739,7 +800,9 @@ class SmartQRScanner {
       });
 
       // テーブル形式でHTML生成
-      let html = "<h3>📜 スキャン履歴</h3>";
+      let html = `<h3>📜 ${
+        currentUser.user_name || "あなた"
+      }のスキャン履歴</h3>`;
       html += '<div class="history-table-container">';
       html += '<table class="history-table">';
       html += "<thead>";
@@ -793,8 +856,13 @@ class SmartQRScanner {
         } 件</div>`;
       }
 
+      // 総件数表示
+      html += `<div class="history-summary">合計: ${scanData.length}件のスキャン履歴</div>`;
+
       historyElement.innerHTML = html;
-      this.debugLog(`スキャン履歴表示完了: ${scanData.length}件`);
+      this.debugLog(
+        `ユーザー別スキャン履歴表示完了: ${scanData.length}件 (user_id: ${currentUserId})`
+      );
     } catch (error) {
       this.debugLog("スキャン履歴表示エラー", error);
       const historyElement = document.getElementById("scanHistory");
@@ -814,6 +882,138 @@ class SmartQRScanner {
     const statusElement = document.getElementById("scannerStatus");
     if (statusElement) {
       statusElement.style.display = "none";
+    }
+  }
+
+  // 管理者向け：全ユーザーのスキャン履歴表示
+  async displayAllScanHistory() {
+    try {
+      this.debugLog("全ユーザーのスキャン履歴表示開始");
+
+      const historyElement = document.getElementById("scanHistory");
+      if (!historyElement) {
+        this.debugLog("scanHistory要素が見つかりません");
+        return;
+      }
+
+      // 現在のユーザー権限をチェック
+      const currentUser = this.getCurrentUserInfo();
+      if (currentUser.role !== "admin") {
+        this.debugLog("管理者権限なし", currentUser.role);
+        historyElement.innerHTML =
+          '<div class="error">管理者権限が必要です</div>';
+        return;
+      }
+
+      // ローディング表示
+      historyElement.innerHTML =
+        '<div class="loading">📜 全ユーザーの履歴を読み込み中...</div>';
+
+      // Firestoreから全スキャン履歴を取得
+      const querySnapshot = await getDocs(collection(db, "scanItems"));
+
+      if (querySnapshot.empty) {
+        historyElement.innerHTML =
+          '<div class="no-data">📝 スキャン履歴がありません</div>';
+        this.debugLog("全ユーザーのスキャン履歴なし");
+        return;
+      }
+
+      // データを配列に変換して時刻順にソート
+      const scanData = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        scanData.push({
+          id: doc.id,
+          content: data.content,
+          item_no: data.item_no || data.content,
+          item_name: data.item_name || "",
+          category_name: data.category_name || "",
+          maker_name: data.maker_name || "",
+          maker_code: data.maker_code || "",
+          company_name: data.company_name || "",
+          timestamp: data.timestamp,
+          createdAt: data.createdAt,
+          scannerMode: data.scannerMode,
+          user_name: data.user_name,
+          user_id: data.user_id,
+          role: data.role,
+        });
+      });
+
+      // 新しい順にソート
+      scanData.sort((a, b) => {
+        const timeA = new Date(a.timestamp || a.createdAt);
+        const timeB = new Date(b.timestamp || b.createdAt);
+        return timeB - timeA;
+      });
+
+      // テーブル形式でHTML生成（管理者向けに詳細表示）
+      let html = "<h3>📜 全ユーザーのスキャン履歴（管理者用）</h3>";
+      html += '<div class="history-table-container">';
+      html += '<table class="history-table">';
+      html += "<thead>";
+      html += "<tr>";
+      html += "<th>ユーザー</th>";
+      html += "<th>番号</th>";
+      html += "<th>カテゴリ</th>";
+      html += "<th>メーカー</th>";
+      html += "<th>アイテム名</th>";
+      html += "<th>時刻</th>";
+      html += "<th>削除</th>";
+      html += "</tr>";
+      html += "</thead>";
+      html += "<tbody>";
+
+      scanData.slice(0, 50).forEach((item, index) => {
+        const time = new Date(item.timestamp || item.createdAt);
+        const timeStr = time.toLocaleString("ja-JP", {
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+
+        const category = item.category_name || "-";
+        const maker = item.maker_name || "-";
+        const userName = item.user_name || "Unknown";
+
+        html += "<tr>";
+        html += `<td class="user-cell">${userName}</td>`;
+        html += `<td class="content-cell">${item.item_no}</td>`;
+        html += `<td class="category-cell">${category}</td>`;
+        html += `<td class="maker-cell">${maker}</td>`;
+        html += `<td class="content-cell">${item.item_name}</td>`;
+        html += `<td class="time-cell">${timeStr}</td>`;
+        html += `<td class="delete-cell">
+          <button class="delete-btn" onclick="window.smartScanner.deleteScanItem('${item.id}')" 
+                  title="この記録を削除">削除</button>
+        </td>`;
+        html += "</tr>";
+      });
+
+      html += "</tbody>";
+      html += "</table>";
+      html += "</div>";
+
+      if (scanData.length > 50) {
+        html += `<div class="history-footer">他 ${
+          scanData.length - 50
+        } 件</div>`;
+      }
+
+      // 総件数表示
+      html += `<div class="history-summary">全体合計: ${scanData.length}件のスキャン履歴</div>`;
+
+      historyElement.innerHTML = html;
+      this.debugLog(`全ユーザーのスキャン履歴表示完了: ${scanData.length}件`);
+    } catch (error) {
+      this.debugLog("全ユーザーのスキャン履歴表示エラー", error);
+      const historyElement = document.getElementById("scanHistory");
+      if (historyElement) {
+        historyElement.innerHTML =
+          '<div class="error">履歴の読み込みに失敗しました</div>';
+      }
     }
   }
 

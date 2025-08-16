@@ -6,6 +6,43 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QR Scan App</title>
     <style>
+        /* Excelファイルアップロード用のスタイル */
+        .upload-option-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .upload-option-btn:active {
+            transform: translateY(0);
+        }
+
+        /* ドロップゾーンの追加スタイル */
+        #dropZone:hover {
+            background: #f0f4ff !important;
+        }
+
+        /* モーダルのアニメーション */
+        #fileUploadModal {
+            animation: modalFadeIn 0.3s ease;
+        }
+
+        @keyframes modalFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* レスポンシブ対応 */
+        @media (max-width: 600px) {
+            #fileUploadModal > div {
+                margin: 20px;
+                max-width: calc(100vw - 40px);
+            }
+            
+            .upload-options-grid {
+                grid-template-columns: 1fr !important;
+            }
+        }
+    
         /* テーブル装飾 */
         table {
             border-collapse: collapse;
@@ -421,13 +458,12 @@
                 📥 Excel テンプレートダウンロード
             </button>
 
-            <button onclick="document.getElementById('excelFileInput').click()" class="action-button"
+            <button onclick="showFileUploadModal()" class="action-button"
                 style="border-color: #ff9800; color: #ff9800;">
                 📤 Excel ファイルアップロード
             </button>
             
-            <input type="file" id="excelFileInput" accept=".xlsx,.xls" style="display: none;"
-                onchange="showUploadOptionsModal(this)">
+            <input type="file" id="excelFileInput" accept=".xlsx,.xls" style="display: none;">
 
             <button onclick="clearResults('firestoreResult')" class="btn-clear action-button">
                 🗑️ 結果をクリア
@@ -461,6 +497,79 @@
         </div>
     </div>
 
+    <!-- ファイルアップロードモーダル -->
+    <div id="fileUploadModal" class="modal"
+        style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100vw; height:100vh; background:rgba(0,0,0,0.5);">
+        <div style="background:white; border-radius:12px; max-width:600px; margin:60px auto; padding:0; position:relative; box-shadow:0 4px 20px rgba(0,0,0,0.3);">
+            <!-- モーダルヘッダー -->
+            <div style="background:#4285f4; color:white; padding:20px; border-radius:12px 12px 0 0; display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="margin:0; font-size:18px;">📤 Excel ファイルアップロード</h3>
+                <button onclick="closeFileUploadModal()" 
+                    style="background:none; border:none; color:white; font-size:24px; cursor:pointer; padding:0; width:30px; height:30px; display:flex; align-items:center; justify-content:center;">×</button>
+            </div>
+            
+            <!-- モーダルコンテンツ -->
+            <div style="padding:30px;">
+                <!-- ドラッグ&ドロップエリア -->
+                <div id="dropZone" 
+                    style="border:3px dashed #4285f4; border-radius:8px; padding:40px; text-align:center; background:#f8f9ff; cursor:pointer; transition:all 0.3s ease;">
+                    <div style="color:#4285f4; font-size:48px; margin-bottom:15px;">📁</div>
+                    <h4 style="color:#4285f4; margin:0 0 10px 0;">ファイルをドラッグ&ドロップ</h4>
+                    <p style="color:#666; margin:0 0 20px 0;">または、クリックしてファイルを選択してください</p>
+                    <button onclick="document.getElementById('hiddenFileInput').click()" 
+                        style="background:#4285f4; color:white; border:none; padding:12px 24px; border-radius:6px; cursor:pointer; font-size:16px;">
+                        📂 ファイルを選択
+                    </button>
+                    <div style="margin-top:15px; font-size:14px; color:#888;">
+                        対応形式: .xlsx, .xls
+                    </div>
+                </div>
+                
+                <!-- 選択されたファイル表示 -->
+                <div id="selectedFileInfo" style="display:none; margin-top:20px; padding:15px; background:#e8f5e8; border-radius:6px; border-left:4px solid #4caf50;">
+                    <div style="display:flex; align-items:center; justify-content:space-between;">
+                        <div>
+                            <div style="font-weight:bold; color:#2e7d2e;" id="fileName"></div>
+                            <div style="font-size:14px; color:#666;" id="fileSize"></div>
+                        </div>
+                        <button onclick="clearSelectedFile()" 
+                            style="background:#dc3545; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer;">削除</button>
+                    </div>
+                </div>
+                
+                <!-- アップロード方法選択 -->
+                <div id="uploadOptions" style="display:none; margin-top:25px;">
+                    <h4 style="color:#333; margin-bottom:15px;">アップロード方法を選択してください：</h4>
+                    <div class="upload-options-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
+                        <button onclick="handleFileUpload('append')" class="upload-option-btn" 
+                            style="background:white; border:2px solid #4285f4; color:#4285f4; padding:20px; border-radius:8px; cursor:pointer; text-align:center; transition:all 0.3s ease;">
+                            <div style="font-size:24px; margin-bottom:8px;">➕</div>
+                            <div style="font-weight:bold; margin-bottom:4px;">追加モード</div>
+                            <small style="color:#666;">既存データに追加します</small>
+                        </button>
+                        
+                        <button onclick="handleFileUpload('replace')" class="upload-option-btn"
+                            style="background:white; border:2px solid #ff5722; color:#ff5722; padding:20px; border-radius:8px; cursor:pointer; text-align:center; transition:all 0.3s ease;">
+                            <div style="font-size:24px; margin-bottom:8px;">🔄</div>
+                            <div style="font-weight:bold; margin-bottom:4px;">完全上書き</div>
+                            <small style="color:#666;">既存データを削除して上書き</small>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- アクションボタン -->
+                <div style="margin-top:25px; display:flex; gap:10px; justify-content:flex-end;">
+                    <button onclick="closeFileUploadModal()" 
+                        style="background:#6c757d; color:white; border:none; padding:12px 24px; border-radius:6px; cursor:pointer;">
+                        キャンセル
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 隠しファイル入力 -->
+    <input type="file" id="hiddenFileInput" accept=".xlsx,.xls" style="display:none;">
 
     <!-- テンプレートダウンロード選択モーダル -->
     <div id="downloadResultModal" class="modal"

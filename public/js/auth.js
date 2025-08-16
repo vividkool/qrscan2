@@ -594,15 +594,18 @@ class UserSession {
     // Firebase認証がないか、セッションデータがない場合はレガシーセッションを確認
     console.log("=== getSession デバッグ ===");
     console.log("SESSION_KEY:", SESSION_KEY);
-    
+
     const sessionData = localStorage.getItem(SESSION_KEY);
     console.log("取得したセッションデータ:", sessionData);
-    
+
     // 他のキーも確認
     console.log("currentUserキーの値:", localStorage.getItem("currentUser"));
-    console.log("qrscan_user_sessionキーの値:", localStorage.getItem("qrscan_user_session"));
+    console.log(
+      "qrscan_user_sessionキーの値:",
+      localStorage.getItem("qrscan_user_session")
+    );
     console.log("==========================");
-    
+
     if (!sessionData) {
       const currentPage =
         window.location.pathname.split("/").pop() || "admin.html";
@@ -765,9 +768,6 @@ class UserSession {
     console.log("=== ページアクセスチェック開始 ===");
     console.log("現在のページ:", currentPage);
     console.log("リダイレクト中フラグ:", window.isRedirecting);
-    
-    // 権限チェック実行をアラートで通知
-    alert(`権限チェック実行中！\nページ: ${currentPage}\nリダイレクト中: ${window.isRedirecting}\n時刻: ${new Date().toLocaleTimeString()}`);
 
     // ログイン画面の場合は認証チェックをスキップ
     if (currentPage === "login.html" || currentPage === "index.html") {
@@ -827,7 +827,10 @@ class UserSession {
     console.log("=== 権限チェック詳細 ===");
     console.log("ページの許可ロール:", allowedRoles);
     console.log("ユーザーのロール:", session.role);
-    console.log("権限チェック結果:", allowedRoles.length > 0 && !allowedRoles.includes(session.role));
+    console.log(
+      "権限チェック結果:",
+      allowedRoles.length > 0 && !allowedRoles.includes(session.role)
+    );
     console.log("=====================");
 
     if (allowedRoles.length > 0 && !allowedRoles.includes(session.role)) {
@@ -881,9 +884,6 @@ class UserSession {
 
     window.isRedirecting = true;
     console.log(`リダイレクト実行: ${url}`);
-    
-    // リダイレクト実行をアラートで通知
-    alert(`リダイレクト実行中！\n現在のページ: ${currentPage}\nリダイレクト先: ${url}\n時刻: ${new Date().toLocaleTimeString()}`);
 
     // ページアクセス権限チェックを一時的に無効化
     setTimeout(() => {

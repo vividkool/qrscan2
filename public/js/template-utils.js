@@ -96,6 +96,24 @@ function handleUploadOption(mode) {
     return;
   }
 
+  // replaceモードでusersファイルの場合、特別な警告を表示
+  if (mode === "replace" && selectedFile.name.toLowerCase().includes("user")) {
+    const confirmMessage = `⚠️ 重要な警告 ⚠️
+
+「完全上書き」モードでユーザーファイルをアップロードしようとしています。
+
+🛡️ セーフティ機能:
+• adminロールのユーザーは自動的に保護されます
+• 既存のadmin以外のユーザーは全て削除されます
+
+このまま続行しますか？`;
+
+    if (!confirm(confirmMessage)) {
+      closeUploadOptionsModal();
+      return;
+    }
+  }
+
   // モーダルを閉じる
   closeUploadOptionsModal();
 
@@ -669,7 +687,7 @@ async function uploadExcelFile(file, mode = "add") {
       `[DEBUG] Processing sheet: ${targetSheetName}, Collection: ${collectionType}, Rows: ${jsonData.length}, Mode: ${mode}`
     );
 
-    // replaceモードの場合、既存データを全削除
+    // replaceモードの場合、既存データを全削除（adminユーザー除く）
     if (mode === "replace") {
       try {
         showLoading("firestoreResult");
@@ -679,11 +697,41 @@ async function uploadExcelFile(file, mode = "add") {
         const snapshot = await getDocs(collectionRef);
 
         if (!snapshot.empty) {
-          const deletePromises = snapshot.docs.map((doc) => deleteDoc(doc.ref));
+          const deletePromises = [];
+
+          // usersコレクションの場合、adminユーザーを保護
+          if (collectionType === "users") {
+            snapshot.docs.forEach((doc) => {
+              const userData = doc.data();
+              // adminロールのユーザーは削除しない
+              if (userData.role === "admin" || userData.user_role === "admin") {
+                protectedAdminCount++;
+                console.log(
+                  `Admin user protected: ${
+                    userData.user_name || userData.name
+                  } (ID: ${userData.user_id})`
+                );
+              } else {
+                deletePromises.push(deleteDoc(doc.ref));
+              }
+            });
+          } else {
+            // users以外のコレクションは全削除
+            snapshot.docs.forEach((doc) => {
+              deletePromises.push(deleteDoc(doc.ref));
+            });
+          }
+
           await Promise.all(deletePromises);
           console.log(
-            `Deleted ${snapshot.docs.length} existing documents from ${collectionType} collection`
+            `Deleted ${deletePromises.length} documents from ${collectionType} collection`
           );
+
+          if (protectedAdminCount > 0) {
+            console.log(
+              `Protected ${protectedAdminCount} admin users from deletion`
+            );
+          }
         }
       } catch (deleteError) {
         console.error("Error deleting existing data:", deleteError);
@@ -699,6 +747,7 @@ async function uploadExcelFile(file, mode = "add") {
     let successCount = 0;
     let errorCount = 0;
     const errors = [];
+    let protectedAdminCount = 0; // admin保護数を追跡
 
     // データを1件ずつFirestoreに保存
     for (const [index, row] of jsonData.entries()) {
@@ -776,6 +825,16 @@ async function uploadExcelFile(file, mode = "add") {
     let resultMessage = `シート「${targetSheetName}」のアップロード完了${modeText}<br>`;
     resultMessage += `コレクション: ${collectionType}<br>`;
     resultMessage += `成功: ${successCount}件<br>`;
+
+    // admin保護の情報を表示
+    if (
+      mode === "replace" &&
+      collectionType === "users" &&
+      protectedAdminCount > 0
+    ) {
+      resultMessage += `🛡️ 保護されたadminユーザー: ${protectedAdminCount}件<br>`;
+    }
+
     if (errorCount > 0) {
       resultMessage += `エラー: ${errorCount}件<br>`;
       resultMessage += `<details><summary>エラー詳細</summary>${errors

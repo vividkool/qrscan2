@@ -32,17 +32,12 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 // ページ読み込み時のデバッグ情報
-document.addEventListener("DOMContentLoaded", function() {
+document.addEventListener("DOMContentLoaded", function () {
   console.log("=== admin.htmlページ読み込み ===");
   console.log("現在のURL:", window.location.href);
   console.log("セッション存在確認:", !!localStorage.getItem("currentUser"));
   console.log("セッションデータ:", localStorage.getItem("currentUser"));
   console.log("================================");
-  
-  // 処理完了後にアラート表示
-  setTimeout(() => {
-    alert(`admin.htmlページの処理が完了しました！\nURL: ${window.location.href}\nセッション: ${localStorage.getItem("currentUser") ? "あり" : "なし"}\n処理完了時刻: ${new Date().toLocaleTimeString()}`);
-  }, 1000);
 });
 
 // 現在表示中のコレクション状態を管理
@@ -259,7 +254,7 @@ async function getAllScanItems() {
 
     let html = "<table><thead><tr>";
     html +=
-      "<th>時刻</th><th>内容</th><th>ユーザー</th><th>役割</th><th>会社</th><th>スキャナー</th><th>操作</th>";
+      "<th>番号</th><th>会社名</th><th>ユーザー</th><th>商品名</th><th>役割</th><th>スキャナー</th><th>操作</th>";
     html += "</tr></thead><tbody>";
 
     querySnapshot.forEach((docSnap) => {
@@ -268,21 +263,23 @@ async function getAllScanItems() {
       const timestamp = data.timestamp || data.createdAt;
       const timeStr = timestamp
         ? new Date(
-          timestamp.seconds ? timestamp.toDate() : timestamp
-        ).toLocaleString("ja-JP")
+            timestamp.seconds ? timestamp.toDate() : timestamp
+          ).toLocaleString("ja-JP")
         : "不明";
       const content = data.content || "データなし";
       const userName = data.user_name || data.user_id || "不明";
       const role = data.role || "不明";
+      const userid = data.user_id || "不明";
+      const itemname = data.item_name || "不明";
       const company = data.company_name || "不明";
       const scannerMode = data.scannerMode || "不明";
 
       html += `<tr>
-                <td>${timeStr}</td>
-                <td style="max-width: 200px; word-break: break-all;">${content}</td>
-                <td>${userName}</td>
-                <td>${role}</td>
+                <td>${userid}</td>
                 <td>${company}</td>
+                <td>${userName}</td>
+                <td>${itemname}</td>
+                <td>${role}</td>
                 <td>${scannerMode}</td>
                 <td style="white-space: nowrap;">
                   <button class="delete-btn" onclick="deleteDocument('scanItems', '${docId}', '${content.substring(
@@ -881,8 +878,11 @@ async function submitAddData() {
         status: document.getElementById("modal_status")?.value || "-",
         user_role:
           document.getElementById("modal_user_role")?.value ||
-          (currentCollectionType === "staff" ? "staff" :
-            currentCollectionType === "maker" ? "maker" : "user"),
+          (currentCollectionType === "staff"
+            ? "staff"
+            : currentCollectionType === "maker"
+            ? "maker"
+            : "user"),
         print_status:
           document.getElementById("modal_print_status")?.value || "not_printed",
       };
@@ -890,18 +890,21 @@ async function submitAddData() {
 
     // Firestoreに追加（スタッフとメーカーの場合もusersコレクションに保存）
     const targetCollection =
-      (currentCollectionType === "staff" || currentCollectionType === "maker") ? "users" : currentCollectionType;
+      currentCollectionType === "staff" || currentCollectionType === "maker"
+        ? "users"
+        : currentCollectionType;
     await setDoc(doc(db, targetCollection, docId), data);
 
     showResult(
       "firestoreResult",
-      `${currentCollectionType === "items"
-        ? "アイテム"
-        : currentCollectionType === "users"
+      `${
+        currentCollectionType === "items"
+          ? "アイテム"
+          : currentCollectionType === "users"
           ? "ユーザー"
           : currentCollectionType === "staff"
-            ? "スタッフ"
-            : "メーカー"
+          ? "スタッフ"
+          : "メーカー"
       }「${data.item_name || data.user_name}」を追加しました`,
       "success"
     );
@@ -1004,89 +1007,112 @@ function generateEditFormFields(collectionType, currentData) {
     fields = `
       <div style="margin-bottom:15px;">
         <label style="display:block; margin-bottom:5px; font-weight:bold;">アイテム番号 <span style="color:red;">*</span></label>
-        <input type="text" id="modal_item_no" required value="${currentData.item_no || ""
-      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+        <input type="text" id="modal_item_no" required value="${
+          currentData.item_no || ""
+        }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
       </div>
       <div style="margin-bottom:15px;">
         <label style="display:block; margin-bottom:5px; font-weight:bold;">カテゴリ名</label>
-        <input type="text" id="modal_category_name" value="${currentData.category_name || ""
-      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+        <input type="text" id="modal_category_name" value="${
+          currentData.category_name || ""
+        }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
       </div>
       <div style="margin-bottom:15px;">
         <label style="display:block; margin-bottom:5px; font-weight:bold;">会社名</label>
-        <input type="text" id="modal_company_name" value="${currentData.company_name || ""
-      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+        <input type="text" id="modal_company_name" value="${
+          currentData.company_name || ""
+        }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
       </div>
       <div style="margin-bottom:15px;">
         <label style="display:block; margin-bottom:5px; font-weight:bold;">アイテム名 <span style="color:red;">*</span></label>
-        <input type="text" id="modal_item_name" required value="${currentData.item_name || ""
-      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+        <input type="text" id="modal_item_name" required value="${
+          currentData.item_name || ""
+        }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
       </div>
       <div style="margin-bottom:15px;">
         <label style="display:block; margin-bottom:5px; font-weight:bold;">メーカーコード</label>
-        <input type="text" id="modal_maker_code" value="${currentData.maker_code || ""
-      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+        <input type="text" id="modal_maker_code" value="${
+          currentData.maker_code || ""
+        }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
       </div>
     `;
-  } else if (collectionType === "users" || collectionType === "staff" || collectionType === "maker") {
+  } else if (
+    collectionType === "users" ||
+    collectionType === "staff" ||
+    collectionType === "maker"
+  ) {
     fields = `
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザーID <span style="color:red;">*</span></label>
-          <input type="text" id="modal_user_id" required value="${currentData.user_id || ""
-      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+          <input type="text" id="modal_user_id" required value="${
+            currentData.user_id || ""
+          }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザー名 <span style="color:red;">*</span></label>
-          <input type="text" id="modal_user_name" required value="${currentData.user_name || ""
-      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+          <input type="text" id="modal_user_name" required value="${
+            currentData.user_name || ""
+          }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">メールアドレス</label>
-          <input type="email" id="modal_email" value="${currentData.email || ""
-      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+          <input type="email" id="modal_email" value="${
+            currentData.email || ""
+          }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">電話番号</label>
-          <input type="tel" id="modal_phone" value="${currentData.phone || ""
-      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+          <input type="tel" id="modal_phone" value="${
+            currentData.phone || ""
+          }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">会社名</label>
-          <input type="text" id="modal_company_name" value="${currentData.company_name || ""
-      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+          <input type="text" id="modal_company_name" value="${
+            currentData.company_name || ""
+          }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">ステータス</label>
           <select id="modal_status" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-            <option value="-" ${currentData.status === "-" ? "selected" : ""
-      }>-</option>
-            <option value="入場中" ${currentData.status === "入場中" ? "selected" : ""
-      }>入場中</option>
-            <option value="退場済" ${currentData.status === "退場済" ? "selected" : ""
-      }>退場済</option>
+            <option value="-" ${
+              currentData.status === "-" ? "selected" : ""
+            }>-</option>
+            <option value="入場中" ${
+              currentData.status === "入場中" ? "selected" : ""
+            }>入場中</option>
+            <option value="退場済" ${
+              currentData.status === "退場済" ? "selected" : ""
+            }>退場済</option>
           </select>
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザー権限</label>
           <select id="modal_user_role" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-            <option value="user" ${currentData.user_role === "user" ? "selected" : ""
-      }>User</option>
-            <option value="admin" ${currentData.user_role === "admin" ? "selected" : ""
-      }>Admin</option>
-            <option value="staff" ${currentData.user_role === "staff" ? "selected" : ""
-      }>Staff</option>
-            <option value="maker" ${currentData.user_role === "maker" ? "selected" : ""
-      }>Maker</option>
+            <option value="user" ${
+              currentData.user_role === "user" ? "selected" : ""
+            }>User</option>
+            <option value="admin" ${
+              currentData.user_role === "admin" ? "selected" : ""
+            }>Admin</option>
+            <option value="staff" ${
+              currentData.user_role === "staff" ? "selected" : ""
+            }>Staff</option>
+            <option value="maker" ${
+              currentData.user_role === "maker" ? "selected" : ""
+            }>Maker</option>
           </select>
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">印刷ステータス</label>
           <select id="modal_print_status" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-            <option value="not_printed" ${currentData.print_status === "not_printed" ? "selected" : ""
-      }>未印刷</option>
-            <option value="printed" ${currentData.print_status === "printed" ? "selected" : ""
-      }>印刷済み</option>
+            <option value="not_printed" ${
+              currentData.print_status === "not_printed" ? "selected" : ""
+            }>未印刷</option>
+            <option value="printed" ${
+              currentData.print_status === "printed" ? "selected" : ""
+            }>印刷済み</option>
           </select>
         </div>
       </div>
@@ -1139,7 +1165,11 @@ async function submitEditData() {
         item_name: itemName,
         maker_code: document.getElementById("modal_maker_code")?.value || "",
       };
-    } else if (collectionType === "users" || collectionType === "staff" || collectionType === "maker") {
+    } else if (
+      collectionType === "users" ||
+      collectionType === "staff" ||
+      collectionType === "maker"
+    ) {
       const userId = document.getElementById("modal_user_id")?.value;
       const userName = document.getElementById("modal_user_name")?.value;
 
@@ -1163,8 +1193,11 @@ async function submitEditData() {
         status: document.getElementById("modal_status")?.value || "-",
         user_role:
           document.getElementById("modal_user_role")?.value ||
-          (collectionType === "staff" ? "staff" :
-            collectionType === "maker" ? "maker" : "user"),
+          (collectionType === "staff"
+            ? "staff"
+            : collectionType === "maker"
+            ? "maker"
+            : "user"),
         print_status:
           document.getElementById("modal_print_status")?.value || "not_printed",
       };
@@ -1172,18 +1205,21 @@ async function submitEditData() {
 
     // Firestoreで更新（スタッフとメーカーの場合もusersコレクションに保存）
     const targetCollection =
-      (collectionType === "staff" || collectionType === "maker") ? "users" : collectionType;
+      collectionType === "staff" || collectionType === "maker"
+        ? "users"
+        : collectionType;
     await setDoc(doc(db, targetCollection, docId), data, { merge: true });
 
     showResult(
       "firestoreResult",
-      `${collectionType === "items"
-        ? "アイテム"
-        : collectionType === "users"
+      `${
+        collectionType === "items"
+          ? "アイテム"
+          : collectionType === "users"
           ? "ユーザー"
           : collectionType === "staff"
-            ? "スタッフ"
-            : "メーカー"
+          ? "スタッフ"
+          : "メーカー"
       }「${data.item_name || data.user_name}」を更新しました`,
       "success"
     );
@@ -1223,3 +1259,148 @@ window.callHelloWorld = callHelloWorld;
 window.deleteDocument = deleteDocument;
 window.editDocument = editDocument;
 window.submitEditData = submitEditData;
+window.showFileUploadModal = showFileUploadModal;
+window.closeFileUploadModal = closeFileUploadModal;
+window.clearSelectedFile = clearSelectedFile;
+window.handleFileUpload = handleFileUpload;
+
+// ファイルアップロードモーダル関連の変数
+let selectedFile = null;
+
+// ファイルアップロードモーダルを表示
+function showFileUploadModal() {
+  const modal = document.getElementById("fileUploadModal");
+  modal.style.display = "flex";
+  setupDragDropEvents();
+  setupFileInputEvent();
+}
+
+// ファイルアップロードモーダルを閉じる
+function closeFileUploadModal() {
+  const modal = document.getElementById("fileUploadModal");
+  modal.style.display = "none";
+  clearSelectedFile();
+}
+
+// 選択されたファイルをクリア
+function clearSelectedFile() {
+  selectedFile = null;
+  document.getElementById("selectedFileInfo").style.display = "none";
+  document.getElementById("uploadOptions").style.display = "none";
+  document.getElementById("hiddenFileInput").value = "";
+  resetDropZoneStyle();
+}
+
+// ドロップゾーンのスタイルをリセット
+function resetDropZoneStyle() {
+  const dropZone = document.getElementById("dropZone");
+  dropZone.style.border = "3px dashed #4285f4";
+  dropZone.style.background = "#f8f9ff";
+}
+
+// ドラッグ&ドロップイベントのセットアップ
+function setupDragDropEvents() {
+  const dropZone = document.getElementById("dropZone");
+
+  // ドラッグオーバー
+  dropZone.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    dropZone.style.border = "3px dashed #2196f3";
+    dropZone.style.background = "#e3f2fd";
+  });
+
+  // ドラッグリーブ
+  dropZone.addEventListener("dragleave", (e) => {
+    e.preventDefault();
+    resetDropZoneStyle();
+  });
+
+  // ドロップ
+  dropZone.addEventListener("drop", (e) => {
+    e.preventDefault();
+    resetDropZoneStyle();
+
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      handleFileSelect(files[0]);
+    }
+  });
+
+  // クリックイベント
+  dropZone.addEventListener("click", (e) => {
+    if (e.target.tagName !== "BUTTON") {
+      document.getElementById("hiddenFileInput").click();
+    }
+  });
+}
+
+// ファイル入力イベントのセットアップ
+function setupFileInputEvent() {
+  const fileInput = document.getElementById("hiddenFileInput");
+  fileInput.addEventListener("change", (e) => {
+    if (e.target.files.length > 0) {
+      handleFileSelect(e.target.files[0]);
+    }
+  });
+}
+
+// ファイル選択処理
+function handleFileSelect(file) {
+  // ファイルタイプチェック
+  const allowedTypes = [
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // .xlsx
+    "application/vnd.ms-excel", // .xls
+  ];
+
+  if (!allowedTypes.includes(file.type)) {
+    alert("Excel ファイル（.xlsx または .xls）を選択してください。");
+    return;
+  }
+
+  selectedFile = file;
+
+  // ファイル情報表示
+  document.getElementById("fileName").textContent = file.name;
+  document.getElementById("fileSize").textContent = formatFileSize(file.size);
+  document.getElementById("selectedFileInfo").style.display = "block";
+  document.getElementById("uploadOptions").style.display = "block";
+}
+
+// ファイルサイズをフォーマット
+function formatFileSize(bytes) {
+  if (bytes === 0) return "0 Bytes";
+  const k = 1024;
+  const sizes = ["Bytes", "KB", "MB", "GB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+}
+
+// ファイルアップロード処理
+function handleFileUpload(mode) {
+  if (!selectedFile) {
+    alert("ファイルが選択されていません。");
+    return;
+  }
+
+  // モーダルを閉じる
+  closeFileUploadModal();
+
+  // 既存のアップロードオプションモーダルを表示
+  setTimeout(() => {
+    // ファイル入力に選択したファイルをセット
+    const fileInput = document.getElementById("excelFileInput");
+    const dataTransfer = new DataTransfer();
+    dataTransfer.items.add(selectedFile);
+    fileInput.files = dataTransfer.files;
+
+    // アップロードオプションモーダルを表示
+    if (mode === "append") {
+      document.getElementById("uploadMode").value = "append";
+    } else {
+      document.getElementById("uploadMode").value = "replace";
+    }
+
+    // 既存のモーダル表示関数を呼び出し
+    showUploadOptionsModal();
+  }, 300);
+}

@@ -14,11 +14,6 @@ document.addEventListener("DOMContentLoaded", async function () {
   // ユーザー情報表示
   await displayUserInfo(); // await追加
 
-  // 処理完了後にアラート表示
-  setTimeout(() => {
-    alert(`user.htmlページの処理が完了しました！\nURL: ${window.location.href}\nセッション: ${localStorage.getItem("currentUser") ? "あり" : "なし"}\n処理完了時刻: ${new Date().toLocaleTimeString()}`);
-  }, 1000);
-
   // スキャン履歴の読み込み
   if (window.smartScanner && window.smartScanner.displayScanHistory) {
     window.smartScanner.displayScanHistory();
@@ -78,7 +73,7 @@ async function displayUserInfo() {
           <div style="display: flex; flex-direction: column; gap: 5px;">
             <div style="display: flex; flex-direction: column;">
               <span style="font-weight: bold;">会社名：${companyName}</span>
-              <span style="font-size: 0.9em; color: #666;">ご芳名：${userName}</span>
+              <span style="font-weight: bold;">ご芳名：${userName}</span>
             </div>
             <div style="font-size: 0.7em; color: #999; font-family: monospace;">
               DEBUG: user_id = ${user.user_id || user.id || "未設定"}

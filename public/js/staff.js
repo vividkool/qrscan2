@@ -14,11 +14,6 @@ document.addEventListener("DOMContentLoaded", async function () {
   // ユーザー情報表示
   await displayUserInfo(); // await追加
 
-  // 処理完了後にアラート表示
-  setTimeout(() => {
-    alert(`staff.htmlページの処理が完了しました！\nURL: ${window.location.href}\nセッション: ${localStorage.getItem("currentUser") ? "あり" : "なし"}\n処理完了時刻: ${new Date().toLocaleTimeString()}`);
-  }, 1000);
-
   // スキャン履歴の読み込み
   if (window.smartScanner && window.smartScanner.displayScanHistory) {
     window.smartScanner.displayScanHistory();
@@ -43,7 +38,11 @@ async function displayUserInfo() {
       }
 
       // 方法2: getSessionから取得
-      if (!user && window.UserSession && typeof UserSession.getSession === "function") {
+      if (
+        !user &&
+        window.UserSession &&
+        typeof UserSession.getSession === "function"
+      ) {
         user = UserSession.getSession();
         console.log("getSession経由でユーザー情報取得:", user);
       }
@@ -76,15 +75,21 @@ async function displayUserInfo() {
                 <span class="label">👤 ロール:</span>
                 <span class="value role-${user.role}">${user.role}</span>
               </div>
-              ${user.department ? `
+              ${
+                user.department
+                  ? `
                 <div class="detail-item">
                   <span class="label">🏭 部署:</span>
                   <span class="value">${user.department}</span>
                 </div>
-              ` : ''}
+              `
+                  : ""
+              }
               <div class="detail-item">
                 <span class="label">⏰ ログイン時刻:</span>
-                <span class="value">${new Date(user.timestamp).toLocaleString()}</span>
+                <span class="value">${new Date(
+                  user.timestamp
+                ).toLocaleString()}</span>
               </div>
             </div>
           </div>
@@ -128,7 +133,7 @@ function handleLogout() {
     // セッション削除
     localStorage.removeItem("currentUser");
     localStorage.removeItem("firebaseSessionData");
-    
+
     // ログイン画面に戻る
     window.location.href = "login.html";
   }
