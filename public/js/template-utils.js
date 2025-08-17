@@ -571,6 +571,9 @@ async function uploadExcelFile(file, mode = "add") {
     mode,
   });
 
+  // 変数の初期化
+  let protectedAdminCount = 0; // admin保護数を追跡
+
   if (!file) {
     console.error("[DEBUG] No file provided");
     showResult("firestoreResult", "ファイルが選択されていません", "error");
@@ -747,7 +750,6 @@ async function uploadExcelFile(file, mode = "add") {
     let successCount = 0;
     let errorCount = 0;
     const errors = [];
-    let protectedAdminCount = 0; // admin保護数を追跡
 
     // データを1件ずつFirestoreに保存
     for (const [index, row] of jsonData.entries()) {

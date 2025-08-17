@@ -537,24 +537,12 @@
                     </div>
                 </div>
                 
-                <!-- アップロード方法選択 -->
-                <div id="uploadOptions" style="display:none; margin-top:25px;">
-                    <h4 style="color:#333; margin-bottom:15px;">アップロード方法を選択してください：</h4>
-                    <div class="upload-options-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
-                        <button onclick="handleFileUpload('append')" class="upload-option-btn" 
-                            style="background:white; border:2px solid #4285f4; color:#4285f4; padding:20px; border-radius:8px; cursor:pointer; text-align:center; transition:all 0.3s ease;">
-                            <div style="font-size:24px; margin-bottom:8px;">➕</div>
-                            <div style="font-weight:bold; margin-bottom:4px;">追加モード</div>
-                            <small style="color:#666;">既存データに追加します</small>
-                        </button>
-                        
-                        <button onclick="handleFileUpload('replace')" class="upload-option-btn"
-                            style="background:white; border:2px solid #ff5722; color:#ff5722; padding:20px; border-radius:8px; cursor:pointer; text-align:center; transition:all 0.3s ease;">
-                            <div style="font-size:24px; margin-bottom:8px;">🔄</div>
-                            <div style="font-weight:bold; margin-bottom:4px;">完全上書き</div>
-                            <small style="color:#666;">既存データを削除して上書き</small>
-                        </button>
-                    </div>
+                <!-- アップロード実行ボタン -->
+                <div id="uploadAction" style="display:none; margin-top:25px; text-align:center;">
+                    <button onclick="proceedWithUpload()" 
+                        style="background:#4285f4; color:white; border:none; padding:15px 30px; border-radius:8px; cursor:pointer; font-size:16px; font-weight:bold;">
+                        📤 アップロードを開始
+                    </button>
                 </div>
                 
                 <!-- アクションボタン -->
