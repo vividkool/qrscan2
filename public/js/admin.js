@@ -198,7 +198,7 @@ async function getAllUsers() {
 
     let html = "<table><thead><tr>";
     html +=
-      "<th>user_id</th><th>user_name</th><th>email</th><th>phone</th><th>company_name</th><th>status</th><th>user_role</th><th>print_status</th><th>操作</th>";
+      "<th>user_id</th><th>company_name</th><th>user_name</th><th>email</th><th>phone</th><th>status</th><th>user_role</th><th>print_status</th><th>操作</th>";
     html += "</tr></thead><tbody>";
     sortedDocs.forEach((docSnap) => {
       const data = docSnap.data();
@@ -206,10 +206,10 @@ async function getAllUsers() {
       const displayName = data.user_name || data.user_id || "無名ユーザー";
       html += `<tr>
                 <td>${data.user_id || ""}</td>
+                <td>${data.company_name || ""}</td>
                 <td>${data.user_name || ""}</td>
                 <td>${data.email || ""}</td>
                 <td>${data.phone || ""}</td>
-                <td>${data.company_name || ""}</td>
                 <td>${data.status || ""}</td>
                 <td>${data.user_role || ""}</td>
                 <td>${data.print_status || ""}</td>
@@ -223,7 +223,7 @@ async function getAllUsers() {
 
     showResult("firestoreResult", html, "success");
     document.getElementById("firestoreResult-collectionname").textContent =
-      "usersコレクション";
+      "usersデータベース";
     document.getElementById(
       "firestoreResult-count"
     ).textContent = `${sortedDocs.length}件`;
@@ -263,8 +263,8 @@ async function getAllScanItems() {
       const timestamp = data.timestamp || data.createdAt;
       const timeStr = timestamp
         ? new Date(
-          timestamp.seconds ? timestamp.toDate() : timestamp
-        ).toLocaleString("ja-JP")
+            timestamp.seconds ? timestamp.toDate() : timestamp
+          ).toLocaleString("ja-JP")
         : "不明";
       const content = data.content || "データなし";
       const userName = data.user_name || data.user_id || "不明";
@@ -350,7 +350,7 @@ async function getAllStaff() {
 
     showResult("firestoreResult", html, "success");
     document.getElementById("firestoreResult-collectionname").textContent =
-      "スタッフ（usersコレクション）";
+      "スタッフデータベース";
     document.getElementById(
       "firestoreResult-count"
     ).textContent = `${sortedDocs.length}件`;
@@ -414,7 +414,7 @@ async function getAllMaker() {
 
     showResult("firestoreResult", html, "success");
     document.getElementById("firestoreResult-collectionname").textContent =
-      "メーカー（usersコレクション）";
+      "メーカーコレクション";
     document.getElementById(
       "firestoreResult-count"
     ).textContent = `${sortedDocs.length}件`;
@@ -844,7 +844,7 @@ async function submitAddData() {
       // item_noを4桁の文字列形式に変換
       if (itemNo && !isNaN(itemNo)) {
         // 数値の場合は4桁にパディングして文字列に変換
-        itemNo = String(itemNo).padStart(4, '0');
+        itemNo = String(itemNo).padStart(4, "0");
       } else if (itemNo) {
         // 既に文字列の場合はそのまま使用
         itemNo = String(itemNo);
@@ -891,8 +891,8 @@ async function submitAddData() {
           (currentCollectionType === "staff"
             ? "staff"
             : currentCollectionType === "maker"
-              ? "maker"
-              : "user"),
+            ? "maker"
+            : "user"),
         print_status:
           document.getElementById("modal_print_status")?.value || "not_printed",
       };
@@ -907,13 +907,14 @@ async function submitAddData() {
 
     showResult(
       "firestoreResult",
-      `${currentCollectionType === "items"
-        ? "アイテム"
-        : currentCollectionType === "users"
+      `${
+        currentCollectionType === "items"
+          ? "アイテム"
+          : currentCollectionType === "users"
           ? "ユーザー"
           : currentCollectionType === "staff"
-            ? "スタッフ"
-            : "メーカー"
+          ? "スタッフ"
+          : "メーカー"
       }「${data.item_name || data.user_name}」を追加しました`,
       "success"
     );
@@ -1016,28 +1017,33 @@ function generateEditFormFields(collectionType, currentData) {
     fields = `
       <div style="margin-bottom:15px;">
         <label style="display:block; margin-bottom:5px; font-weight:bold;">アイテム番号 <span style="color:red;">*</span></label>
-        <input type="text" id="modal_item_no" required value="${currentData.item_no || ""
-      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+        <input type="text" id="modal_item_no" required value="${
+          currentData.item_no || ""
+        }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
       </div>
       <div style="margin-bottom:15px;">
         <label style="display:block; margin-bottom:5px; font-weight:bold;">カテゴリ名</label>
-        <input type="text" id="modal_category_name" value="${currentData.category_name || ""
-      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+        <input type="text" id="modal_category_name" value="${
+          currentData.category_name || ""
+        }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
       </div>
       <div style="margin-bottom:15px;">
         <label style="display:block; margin-bottom:5px; font-weight:bold;">会社名</label>
-        <input type="text" id="modal_company_name" value="${currentData.company_name || ""
-      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+        <input type="text" id="modal_company_name" value="${
+          currentData.company_name || ""
+        }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
       </div>
       <div style="margin-bottom:15px;">
         <label style="display:block; margin-bottom:5px; font-weight:bold;">アイテム名 <span style="color:red;">*</span></label>
-        <input type="text" id="modal_item_name" required value="${currentData.item_name || ""
-      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+        <input type="text" id="modal_item_name" required value="${
+          currentData.item_name || ""
+        }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
       </div>
       <div style="margin-bottom:15px;">
         <label style="display:block; margin-bottom:5px; font-weight:bold;">メーカーコード</label>
-        <input type="text" id="modal_maker_code" value="${currentData.maker_code || ""
-      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+        <input type="text" id="modal_maker_code" value="${
+          currentData.maker_code || ""
+        }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
       </div>
     `;
   } else if (
@@ -1049,60 +1055,74 @@ function generateEditFormFields(collectionType, currentData) {
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザーID <span style="color:red;">*</span></label>
-          <input type="text" id="modal_user_id" required value="${currentData.user_id || ""
-      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+          <input type="text" id="modal_user_id" required value="${
+            currentData.user_id || ""
+          }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザー名 <span style="color:red;">*</span></label>
-          <input type="text" id="modal_user_name" required value="${currentData.user_name || ""
-      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+          <input type="text" id="modal_user_name" required value="${
+            currentData.user_name || ""
+          }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">メールアドレス</label>
-          <input type="email" id="modal_email" value="${currentData.email || ""
-      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+          <input type="email" id="modal_email" value="${
+            currentData.email || ""
+          }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">電話番号</label>
-          <input type="tel" id="modal_phone" value="${currentData.phone || ""
-      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+          <input type="tel" id="modal_phone" value="${
+            currentData.phone || ""
+          }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">会社名</label>
-          <input type="text" id="modal_company_name" value="${currentData.company_name || ""
-      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+          <input type="text" id="modal_company_name" value="${
+            currentData.company_name || ""
+          }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">ステータス</label>
           <select id="modal_status" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-            <option value="-" ${currentData.status === "-" ? "selected" : ""
-      }>-</option>
-            <option value="入場中" ${currentData.status === "入場中" ? "selected" : ""
-      }>入場中</option>
-            <option value="退場済" ${currentData.status === "退場済" ? "selected" : ""
-      }>退場済</option>
+            <option value="-" ${
+              currentData.status === "-" ? "selected" : ""
+            }>-</option>
+            <option value="入場中" ${
+              currentData.status === "入場中" ? "selected" : ""
+            }>入場中</option>
+            <option value="退場済" ${
+              currentData.status === "退場済" ? "selected" : ""
+            }>退場済</option>
           </select>
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザー権限</label>
           <select id="modal_user_role" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-            <option value="user" ${currentData.user_role === "user" ? "selected" : ""
-      }>User</option>
-            <option value="admin" ${currentData.user_role === "admin" ? "selected" : ""
-      }>Admin</option>
-            <option value="staff" ${currentData.user_role === "staff" ? "selected" : ""
-      }>Staff</option>
-            <option value="maker" ${currentData.user_role === "maker" ? "selected" : ""
-      }>Maker</option>
+            <option value="user" ${
+              currentData.user_role === "user" ? "selected" : ""
+            }>User</option>
+            <option value="admin" ${
+              currentData.user_role === "admin" ? "selected" : ""
+            }>Admin</option>
+            <option value="staff" ${
+              currentData.user_role === "staff" ? "selected" : ""
+            }>Staff</option>
+            <option value="maker" ${
+              currentData.user_role === "maker" ? "selected" : ""
+            }>Maker</option>
           </select>
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">印刷ステータス</label>
           <select id="modal_print_status" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-            <option value="not_printed" ${currentData.print_status === "not_printed" ? "selected" : ""
-      }>未印刷</option>
-            <option value="printed" ${currentData.print_status === "printed" ? "selected" : ""
-      }>印刷済み</option>
+            <option value="not_printed" ${
+              currentData.print_status === "not_printed" ? "selected" : ""
+            }>未印刷</option>
+            <option value="printed" ${
+              currentData.print_status === "printed" ? "selected" : ""
+            }>印刷済み</option>
           </select>
         </div>
       </div>
@@ -1148,7 +1168,7 @@ async function submitEditData() {
       // item_noを4桁の文字列形式に変換
       if (itemNo && !isNaN(itemNo)) {
         // 数値の場合は4桁にパディングして文字列に変換
-        itemNo = String(itemNo).padStart(4, '0');
+        itemNo = String(itemNo).padStart(4, "0");
       } else if (itemNo) {
         // 既に文字列の場合はそのまま使用
         itemNo = String(itemNo);
@@ -1195,8 +1215,8 @@ async function submitEditData() {
           (collectionType === "staff"
             ? "staff"
             : collectionType === "maker"
-              ? "maker"
-              : "user"),
+            ? "maker"
+            : "user"),
         print_status:
           document.getElementById("modal_print_status")?.value || "not_printed",
       };
@@ -1211,13 +1231,14 @@ async function submitEditData() {
 
     showResult(
       "firestoreResult",
-      `${collectionType === "items"
-        ? "アイテム"
-        : collectionType === "users"
+      `${
+        collectionType === "items"
+          ? "アイテム"
+          : collectionType === "users"
           ? "ユーザー"
           : collectionType === "staff"
-            ? "スタッフ"
-            : "メーカー"
+          ? "スタッフ"
+          : "メーカー"
       }「${data.item_name || data.user_name}」を更新しました`,
       "success"
     );
@@ -1477,3 +1498,322 @@ function processSelectedFile(file, mode) {
     );
   }
 }
+
+// Aggregation Queriesパフォーマンステスト関数
+async function runMakerPerformanceTest() {
+  const resultElement = document.getElementById("firestoreResult");
+
+  // セッション情報確認
+  const sessionData = localStorage.getItem("currentUser");
+  if (!sessionData) {
+    resultElement.textContent =
+      "❌ ユーザーセッションが見つかりません。ログインしてください。";
+    resultElement.className = "result error";
+    return;
+  }
+
+  const user = JSON.parse(sessionData);
+  const userId = user.user_id || user.uid;
+
+  resultElement.innerHTML = `
+    <div style="text-align: center; padding: 20px;">
+      <div class="loading"></div>
+      <h3>🚀 Aggregation Queries パフォーマンステスト実行中...</h3>
+      <p>ユーザーID: ${userId}</p>
+      <p>コンソールで詳細な結果を確認できます</p>
+    </div>
+  `;
+  resultElement.className = "result";
+
+  try {
+    console.log("🚀 Admin画面からパフォーマンステスト開始");
+
+    // maker.jsのテスト関数を動的インポート・実行
+    const testResult = await runPerformanceTestForMaker(userId);
+
+    // 結果を画面に表示
+    let html = `
+      <div style="background: #e8f5e8; padding: 20px; border-radius: 8px; margin-bottom: 15px;">
+        <h3>📊 Aggregation Queries パフォーマンステスト結果</h3>
+        <p><strong>テスト対象ユーザー:</strong> ${userId}</p>
+        <p><strong>実行時刻:</strong> ${new Date().toLocaleString()}</p>
+      </div>
+    `;
+
+    if (testResult.legacy && testResult.aggregation) {
+      const legacy = testResult.legacy;
+      const aggregation = testResult.aggregation;
+
+      if (!legacy.error && !aggregation.error) {
+        const improvement =
+          ((legacy.time - aggregation.time) / legacy.time) * 100;
+        const speedRatio = legacy.time / aggregation.time;
+
+        html += `
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+            <div style="background: #fff3cd; padding: 15px; border-radius: 6px;">
+              <h4>📊 従来方法</h4>
+              <p><strong>実行時間:</strong> ${legacy.time.toFixed(2)}ms</p>
+              <p><strong>読み取り件数:</strong> ${legacy.docCount.toLocaleString()}件</p>
+              <p><strong>方法:</strong> 全scanItems取得</p>
+            </div>
+            <div style="background: #d4edda; padding: 15px; border-radius: 6px;">
+              <h4>⚡ Aggregation Queries</h4>
+              <p><strong>実行時間:</strong> ${aggregation.time.toFixed(2)}ms</p>
+              <p><strong>対象アイテム:</strong> ${aggregation.itemCount}件</p>
+              <p><strong>クエリ数:</strong> ${aggregation.queryCount}</p>
+              <p><strong>平均クエリ時間:</strong> ${(
+                aggregation.time / aggregation.queryCount
+              ).toFixed(2)}ms</p>
+            </div>
+          </div>
+          
+          <div style="background: ${
+            improvement > 0 ? "#d4edda" : "#f8d7da"
+          }; padding: 20px; border-radius: 8px; text-align: center;">
+            <h3>${improvement > 0 ? "🎉" : "⚠️"} パフォーマンス比較結果</h3>
+            <p style="font-size: 18px; margin: 10px 0;">
+              <strong>改善率: ${
+                improvement > 0 ? "+" : ""
+              }${improvement.toFixed(1)}%</strong>
+            </p>
+            ${
+              improvement > 0
+                ? `<p style="font-size: 16px; color: #155724;">✅ Aggregation Queriesが <strong>${speedRatio.toFixed(
+                    1
+                  )}倍高速</strong>です！</p>`
+                : `<p style="font-size: 16px; color: #721c24;">⚠️ 従来方法の方が高速でした</p>`
+            }
+          </div>
+        `;
+
+        // データ量の予測と推奨事項
+        const currentDataSize = legacy.docCount;
+        const futureDataSize = currentDataSize * 3.5; // 3-4倍の中間値
+
+        html += `
+          <div style="background: #e2e3e5; padding: 20px; border-radius: 8px; margin-top: 15px;">
+            <h4>📈 スケーラビリティ分析</h4>
+            <p><strong>現在のデータ量:</strong> ${currentDataSize.toLocaleString()}件</p>
+            <p><strong>予想データ量:</strong> ${Math.round(
+              futureDataSize
+            ).toLocaleString()}件 (3-4倍増加)</p>
+            <p><strong>推奨事項:</strong> 
+              ${
+                improvement > 0
+                  ? "✅ Aggregation Queriesの実装をお勧めします"
+                  : "⚠️ データ量増加に備えてCloud Functionsでのカウンター管理を検討してください"
+              }
+            </p>
+          </div>
+        `;
+      } else {
+        html += `<div style="background: #f8d7da; padding: 15px; border-radius: 6px;">❌ テスト中にエラーが発生しました</div>`;
+      }
+    } else {
+      html += `<div style="background: #f8d7da; padding: 15px; border-radius: 6px;">❌ テスト実行に失敗しました</div>`;
+    }
+
+    html += `<div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 6px;">
+      <p><strong>💡 詳細:</strong> ブラウザのコンソール(F12)で詳細なログを確認できます</p>
+    </div>`;
+
+    resultElement.innerHTML = html;
+    resultElement.className = "result success";
+
+    console.log("✅ パフォーマンステスト完了");
+  } catch (error) {
+    console.error("パフォーマンステストエラー:", error);
+    resultElement.innerHTML = `
+      <div style="background: #f8d7da; padding: 20px; border-radius: 8px;">
+        <h3>❌ テスト実行エラー</h3>
+        <p><strong>エラー:</strong> ${error.message}</p>
+        <p>ブラウザのコンソールで詳細を確認してください。</p>
+      </div>
+    `;
+    resultElement.className = "result error";
+  }
+}
+
+// Maker専用のパフォーマンステスト実行（maker.jsの機能を再実装）
+async function runPerformanceTestForMaker(userId) {
+  // Firebase imports (ローカルで使用)
+  const { getCountFromServer } = await import(
+    "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"
+  );
+
+  console.log("🚀 パフォーマンス比較テスト開始 🚀");
+  console.log(`テスト対象ユーザー: ${userId}`);
+
+  // 従来方法のテスト
+  const legacyResult = await testLegacyMethodLocal(userId);
+  await new Promise((resolve) => setTimeout(resolve, 1000)); // 1秒待機
+  const aggregationResult = await testAggregationMethodLocal(
+    userId,
+    getCountFromServer
+  );
+
+  // 比較結果をログ出力
+  console.log("\n📊 パフォーマンス比較結果 📊");
+  console.log("=====================================");
+
+  if (legacyResult.error) {
+    console.log("❌ 従来方法: エラー -", legacyResult.error);
+  } else {
+    console.log(
+      `⏱️ 従来方法: ${legacyResult.time.toFixed(2)}ms (${
+        legacyResult.docCount
+      }件読み取り)`
+    );
+  }
+
+  if (aggregationResult.error) {
+    console.log("❌ Aggregation方法: エラー -", aggregationResult.error);
+  } else {
+    console.log(
+      `⚡ Aggregation方法: ${aggregationResult.time.toFixed(2)}ms (${
+        aggregationResult.queryCount
+      }クエリ)`
+    );
+  }
+
+  if (!legacyResult.error && !aggregationResult.error) {
+    const improvement =
+      ((legacyResult.time - aggregationResult.time) / legacyResult.time) * 100;
+    console.log(
+      `📈 パフォーマンス改善: ${
+        improvement > 0 ? "+" : ""
+      }${improvement.toFixed(1)}%`
+    );
+
+    if (improvement > 0) {
+      console.log(
+        `🎉 Aggregation Queriesが ${(
+          legacyResult.time / aggregationResult.time
+        ).toFixed(1)}倍高速！`
+      );
+    } else {
+      console.log(
+        `⚠️ 従来方法が ${(aggregationResult.time / legacyResult.time).toFixed(
+          1
+        )}倍高速`
+      );
+    }
+  }
+
+  console.log("=====================================\n");
+  return { legacy: legacyResult, aggregation: aggregationResult };
+}
+
+// 従来方法テスト（ローカル実装）
+async function testLegacyMethodLocal(userId) {
+  console.log("=== 従来方法 パフォーマンステスト開始 ===");
+  const startTime = performance.now();
+
+  try {
+    const scanItemsSnapshot = await getDocs(collection(db, "scanItems"));
+    console.log("取得したスキャンアイテム数:", scanItemsSnapshot.size);
+
+    const scanCounts = {};
+    scanItemsSnapshot.forEach((doc) => {
+      const data = doc.data();
+      if (data.item_no) {
+        scanCounts[data.item_no] = (scanCounts[data.item_no] || 0) + 1;
+      }
+    });
+
+    const endTime = performance.now();
+    const executionTime = endTime - startTime;
+
+    console.log("=== 従来方法 パフォーマンス結果 ===");
+    console.log(`実行時間: ${executionTime.toFixed(2)}ms`);
+    console.log(`読み取りドキュメント数: ${scanItemsSnapshot.size}`);
+    console.log("=========================================");
+
+    return {
+      method: "legacy",
+      time: executionTime,
+      docCount: scanItemsSnapshot.size,
+      results: scanCounts,
+    };
+  } catch (error) {
+    console.error("従来方法テストエラー:", error);
+    return { method: "legacy", error: error.message };
+  }
+}
+
+// Aggregation方法テスト（ローカル実装）
+async function testAggregationMethodLocal(userId, getCountFromServer) {
+  console.log("=== Aggregation Queries パフォーマンステスト開始 ===");
+  const startTime = performance.now();
+
+  try {
+    // まずメーカー関連アイテムを取得
+    const itemsQuery = query(
+      collection(db, "items"),
+      where("maker_code", "==", userId),
+      orderBy("item_no", "asc")
+    );
+
+    const itemsSnapshot = await getDocs(itemsQuery);
+    const scanCounts = {};
+    let totalQueries = 0;
+
+    // 各アイテムごとに個別にカウントを取得（並列処理）
+    const countPromises = [];
+    const itemNumbers = [];
+
+    itemsSnapshot.forEach((doc) => {
+      const data = doc.data();
+      if (data.item_no) {
+        itemNumbers.push(data.item_no);
+        const countQuery = query(
+          collection(db, "scanItems"),
+          where("item_no", "==", data.item_no)
+        );
+        countPromises.push(getCountFromServer(countQuery));
+        totalQueries++;
+      }
+    });
+
+    // 全てのカウントクエリを並列実行
+    const countResults = await Promise.all(countPromises);
+
+    // 結果をマッピング
+    itemNumbers.forEach((itemNo, index) => {
+      scanCounts[itemNo] = countResults[index].data().count;
+    });
+
+    const endTime = performance.now();
+    const executionTime = endTime - startTime;
+
+    console.log("=== Aggregation Queries パフォーマンス結果 ===");
+    console.log(`実行時間: ${executionTime.toFixed(2)}ms`);
+    console.log(`アイテム数: ${itemNumbers.length}`);
+    console.log(`クエリ数: ${totalQueries}`);
+    console.log(
+      `平均クエリ時間: ${(executionTime / totalQueries).toFixed(2)}ms`
+    );
+    console.log("=============================================");
+
+    return {
+      method: "aggregation",
+      time: executionTime,
+      itemCount: itemNumbers.length,
+      queryCount: totalQueries,
+      results: scanCounts,
+    };
+  } catch (error) {
+    console.error("Aggregation Queriesテストエラー:", error);
+    return { method: "aggregation", error: error.message };
+  }
+}
+
+// Makerページを新しいタブで開く
+function openMakerPage() {
+  window.open("maker.html", "_blank");
+}
+
+// グローバル関数として公開
+window.runMakerPerformanceTest = runMakerPerformanceTest;
+window.openMakerPage = openMakerPage;

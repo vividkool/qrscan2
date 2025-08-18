@@ -205,7 +205,10 @@ function downloadSelectedTemplate() {
   const selectedValue = select.value;
   console.log("Selected template:", selectedValue);
 
-  if (selectedValue === "items") {
+  if (selectedValue === "scanItems") {
+    console.log("Calling downloadScanItemsTemplateFromHosting...");
+    downloadScanItemsTemplateFromHosting();
+  } else if (selectedValue === "items") {
     downloadItemsTemplateFromHosting();
   } else if (selectedValue === "users") {
     downloadUsersTemplateFromHosting();
@@ -563,6 +566,107 @@ async function downloadMakerTemplate() {
   }
 }
 
+async function downloadScanItemsTemplateFromHosting() {
+  try {
+    showLoading("firestoreResult");
+
+    // 静的テンプレートファイルをダウンロード
+    try {
+      console.log("Downloading static scanItems template...");
+
+      // scanItemsテンプレートが存在しない場合は動的に作成
+      const response = await fetch("templates/scanItems.xlsx");
+      let blob;
+
+      if (response.ok) {
+        blob = await response.blob();
+      } else {
+        // テンプレートファイルが存在しない場合は動的作成
+        console.log("Static template not found, creating dynamic template...");
+        blob = await createScanItemsTemplate();
+      }
+
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "scanItems_template.xlsx";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      const html = `
+        <div style="color: green;">
+            ✅ ScanItemsテンプレートをダウンロードしました<br>
+            <small>テンプレートファイルを編集して、アップロード機能でテストデータを一括登録できます（scanItemsコレクションに追加されます）</small>
+        </div>
+      `;
+      showResult("firestoreResult", html);
+    } catch (err) {
+      console.error("Template download failed:", err);
+      throw err;
+    }
+  } catch (error) {
+    console.error("ScanItems template download error:", error);
+    showResult("firestoreResult", `取得エラー: ${error.message}`, "error");
+  }
+}
+
+// scanItemsのテンプレートを動的作成
+async function createScanItemsTemplate() {
+  // ExcelJSを使用してテンプレートを作成（シンプルバージョン）
+  const templateData = [
+    ["scan_id", "item_no", "user_id", "user_name", "scan_time", "location"],
+    [
+      "SCAN001",
+      "ITEM001",
+      "USER001",
+      "テストユーザー1",
+      "2025-01-01T10:00:00",
+      "倉庫A",
+    ],
+    [
+      "SCAN002",
+      "ITEM002",
+      "USER002",
+      "テストユーザー2",
+      "2025-01-01T11:00:00",
+      "倉庫B",
+    ],
+    [
+      "SCAN003",
+      "ITEM001",
+      "USER003",
+      "テストユーザー3",
+      "2025-01-01T12:00:00",
+      "倉庫A",
+    ],
+    // 追加のサンプルデータ
+    [
+      "SCAN004",
+      "ITEM003",
+      "USER001",
+      "テストユーザー1",
+      "2025-01-01T13:00:00",
+      "倉庫C",
+    ],
+    [
+      "SCAN005",
+      "ITEM002",
+      "USER004",
+      "テストユーザー4",
+      "2025-01-01T14:00:00",
+      "倉庫B",
+    ],
+  ];
+
+  // CSV形式の文字列を作成
+  const csvContent = templateData.map((row) => row.join(",")).join("\n");
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+
+  return blob;
+}
+
 // ====== Excel ファイルアップロード処理 ======
 
 async function uploadExcelFile(file, mode = "add") {
@@ -617,10 +721,18 @@ async function uploadExcelFile(file, mode = "add") {
     console.log("- Available sheets:", workbook.SheetNames);
 
     // ファイル名に基づいて適切なシートとコレクションを自動判定
+    // 注意: より具体的な判定から先に行う（scanItems.xlsxがitems.xlsxにマッチしないように）
     let targetSheetName;
     let collectionType;
 
-    if (fileName.includes("items.xlsx")) {
+    if (
+      fileName.includes("scanitems.xlsx") ||
+      fileName.includes("scanItems.xlsx")
+    ) {
+      targetSheetName = "scanItems";
+      collectionType = "scanItems";
+      console.log("[DEBUG] Detected scanItems.xlsx file");
+    } else if (fileName.includes("items.xlsx")) {
       targetSheetName = "items";
       collectionType = "items";
       console.log("[DEBUG] Detected items.xlsx file");
@@ -702,23 +814,75 @@ async function uploadExcelFile(file, mode = "add") {
         if (!snapshot.empty) {
           const deletePromises = [];
 
-          // usersコレクションの場合、adminユーザーを保護
+          // usersコレクションの場合、ファイル種別に応じて特定のロールのみ削除
           if (collectionType === "users") {
+            let targetRole = null;
+            let fileTypeDescription = "";
+
+            // ファイル名に基づいて削除対象のロールを決定（より具体的な判定から先に）
+            if (fileName.includes("staff.xlsx")) {
+              targetRole = "staff";
+              fileTypeDescription = "staffロール";
+            } else if (fileName.includes("maker.xlsx")) {
+              targetRole = "maker";
+              fileTypeDescription = "makerロール";
+            } else if (fileName.includes("users.xlsx")) {
+              targetRole = "user";
+              fileTypeDescription = "userロール";
+            }
+
+            console.log(
+              `[DEBUG] Replace mode for users collection - Target role: ${targetRole}`
+            );
+
             snapshot.docs.forEach((doc) => {
               const userData = doc.data();
-              // adminロールのユーザーは削除しない
+
+              // adminロールのユーザーは常に保護
               if (userData.role === "admin" || userData.user_role === "admin") {
                 protectedAdminCount++;
                 console.log(
-                  `Admin user protected: ${userData.user_name || userData.name
+                  `Admin user protected: ${
+                    userData.user_name || userData.name
                   } (ID: ${userData.user_id})`
                 );
-              } else {
+              }
+              // 対象ロールのユーザーのみ削除
+              else if (
+                targetRole &&
+                (userData.role === targetRole ||
+                  userData.user_role === targetRole)
+              ) {
                 deletePromises.push(deleteDoc(doc.ref));
+                console.log(
+                  `${fileTypeDescription}ユーザーを削除対象に追加: ${
+                    userData.user_name || userData.name
+                  } (ID: ${userData.user_id})`
+                );
+              }
+              // その他のロールは保持
+              else {
+                console.log(
+                  `Other role user preserved: ${
+                    userData.user_name || userData.name
+                  } (Role: ${userData.role || userData.user_role})`
+                );
               }
             });
+
+            console.log(
+              `[DEBUG] ${fileTypeDescription}の${deletePromises.length}件を削除対象に設定`
+            );
+          } else if (collectionType === "scanItems") {
+            // scanItemsコレクションは全削除（adminプロテクションなし）
+            snapshot.docs.forEach((doc) => {
+              deletePromises.push(deleteDoc(doc.ref));
+            });
+            console.log(
+              `[DEBUG] scanItemsコレクションの${deletePromises.length}件を削除対象に設定`
+            );
           } else {
-            // users以外のコレクションは全削除
+            // その他のコレクションは全削除
             snapshot.docs.forEach((doc) => {
               deletePromises.push(deleteDoc(doc.ref));
             });
@@ -762,7 +926,7 @@ async function uploadExcelFile(file, mode = "add") {
           let itemNo = row["item_no"] || row["アイテム番号"] || "";
           if (itemNo && !isNaN(itemNo)) {
             // 数値の場合は4桁にパディングして文字列に変換
-            itemNo = String(itemNo).padStart(4, '0');
+            itemNo = String(itemNo).padStart(4, "0");
           } else if (itemNo) {
             // 既に文字列の場合はそのまま使用
             itemNo = String(itemNo);
@@ -774,14 +938,43 @@ async function uploadExcelFile(file, mode = "add") {
             category_name: row["category_name"] || row["カテゴリ名"] || "",
             company_name: row["company_name"] || row["会社名"] || "",
             maker_code: row["maker_code"] || row["メーカーコード"] || "",
-            price: row["price"] || row["価格"] || 0,
-            standard: row["standard"] || row["規格"] || "",
-            shape: row["shape"] || row["形状"] || "",
-            createdAt: new Date(),
-            updatedAt: new Date(),
           };
-          console.log(`[DEBUG] Created items document with formatted item_no:`, documentData);
+          console.log(
+            `[DEBUG] Created items document with formatted item_no:`,
+            documentData
+          );
+        } else if (collectionType === "scanItems") {
+          // scanItemsコレクション用のデータ処理
+          documentData = {
+            scan_id:
+              row["scan_id"] ||
+              row["スキャンID"] ||
+              `SCAN_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            item_no: String(row["item_no"] || row["アイテム番号"] || ""),
+            user_id: String(row["user_id"] || row["ユーザーID"] || ""),
+            user_name: row["user_name"] || row["ユーザー名"] || "",
+            scan_time:
+              row["scan_time"] ||
+              row["スキャン時間"] ||
+              new Date().toISOString(),
+            location: row["location"] || row["場所"] || "",
+            // 追加フィールド
+            timestamp: row["timestamp"] || new Date().toISOString(),
+            device_info:
+              row["device_info"] || row["デバイス情報"] || "Excel Upload",
+          };
+          console.log(`[DEBUG] Created scanItems document:`, documentData);
         } else if (collectionType === "users") {
+          // ファイル名に基づいて適切なroleを設定（より具体的な判定から先に）
+          let defaultRole = "";
+          if (fileName.includes("staff.xlsx")) {
+            defaultRole = "staff";
+          } else if (fileName.includes("maker.xlsx")) {
+            defaultRole = "maker";
+          } else if (fileName.includes("users.xlsx")) {
+            defaultRole = "user";
+          }
+
           documentData = {
             user_id: String(row["user_id"] || row["ユーザーID"] || ""), // 文字列に変換
             user_name: row["user_name"] || row["ユーザー名"] || "",
@@ -790,12 +983,15 @@ async function uploadExcelFile(file, mode = "add") {
             company_name: row["company_name"] || row["会社名"] || "",
             department: row["department"] || row["部署"] || "",
             status: row["status"] || row["ステータス"] || "",
-            user_role: row["user_role"] || row["役割"] || "",
+            // Excelファイルで指定されたroleがあればそれを使用、なければファイル種別に基づくデフォルトroleを使用
+            user_role: row["user_role"] || row["役割"] || defaultRole,
+            role: row["role"] || row["user_role"] || row["役割"] || defaultRole, // roleフィールドも設定
             print_status: row["print_status"] || row["印刷状況"] || "",
-            createdAt: new Date(),
-            updatedAt: new Date(),
           };
-          console.log(`[DEBUG] Created users document:`, documentData);
+          console.log(
+            `[DEBUG] Created users document with role '${documentData.role}':`,
+            documentData
+          );
         } else {
           console.error(`[DEBUG] Unsupported collection type:`, collectionType);
           throw new Error(`未対応のコレクションタイプ: ${collectionType}`);
@@ -832,7 +1028,25 @@ async function uploadExcelFile(file, mode = "add") {
     console.log(`[DEBUG] Final results for ${collectionType} collection`);
 
     // 結果表示
-    const modeText = mode === "replace" ? "（全消去後）" : "（追加）";
+    let modeText = "";
+    if (mode === "replace") {
+      if (collectionType === "users") {
+        let targetRoleText = "";
+        if (fileName.includes("staff.xlsx")) {
+          targetRoleText = "staffロール";
+        } else if (fileName.includes("maker.xlsx")) {
+          targetRoleText = "makerロール";
+        } else if (fileName.includes("users.xlsx")) {
+          targetRoleText = "userロール";
+        }
+        modeText = `（${targetRoleText}のみ削除後追加）`;
+      } else {
+        modeText = "（全消去後）";
+      }
+    } else {
+      modeText = "（追加）";
+    }
+
     let resultMessage = `シート「${targetSheetName}」のアップロード完了${modeText}<br>`;
     resultMessage += `コレクション: ${collectionType}<br>`;
     resultMessage += `成功: ${successCount}件<br>`;
@@ -918,6 +1132,7 @@ window.downloadItemsTemplate = downloadItemsTemplateFromHosting;
 window.downloadUsersTemplate = downloadUsersTemplateFromHosting;
 window.downloadStaffTemplate = downloadStaffTemplateFromHosting;
 window.downloadMakerTemplate = downloadMakerTemplateFromHosting;
+window.downloadScanItemsTemplate = downloadScanItemsTemplateFromHosting;
 
 // アップロード関数
 window.uploadExcelFile = uploadExcelFile;
@@ -943,6 +1158,7 @@ export {
   downloadUsersTemplateFromHosting,
   downloadStaffTemplateFromHosting,
   downloadMakerTemplateFromHosting,
+  downloadScanItemsTemplateFromHosting,
   uploadExcelFile,
   showUploadOptionsModal,
   closeUploadOptionsModal,

@@ -491,9 +491,21 @@
                 📦 itemsデータベース表示
             </button>
             <button onclick="getAllScanItems()" class="action-button">
-                � ScanItemsデータベース表示
+                📄 ScanItemsデータベース表示
             </button>
 
+        </div>
+
+        <!-- 4行目: パフォーマンステスト -->
+        <div class="action-buttons-row">
+            <button onclick="runMakerPerformanceTest()" class="action-button" 
+                style="border-color: #ff5722; color: #ff5722; display: none;">
+                🚀 Aggregation Queries テスト
+            </button>
+            <button onclick="openMakerPage()" class="action-button" 
+                style="border-color: #9c27b0; color: #9c27b0;">
+                👨‍💼 Makerページで確認
+            </button>
         </div>
     </div>
 
@@ -575,6 +587,7 @@
                     <option value="users">users（ユーザー）</option>
                     <option value="staff">staff（スタッフ）</option>
                     <option value="maker">maker（メーカー）</option>
+                    <option value="scanItems">scanItems（スキャンデータ）</option>
                     <!-- 追加予定コレクションはここにoption追加 -->
                 </select>
                 <button onclick="downloadSelectedTemplate()" class="action-button excel"
