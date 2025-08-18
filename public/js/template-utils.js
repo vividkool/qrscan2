@@ -710,8 +710,7 @@ async function uploadExcelFile(file, mode = "add") {
               if (userData.role === "admin" || userData.user_role === "admin") {
                 protectedAdminCount++;
                 console.log(
-                  `Admin user protected: ${
-                    userData.user_name || userData.name
+                  `Admin user protected: ${userData.user_name || userData.name
                   } (ID: ${userData.user_id})`
                 );
               } else {
@@ -759,8 +758,18 @@ async function uploadExcelFile(file, mode = "add") {
         let documentData;
 
         if (collectionType === "items") {
+          // item_noを4桁の文字列形式に変換
+          let itemNo = row["item_no"] || row["アイテム番号"] || "";
+          if (itemNo && !isNaN(itemNo)) {
+            // 数値の場合は4桁にパディングして文字列に変換
+            itemNo = String(itemNo).padStart(4, '0');
+          } else if (itemNo) {
+            // 既に文字列の場合はそのまま使用
+            itemNo = String(itemNo);
+          }
+
           documentData = {
-            item_no: row["item_no"] || row["アイテム番号"] || "",
+            item_no: itemNo,
             item_name: row["item_name"] || row["アイテム名"] || "",
             category_name: row["category_name"] || row["カテゴリ名"] || "",
             company_name: row["company_name"] || row["会社名"] || "",
@@ -771,7 +780,7 @@ async function uploadExcelFile(file, mode = "add") {
             createdAt: new Date(),
             updatedAt: new Date(),
           };
-          console.log(`[DEBUG] Created items document:`, documentData);
+          console.log(`[DEBUG] Created items document with formatted item_no:`, documentData);
         } else if (collectionType === "users") {
           documentData = {
             user_id: String(row["user_id"] || row["ユーザーID"] || ""), // 文字列に変換

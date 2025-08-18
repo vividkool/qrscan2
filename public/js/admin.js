@@ -254,7 +254,7 @@ async function getAllScanItems() {
 
     let html = "<table><thead><tr>";
     html +=
-      "<th>番号</th><th>会社名</th><th>ユーザー</th><th>商品名</th><th>役割</th><th>スキャナー</th><th>操作</th>";
+      "<th>user_id</th><th>会社名</th><th>氏名</th><th>商品名</th><th>役割</th><th>スキャナー</th><th>操作</th>";
     html += "</tr></thead><tbody>";
 
     querySnapshot.forEach((docSnap) => {
@@ -263,8 +263,8 @@ async function getAllScanItems() {
       const timestamp = data.timestamp || data.createdAt;
       const timeStr = timestamp
         ? new Date(
-            timestamp.seconds ? timestamp.toDate() : timestamp
-          ).toLocaleString("ja-JP")
+          timestamp.seconds ? timestamp.toDate() : timestamp
+        ).toLocaleString("ja-JP")
         : "不明";
       const content = data.content || "データなし";
       const userName = data.user_name || data.user_id || "不明";
@@ -278,6 +278,7 @@ async function getAllScanItems() {
                 <td>${userid}</td>
                 <td>${company}</td>
                 <td>${userName}</td>
+                <td>${content}</td>
                 <td>${itemname}</td>
                 <td>${role}</td>
                 <td>${scannerMode}</td>
@@ -828,7 +829,7 @@ async function submitAddData() {
 
     // コレクションタイプに応じてデータを収集
     if (currentCollectionType === "items") {
-      const itemNo = document.getElementById("modal_item_no")?.value;
+      let itemNo = document.getElementById("modal_item_no")?.value;
       const itemName = document.getElementById("modal_item_name")?.value;
 
       if (!itemNo || !itemName) {
@@ -838,6 +839,15 @@ async function submitAddData() {
           "error"
         );
         return;
+      }
+
+      // item_noを4桁の文字列形式に変換
+      if (itemNo && !isNaN(itemNo)) {
+        // 数値の場合は4桁にパディングして文字列に変換
+        itemNo = String(itemNo).padStart(4, '0');
+      } else if (itemNo) {
+        // 既に文字列の場合はそのまま使用
+        itemNo = String(itemNo);
       }
 
       data = {
@@ -881,8 +891,8 @@ async function submitAddData() {
           (currentCollectionType === "staff"
             ? "staff"
             : currentCollectionType === "maker"
-            ? "maker"
-            : "user"),
+              ? "maker"
+              : "user"),
         print_status:
           document.getElementById("modal_print_status")?.value || "not_printed",
       };
@@ -897,14 +907,13 @@ async function submitAddData() {
 
     showResult(
       "firestoreResult",
-      `${
-        currentCollectionType === "items"
-          ? "アイテム"
-          : currentCollectionType === "users"
+      `${currentCollectionType === "items"
+        ? "アイテム"
+        : currentCollectionType === "users"
           ? "ユーザー"
           : currentCollectionType === "staff"
-          ? "スタッフ"
-          : "メーカー"
+            ? "スタッフ"
+            : "メーカー"
       }「${data.item_name || data.user_name}」を追加しました`,
       "success"
     );
@@ -1007,33 +1016,28 @@ function generateEditFormFields(collectionType, currentData) {
     fields = `
       <div style="margin-bottom:15px;">
         <label style="display:block; margin-bottom:5px; font-weight:bold;">アイテム番号 <span style="color:red;">*</span></label>
-        <input type="text" id="modal_item_no" required value="${
-          currentData.item_no || ""
-        }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+        <input type="text" id="modal_item_no" required value="${currentData.item_no || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
       </div>
       <div style="margin-bottom:15px;">
         <label style="display:block; margin-bottom:5px; font-weight:bold;">カテゴリ名</label>
-        <input type="text" id="modal_category_name" value="${
-          currentData.category_name || ""
-        }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+        <input type="text" id="modal_category_name" value="${currentData.category_name || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
       </div>
       <div style="margin-bottom:15px;">
         <label style="display:block; margin-bottom:5px; font-weight:bold;">会社名</label>
-        <input type="text" id="modal_company_name" value="${
-          currentData.company_name || ""
-        }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+        <input type="text" id="modal_company_name" value="${currentData.company_name || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
       </div>
       <div style="margin-bottom:15px;">
         <label style="display:block; margin-bottom:5px; font-weight:bold;">アイテム名 <span style="color:red;">*</span></label>
-        <input type="text" id="modal_item_name" required value="${
-          currentData.item_name || ""
-        }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+        <input type="text" id="modal_item_name" required value="${currentData.item_name || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
       </div>
       <div style="margin-bottom:15px;">
         <label style="display:block; margin-bottom:5px; font-weight:bold;">メーカーコード</label>
-        <input type="text" id="modal_maker_code" value="${
-          currentData.maker_code || ""
-        }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+        <input type="text" id="modal_maker_code" value="${currentData.maker_code || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
       </div>
     `;
   } else if (
@@ -1045,74 +1049,60 @@ function generateEditFormFields(collectionType, currentData) {
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザーID <span style="color:red;">*</span></label>
-          <input type="text" id="modal_user_id" required value="${
-            currentData.user_id || ""
-          }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+          <input type="text" id="modal_user_id" required value="${currentData.user_id || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザー名 <span style="color:red;">*</span></label>
-          <input type="text" id="modal_user_name" required value="${
-            currentData.user_name || ""
-          }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+          <input type="text" id="modal_user_name" required value="${currentData.user_name || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">メールアドレス</label>
-          <input type="email" id="modal_email" value="${
-            currentData.email || ""
-          }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+          <input type="email" id="modal_email" value="${currentData.email || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">電話番号</label>
-          <input type="tel" id="modal_phone" value="${
-            currentData.phone || ""
-          }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+          <input type="tel" id="modal_phone" value="${currentData.phone || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">会社名</label>
-          <input type="text" id="modal_company_name" value="${
-            currentData.company_name || ""
-          }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+          <input type="text" id="modal_company_name" value="${currentData.company_name || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">ステータス</label>
           <select id="modal_status" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-            <option value="-" ${
-              currentData.status === "-" ? "selected" : ""
-            }>-</option>
-            <option value="入場中" ${
-              currentData.status === "入場中" ? "selected" : ""
-            }>入場中</option>
-            <option value="退場済" ${
-              currentData.status === "退場済" ? "selected" : ""
-            }>退場済</option>
+            <option value="-" ${currentData.status === "-" ? "selected" : ""
+      }>-</option>
+            <option value="入場中" ${currentData.status === "入場中" ? "selected" : ""
+      }>入場中</option>
+            <option value="退場済" ${currentData.status === "退場済" ? "selected" : ""
+      }>退場済</option>
           </select>
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザー権限</label>
           <select id="modal_user_role" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-            <option value="user" ${
-              currentData.user_role === "user" ? "selected" : ""
-            }>User</option>
-            <option value="admin" ${
-              currentData.user_role === "admin" ? "selected" : ""
-            }>Admin</option>
-            <option value="staff" ${
-              currentData.user_role === "staff" ? "selected" : ""
-            }>Staff</option>
-            <option value="maker" ${
-              currentData.user_role === "maker" ? "selected" : ""
-            }>Maker</option>
+            <option value="user" ${currentData.user_role === "user" ? "selected" : ""
+      }>User</option>
+            <option value="admin" ${currentData.user_role === "admin" ? "selected" : ""
+      }>Admin</option>
+            <option value="staff" ${currentData.user_role === "staff" ? "selected" : ""
+      }>Staff</option>
+            <option value="maker" ${currentData.user_role === "maker" ? "selected" : ""
+      }>Maker</option>
           </select>
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">印刷ステータス</label>
           <select id="modal_print_status" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-            <option value="not_printed" ${
-              currentData.print_status === "not_printed" ? "selected" : ""
-            }>未印刷</option>
-            <option value="printed" ${
-              currentData.print_status === "printed" ? "selected" : ""
-            }>印刷済み</option>
+            <option value="not_printed" ${currentData.print_status === "not_printed" ? "selected" : ""
+      }>未印刷</option>
+            <option value="printed" ${currentData.print_status === "printed" ? "selected" : ""
+      }>印刷済み</option>
           </select>
         </div>
       </div>
@@ -1143,7 +1133,7 @@ async function submitEditData() {
 
     // コレクションタイプに応じてデータを収集
     if (collectionType === "items") {
-      const itemNo = document.getElementById("modal_item_no")?.value;
+      let itemNo = document.getElementById("modal_item_no")?.value;
       const itemName = document.getElementById("modal_item_name")?.value;
 
       if (!itemNo || !itemName) {
@@ -1153,6 +1143,15 @@ async function submitEditData() {
           "error"
         );
         return;
+      }
+
+      // item_noを4桁の文字列形式に変換
+      if (itemNo && !isNaN(itemNo)) {
+        // 数値の場合は4桁にパディングして文字列に変換
+        itemNo = String(itemNo).padStart(4, '0');
+      } else if (itemNo) {
+        // 既に文字列の場合はそのまま使用
+        itemNo = String(itemNo);
       }
 
       data = {
@@ -1196,8 +1195,8 @@ async function submitEditData() {
           (collectionType === "staff"
             ? "staff"
             : collectionType === "maker"
-            ? "maker"
-            : "user"),
+              ? "maker"
+              : "user"),
         print_status:
           document.getElementById("modal_print_status")?.value || "not_printed",
       };
@@ -1212,14 +1211,13 @@ async function submitEditData() {
 
     showResult(
       "firestoreResult",
-      `${
-        collectionType === "items"
-          ? "アイテム"
-          : collectionType === "users"
+      `${collectionType === "items"
+        ? "アイテム"
+        : collectionType === "users"
           ? "ユーザー"
           : collectionType === "staff"
-          ? "スタッフ"
-          : "メーカー"
+            ? "スタッフ"
+            : "メーカー"
       }「${data.item_name || data.user_name}」を更新しました`,
       "success"
     );
