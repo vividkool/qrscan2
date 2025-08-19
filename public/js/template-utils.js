@@ -842,8 +842,7 @@ async function uploadExcelFile(file, mode = "add") {
               if (userData.role === "admin" || userData.user_role === "admin") {
                 protectedAdminCount++;
                 console.log(
-                  `Admin user protected: ${
-                    userData.user_name || userData.name
+                  `Admin user protected: ${userData.user_name || userData.name
                   } (ID: ${userData.user_id})`
                 );
               }
@@ -855,16 +854,14 @@ async function uploadExcelFile(file, mode = "add") {
               ) {
                 deletePromises.push(deleteDoc(doc.ref));
                 console.log(
-                  `${fileTypeDescription}ユーザーを削除対象に追加: ${
-                    userData.user_name || userData.name
+                  `${fileTypeDescription}ユーザーを削除対象に追加: ${userData.user_name || userData.name
                   } (ID: ${userData.user_id})`
                 );
               }
               // その他のロールは保持
               else {
                 console.log(
-                  `Other role user preserved: ${
-                    userData.user_name || userData.name
+                  `Other role user preserved: ${userData.user_name || userData.name
                   } (Role: ${userData.role || userData.user_role})`
                 );
               }
@@ -981,7 +978,7 @@ async function uploadExcelFile(file, mode = "add") {
             email: row["email"] || row["メール"] || "",
             phone: row["phone"] || row["電話番号"] || "",
             company_name: row["company_name"] || row["会社名"] || "",
-            department: row["department"] || row["部署"] || "",
+            tantou: row["tantou"] || row["担当"] || "",
             status: row["status"] || row["ステータス"] || "",
             // Excelファイルで指定されたroleがあればそれを使用、なければファイル種別に基づくデフォルトroleを使用
             user_role: row["user_role"] || row["役割"] || defaultRole,

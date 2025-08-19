@@ -66,6 +66,149 @@ function toggleLoading(show, text = "処理中...") {
   }
 }
 
+// Admin認証処理
+async function attemptAdminLogin(userId, password) {
+  try {
+    console.log("Admin認証開始:", userId);
+
+    // パスワードが空の場合、一時的にパスワードチェックをスキップ（初回setup用）
+    if (!password || password.trim() === "") {
+      console.log("⚠️ パスワードが空のため、初回setup用の認証モードを使用");
+
+      // Firestoreからユーザー情報を取得してadminロールのみ確認
+      const { db, doc, getDoc } = await import('./auth.js');
+      const userRef = doc(db, "users", userId);
+      const userDoc = await getDoc(userRef);
+
+      if (!userDoc.exists()) {
+        return {
+          success: false,
+          error: "ユーザーが見つかりません"
+        };
+      }
+
+      const userData = userDoc.data();
+
+      if (userData.role !== "admin") {
+        return {
+          success: false,
+          error: "管理者権限がありません"
+        };
+      }
+
+      // セッションデータを作成して保存
+      const sessionData = {
+        uid: userData.user_id,
+        user_id: userData.user_id,
+        user_name: userData.user_name,
+        company_name: userData.company_name,
+        department: userData.department || "",
+        role: userData.role,
+        timestamp: Date.now()
+      };
+
+      localStorage.setItem("currentUser", JSON.stringify(sessionData));
+      console.log("✅ Admin セッションデータ保存完了（初回setup用）:", sessionData);
+
+      return {
+        success: true,
+        user: userData,
+        redirectUrl: "./admin.html"
+      };
+    }
+
+    // 通常のパスワード認証
+    let savedPassword = null;
+
+    try {
+      // Firestoreから管理者設定を取得
+      const { db, doc, getDoc } = await import('./auth.js');
+      const settingsRef = doc(db, "admin_settings", "config");
+      const settingsDoc = await getDoc(settingsRef);
+
+      if (settingsDoc.exists()) {
+        savedPassword = settingsDoc.data().admin_password;
+        console.log("Firestoreから管理者パスワードを取得");
+      } else {
+        // Firestoreに設定がない場合、localStorageから読み込み（移行対応）
+        savedPassword = localStorage.getItem("qr_password");
+        console.log("localStorageから管理者パスワードを取得");
+      }
+    } catch (firestoreError) {
+      console.log("Firestore読み込みエラー、localStorageから読み込み:", firestoreError.message);
+      savedPassword = localStorage.getItem("qr_password");
+    }
+
+    if (!savedPassword) {
+      console.log("Admin認証失敗: パスワードが設定されていません");
+      return {
+        success: false,
+        error: "管理者パスワードが設定されていません。admin画面でパスワードを設定してください。"
+      };
+    }
+
+    // パスワードチェック
+    if (password !== savedPassword) {
+      console.log("Admin認証失敗: パスワード不一致");
+      return {
+        success: false,
+        error: "管理者パスワードが正しくありません"
+      };
+    }
+
+    // Firestoreからユーザー情報を取得
+    const { db, doc, getDoc } = await import('./auth.js');
+    const userRef = doc(db, "users", userId);
+    const userDoc = await getDoc(userRef);
+
+    if (!userDoc.exists()) {
+      console.log("Admin認証失敗: ユーザーが存在しません");
+      return {
+        success: false,
+        error: "ユーザーが見つかりません"
+      };
+    }
+
+    const userData = userDoc.data();
+
+    // adminロールチェック
+    if (userData.role !== "admin") {
+      console.log("Admin認証失敗: adminロールではありません", userData.role);
+      return {
+        success: false,
+        error: "管理者権限がありません"
+      };
+    }
+
+    // セッションデータを作成して保存
+    const sessionData = {
+      uid: userData.user_id,
+      user_id: userData.user_id,
+      user_name: userData.user_name,
+      company_name: userData.company_name,
+      department: userData.department || "",
+      role: userData.role,
+      timestamp: Date.now()
+    };
+
+    localStorage.setItem("currentUser", JSON.stringify(sessionData));
+    console.log("Admin セッションデータ保存完了:", sessionData);
+
+    return {
+      success: true,
+      user: userData,
+      redirectUrl: "./admin.html"
+    };
+
+  } catch (error) {
+    console.error("Admin認証エラー:", error);
+    return {
+      success: false,
+      error: "認証中にエラーが発生しました: " + error.message
+    };
+  }
+}
+
 // 招待コード検出と表示
 function detectAndShowInviteCode() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -113,6 +256,8 @@ async function handleLogin(event) {
   event.preventDefault();
 
   const userId = userIdInput.value.trim();
+  const password = document.getElementById("password").value.trim();
+
   if (!userId) {
     showError("ユーザーIDを入力してください");
     return;
@@ -122,7 +267,34 @@ async function handleLogin(event) {
   toggleLoading(true);
 
   try {
-    const result = await LoginAuth.login(userId);
+    // パスワードが入力されている場合、admin認証を試行
+    if (password) {
+      console.log("Admin認証を試行中...");
+      const adminResult = await attemptAdminLogin(userId, password);
+
+      if (adminResult.success) {
+        showSuccess("管理者ログイン成功！admin画面にリダイレクトしています...");
+
+        console.log("=== Admin ログイン成功デバッグ情報 ===");
+        console.log("Admin ユーザー情報:", adminResult.user);
+        console.log("Admin リダイレクトURL:", adminResult.redirectUrl);
+        console.log("Admin セッションデータ:", localStorage.getItem("currentUser"));
+        console.log("=====================================");
+
+        setTimeout(() => {
+          console.log("Admin リダイレクト実行中...", adminResult.redirectUrl);
+          window.location.href = adminResult.redirectUrl;
+        }, 1000);
+        return;
+      } else {
+        // admin認証失敗の場合、通常ログインは試行しない
+        showError(adminResult.error || "管理者認証に失敗しました");
+        return;
+      }
+    }
+
+    // パスワードが入力されていない場合、通常ログインを実行
+    const result = await window.LoginAuth.login(userId);
 
     if (result.success) {
       showSuccess("ログイン成功！リダイレクトしています...");
@@ -171,7 +343,7 @@ async function handleGoogleRegister() {
   toggleLoading(true, "Google認証中...");
 
   try {
-    const result = await LoginAuth.signInWithGoogle();
+    const result = await window.LoginAuth.signInWithGoogle();
 
     if (result.success) {
       // Google認証成功後、追加情報フォームを表示
@@ -225,7 +397,7 @@ async function handleAdditionalInfoSubmit(event) {
 
   try {
     // 現在のFirebaseユーザーに追加情報を設定
-    const result = await LoginAuth.updateUserAdditionalInfo(
+    const result = await window.LoginAuth.updateUserAdditionalInfo(
       name,
       department,
       currentInviteCode
@@ -237,7 +409,7 @@ async function handleAdditionalInfoSubmit(event) {
 
         // 安全なリダイレクト処理
         setTimeout(() => {
-          const redirectUrl = LoginAuth.getRedirectUrl(result.user.user_role);
+          const redirectUrl = window.LoginAuth.getRedirectUrl(result.user.user_role);
           console.log("登録完了後のリダイレクト:", redirectUrl);
 
           // リダイレクトフラグを設定
@@ -265,8 +437,17 @@ async function handleAdditionalInfoSubmit(event) {
 }
 
 // ユーザーID自動入力
-window.fillUserId = function (userId) {
+window.fillUserId = function (userId, password = null) {
   userIdInput.value = userId;
+
+  // パスワードが指定されている場合、パスワードフィールドにも入力
+  if (password) {
+    const passwordInput = document.getElementById("password");
+    if (passwordInput) {
+      passwordInput.value = password;
+    }
+  }
+
   hideMessages();
 };
 
@@ -289,13 +470,88 @@ function setupEventListeners() {
   });
 }
 
+// QRコードからの自動ログイン処理
+async function handleQRCodeAutoLogin() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const userId = urlParams.get("user_id");
+
+  if (!userId) {
+    return false; // user_idパラメータがない場合は通常のログイン処理
+  }
+
+  console.log("QRコードからのアクセス検出 - user_id:", userId);
+
+  // UI要素を非表示にして処理中表示
+  const loginContainer = document.querySelector('.login-container');
+  if (loginContainer) {
+    loginContainer.style.opacity = '0.7';
+  }
+
+  hideMessages();
+  toggleLoading(true, "QRコードからログイン中...");
+
+  try {
+    // 自動ログイン実行（パスワードなしの通常ログイン）
+    const result = await window.LoginAuth.login(userId);
+
+    if (result.success) {
+      showSuccess(`QRログイン成功！${result.user.user_name}さんでログインします...`);
+
+      console.log("=== QR自動ログイン成功デバッグ情報 ===");
+      console.log("ユーザー情報:", result.user);
+      console.log("リダイレクトURL:", result.redirectUrl);
+      console.log("セッションデータ:", localStorage.getItem("currentUser"));
+      console.log("===================================");
+
+      // 自動リダイレクト
+      setTimeout(() => {
+        console.log("QR自動リダイレクト実行中...", result.redirectUrl);
+        window.location.href = result.redirectUrl;
+      }, 1500);
+
+      return true;
+    } else {
+      // 自動ログイン失敗時は通常のログイン画面を表示
+      showError(`ユーザーID「${userId}」でのログインに失敗しました: ${result.error}`);
+
+      // ユーザーIDを入力欄に自動設定
+      userIdInput.value = userId;
+
+      return false;
+    }
+  } catch (error) {
+    console.error("QR自動ログインエラー:", error);
+    showError("QRコードからのログイン中にエラーが発生しました");
+
+    // エラー時もユーザーIDを入力欄に設定
+    userIdInput.value = userId;
+
+    return false;
+  } finally {
+    toggleLoading(false);
+
+    // UI要素の透明度を戻す
+    if (loginContainer) {
+      loginContainer.style.opacity = '1';
+    }
+  }
+}
+
 // ページ初期化
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", async function () {
   // 既にログイン済みかチェック
-  const session = LoginAuth.getSession();
+  const session = window.LoginAuth.getSession();
   if (session) {
-    const redirectUrl = LoginAuth.getRedirectUrl(session.role);
+    const redirectUrl = window.LoginAuth.getRedirectUrl(session.role);
     window.location.href = redirectUrl;
+    return;
+  }
+
+  // QRコードからの自動ログイン処理
+  const autoLoginHandled = await handleQRCodeAutoLogin();
+
+  if (autoLoginHandled) {
+    // 自動ログインが成功した場合は他の処理をスキップ
     return;
   }
 

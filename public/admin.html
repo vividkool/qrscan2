@@ -9,9 +9,9 @@
         /* Excelファイルアップロード用のスタイル */
         .upload-option-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
-        
+
         .upload-option-btn:active {
             transform: translateY(0);
         }
@@ -27,22 +27,27 @@
         }
 
         @keyframes modalFadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
         }
 
         /* レスポンシブ対応 */
         @media (max-width: 600px) {
-            #fileUploadModal > div {
+            #fileUploadModal>div {
                 margin: 20px;
                 max-width: calc(100vw - 40px);
             }
-            
+
             .upload-options-grid {
                 grid-template-columns: 1fr !important;
             }
         }
-    
+
         /* テーブル装飾 */
         table {
             border-collapse: collapse;
@@ -429,6 +434,136 @@
         .delete-btn:active {
             transform: scale(0.95);
         }
+
+        /* プロフィールと設定モーダル用スタイル */
+        #profileModal .modal-content,
+        #profileEditModal .modal-content {
+            max-width: 700px;
+            /* プロフィール編集用 */
+            width: 90%;
+        }
+
+        #settingsModal .modal-content {
+            max-width: 600px;
+            /* 設定モーダル用 */
+            width: 90%;
+        }
+
+        #profileContent {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+
+        #profileContent .profile-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        #profileContent .profile-item:last-child {
+            border-bottom: none;
+        }
+
+        #profileContent .profile-label {
+            font-weight: bold;
+            color: #555;
+            min-width: 120px;
+        }
+
+        #profileContent .profile-value {
+            color: #333;
+            flex: 1;
+            text-align: right;
+        }
+
+        #profileEditModal input,
+        #settingsModal input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin: 5px 0 15px 0;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+
+        #profileEditModal label,
+        #settingsModal label {
+            display: block;
+            font-weight: bold;
+            color: #333;
+            margin-top: 10px;
+        }
+
+        #settingsModal h3 {
+            color: #4285f4;
+            border-bottom: 2px solid #4285f4;
+            padding-bottom: 5px;
+            margin: 20px 0 15px 0;
+        }
+
+        /* プロフィール編集フォームのレスポンシブ対応 */
+        @media (max-width: 768px) {
+
+            #profileEditModal .modal-content,
+            #settingsModal .modal-content {
+                max-width: 95%;
+            }
+
+            /* 小さい画面では1列表示 */
+            #profileEditModal div[style*="grid-template-columns"],
+            #settingsModal div[style*="grid-template-columns"] {
+                display: block !important;
+            }
+
+            #profileEditModal div[style*="grid-template-columns"]>div,
+            #settingsModal div[style*="grid-template-columns"]>div {
+                margin-bottom: 10px;
+            }
+
+            /* 設定モーダルのボタンを縦並びに */
+            #settingsModal div[style*="text-align: right"] {
+                text-align: center !important;
+            }
+
+            #settingsModal div[style*="text-align: right"] button {
+                display: block !important;
+                width: 100% !important;
+                margin: 5px 0 !important;
+            }
+        }
+
+        /* 現在のユーザー情報表示セクション用スタイル */
+        #currentUserInfo {
+            animation: fadeIn 0.3s ease;
+        }
+
+        #currentUserDetails {
+            line-height: 1.6;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            #currentUserDetails>div:first-child {
+                grid-template-columns: 1fr !important;
+                gap: 10px !important;
+            }
+        }
     </style>
 </head>
 
@@ -437,8 +572,16 @@
     <div class="dashboard-header">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
             <h1 style="margin: 0;">QR Scan 管理ダッシュボード</h1>
-            <div style="display: flex; align-items: center; gap: 15px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
                 <span id="userInfo" style="color: rgba(255,255,255,0.9); font-size: 14px;"></span>
+                <button onclick="showProfileModal()"
+                    style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
+                    👤 プロフィール
+                </button>
+                <button onclick="showSettingsModal()"
+                    style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
+                    ⚙️ 設定
+                </button>
                 <button onclick="UserSession.logout()"
                     style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
                     ログアウト
@@ -452,7 +595,7 @@
     <div class="action-buttons">
         <!-- 1行目: 基本機能 -->
         <div class="action-buttons-row">
-            
+
             <button onclick="document.getElementById('downloadResultModal').style.display='block'"
                 class="action-button excel">
                 📥 Excel テンプレートダウンロード
@@ -462,7 +605,7 @@
                 style="border-color: #ff9800; color: #ff9800;">
                 📤 Excel ファイルアップロード
             </button>
-            
+
             <input type="file" id="excelFileInput" accept=".xlsx,.xls" style="display: none;">
 
             <button onclick="clearResults('firestoreResult')" class="btn-clear action-button">
@@ -472,7 +615,7 @@
 
         <!-- 2行目: ユーザー関連データベース -->
         <div class="action-buttons-row">
-            
+
             <button onclick="getAllUsers()" class="action-button">
                 👥 usersデータベース表示
             </button>
@@ -482,7 +625,7 @@
             <button onclick="getAllMaker()" class="action-button">
                 👨‍💼 makerデータベース表示
             </button>
-            
+
         </div>
 
         <!-- 3行目: アイテム関連データベース -->
@@ -498,37 +641,36 @@
 
         <!-- 4行目: パフォーマンステスト -->
         <div class="action-buttons-row">
-            <button onclick="runMakerPerformanceTest()" class="action-button" 
+            <button onclick="runMakerPerformanceTest()" class="action-button"
                 style="border-color: #ff5722; color: #ff5722; display: none;">
                 🚀 Aggregation Queries テスト
             </button>
-            <button onclick="openMakerPage()" class="action-button" 
-                style="border-color: #9c27b0; color: #9c27b0;">
-                👨‍💼 Makerページで確認
-            </button>
+
         </div>
     </div>
 
     <!-- ファイルアップロードモーダル -->
     <div id="fileUploadModal" class="modal"
         style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100vw; height:100vh; background:rgba(0,0,0,0.5);">
-        <div style="background:white; border-radius:12px; max-width:600px; margin:60px auto; padding:0; position:relative; box-shadow:0 4px 20px rgba(0,0,0,0.3);">
+        <div
+            style="background:white; border-radius:12px; max-width:600px; margin:60px auto; padding:0; position:relative; box-shadow:0 4px 20px rgba(0,0,0,0.3);">
             <!-- モーダルヘッダー -->
-            <div style="background:#4285f4; color:white; padding:20px; border-radius:12px 12px 0 0; display:flex; justify-content:space-between; align-items:center;">
+            <div
+                style="background:#4285f4; color:white; padding:20px; border-radius:12px 12px 0 0; display:flex; justify-content:space-between; align-items:center;">
                 <h3 style="margin:0; font-size:18px;">📤 Excel ファイルアップロード</h3>
-                <button onclick="closeFileUploadModal()" 
+                <button onclick="closeFileUploadModal()"
                     style="background:none; border:none; color:white; font-size:24px; cursor:pointer; padding:0; width:30px; height:30px; display:flex; align-items:center; justify-content:center;">×</button>
             </div>
-            
+
             <!-- モーダルコンテンツ -->
             <div style="padding:30px;">
                 <!-- ドラッグ&ドロップエリア -->
-                <div id="dropZone" 
+                <div id="dropZone"
                     style="border:3px dashed #4285f4; border-radius:8px; padding:40px; text-align:center; background:#f8f9ff; cursor:pointer; transition:all 0.3s ease;">
                     <div style="color:#4285f4; font-size:48px; margin-bottom:15px;">📁</div>
                     <h4 style="color:#4285f4; margin:0 0 10px 0;">ファイルをドラッグ&ドロップ</h4>
                     <p style="color:#666; margin:0 0 20px 0;">または、クリックしてファイルを選択してください</p>
-                    <button onclick="document.getElementById('hiddenFileInput').click()" 
+                    <button onclick="document.getElementById('hiddenFileInput').click()"
                         style="background:#4285f4; color:white; border:none; padding:12px 24px; border-radius:6px; cursor:pointer; font-size:16px;">
                         📂 ファイルを選択
                     </button>
@@ -536,30 +678,31 @@
                         対応形式: .xlsx, .xls
                     </div>
                 </div>
-                
+
                 <!-- 選択されたファイル表示 -->
-                <div id="selectedFileInfo" style="display:none; margin-top:20px; padding:15px; background:#e8f5e8; border-radius:6px; border-left:4px solid #4caf50;">
+                <div id="selectedFileInfo"
+                    style="display:none; margin-top:20px; padding:15px; background:#e8f5e8; border-radius:6px; border-left:4px solid #4caf50;">
                     <div style="display:flex; align-items:center; justify-content:space-between;">
                         <div>
                             <div style="font-weight:bold; color:#2e7d2e;" id="fileName"></div>
                             <div style="font-size:14px; color:#666;" id="fileSize"></div>
                         </div>
-                        <button onclick="clearSelectedFile()" 
+                        <button onclick="clearSelectedFile()"
                             style="background:#dc3545; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer;">削除</button>
                     </div>
                 </div>
-                
+
                 <!-- アップロード実行ボタン -->
                 <div id="uploadAction" style="display:none; margin-top:25px; text-align:center;">
-                    <button onclick="proceedWithUpload()" 
+                    <button onclick="proceedWithUpload()"
                         style="background:#4285f4; color:white; border:none; padding:15px 30px; border-radius:8px; cursor:pointer; font-size:16px; font-weight:bold;">
                         📤 アップロードを開始
                     </button>
                 </div>
-                
+
                 <!-- アクションボタン -->
                 <div style="margin-top:25px; display:flex; gap:10px; justify-content:flex-end;">
-                    <button onclick="closeFileUploadModal()" 
+                    <button onclick="closeFileUploadModal()"
                         style="background:#6c757d; color:white; border:none; padding:12px 24px; border-radius:6px; cursor:pointer;">
                         キャンセル
                     </button>
@@ -641,6 +784,130 @@
 
         <div id="functionResult" class="result"></div>
     </div>
+    </div>
+
+    <!-- プロフィールモーダル -->
+    <div id="profileModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeProfileModal()">&times;</span>
+            <h2>👤 プロフィール情報</h2>
+            <div id="profileContent">
+                <!-- プロフィール情報がここに表示されます -->
+            </div>
+            <div style="margin-top: 20px; text-align: right;">
+                <button onclick="editProfile()"
+                    style="background-color: #4285f4; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin-right: 10px;">
+                    ✏️ 編集
+                </button>
+                <button onclick="closeProfileModal()"
+                    style="background-color: #666; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer;">
+                    閉じる
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- プロフィール編集モーダル -->
+    <div id="profileEditModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeProfileEditModal()">&times;</span>
+            <h2>✏️ プロフィール編集</h2>
+
+            <!-- 現在のユーザー情報表示セクション -->
+            <div id="currentUserInfo"
+                style="background-color: #e8f4fd; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #4285f4;">
+                <h4 style="margin: 0 0 10px 0; color: #4285f4;">📋 現在のユーザー情報</h4>
+                <div id="currentUserDetails">
+                    <!-- 現在のユーザー情報がここに表示されます -->
+                </div>
+            </div>
+
+            <div style="margin: 20px 0;">
+                <!-- 2列グリッドレイアウト -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start;">
+                    <!-- 左列 -->
+                    <div>
+                        <label>ユーザーID:</label>
+                        <input type="text" id="edit_user_id" readonly style="background-color: #f5f5f5;" />
+
+                        <label>ユーザー名:</label>
+                        <input type="text" id="edit_user_name" />
+
+                        <label>会社名:</label>
+                        <input type="text" id="edit_company_name" />
+                    </div>
+
+                    <!-- 右列 -->
+                    <div>
+                        <label>部署:</label>
+                        <input type="text" id="edit_department" />
+
+                        <label>メールアドレス:</label>
+                        <input type="email" id="edit_email" />
+
+                        <label>電話番号:</label>
+                        <input type="text" id="edit_phone" />
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top: 20px; text-align: right;">
+                <button onclick="saveProfile()"
+                    style="background-color: #4CAF50; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin-right: 10px;">
+                    💾 保存
+                </button>
+                <button onclick="closeProfileEditModal()"
+                    style="background-color: #666; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer;">
+                    キャンセル
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 設定モーダル -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeSettingsModal()">&times;</span>
+            <h2>⚙️ システム設定</h2>
+
+            <!-- QRコード生成設定 -->
+            <div style="margin: 20px 0;">
+                <h3>📱 QRコード生成設定</h3>
+
+                <label>プロジェクト名:</label>
+                <input type="text" id="setting_project_name" placeholder="プロジェクト名を入力" />
+                <small style="display: block; color: #666; margin-bottom: 15px;">
+                    QRコードURLのパラメータとして使用されます（例: ?project=プロジェクト名）<br>
+                    複数のadmin管理システムを区別するための識別子にもなります
+                </small>
+
+                <label>パスワード:</label>
+                <input type="password" id="setting_password" placeholder="パスワードを入力" />
+                <small style="display: block; color: #666; margin-bottom: 15px;">
+                    QRコードアクセス時の認証に使用されます
+                </small>
+
+                <!-- プレビューセクション -->
+                <div
+                    style="margin-top: 20px; padding: 15px; background-color: #f8f9fa; border-radius: 6px; border: 1px solid #e9ecef;">
+                    <h4 style="margin: 0 0 10px 0; color: #495057;">🔍 QRコードURL プレビュー</h4>
+                    <div id="urlPreview"
+                        style="font-family: monospace; font-size: 14px; color: #6c757d; word-break: break-all;">
+                        プロジェクト名を入力するとURLプレビューが表示されます
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-top: 20px; text-align: right; border-top: 2px solid #e0e0e0; padding-top: 20px;">
+                <button onclick="saveSettings()"
+                    style="background-color: #4CAF50; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; margin-right: 10px; font-size: 16px;">
+                    💾 設定保存
+                </button>
+                <button onclick="closeSettingsModal()"
+                    style="background-color: #666; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; font-size: 16px;">
+                    キャンセル
+                </button>
+            </div>
+        </div>
     </div>
 
     <!-- アップロードオプション選択モーダル -->

@@ -7,6 +7,7 @@ import {
   getDocs,
   doc,
   setDoc,
+  getDoc,
   deleteDoc,
   query,
   orderBy,
@@ -37,7 +38,21 @@ document.addEventListener("DOMContentLoaded", function () {
   console.log("現在のURL:", window.location.href);
   console.log("セッション存在確認:", !!localStorage.getItem("currentUser"));
   console.log("セッションデータ:", localStorage.getItem("currentUser"));
+
+  // localStorage全体の内容を確認
+  console.log("=== localStorage全体の内容 ===");
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    const value = localStorage.getItem(key);
+    console.log(`${key}:`, value);
+  }
   console.log("================================");
+
+  // ヘッダーのユーザー情報を更新
+  setTimeout(() => {
+    console.log("updateHeaderUserInfo実行中...");
+    updateHeaderUserInfo();
+  }, 500);
 });
 
 // 現在表示中のコレクション状態を管理
@@ -263,8 +278,8 @@ async function getAllScanItems() {
       const timestamp = data.timestamp || data.createdAt;
       const timeStr = timestamp
         ? new Date(
-            timestamp.seconds ? timestamp.toDate() : timestamp
-          ).toLocaleString("ja-JP")
+          timestamp.seconds ? timestamp.toDate() : timestamp
+        ).toLocaleString("ja-JP")
         : "不明";
       const content = data.content || "データなし";
       const userName = data.user_name || data.user_id || "不明";
@@ -891,8 +906,8 @@ async function submitAddData() {
           (currentCollectionType === "staff"
             ? "staff"
             : currentCollectionType === "maker"
-            ? "maker"
-            : "user"),
+              ? "maker"
+              : "user"),
         print_status:
           document.getElementById("modal_print_status")?.value || "not_printed",
       };
@@ -907,14 +922,13 @@ async function submitAddData() {
 
     showResult(
       "firestoreResult",
-      `${
-        currentCollectionType === "items"
-          ? "アイテム"
-          : currentCollectionType === "users"
+      `${currentCollectionType === "items"
+        ? "アイテム"
+        : currentCollectionType === "users"
           ? "ユーザー"
           : currentCollectionType === "staff"
-          ? "スタッフ"
-          : "メーカー"
+            ? "スタッフ"
+            : "メーカー"
       }「${data.item_name || data.user_name}」を追加しました`,
       "success"
     );
@@ -1017,33 +1031,28 @@ function generateEditFormFields(collectionType, currentData) {
     fields = `
       <div style="margin-bottom:15px;">
         <label style="display:block; margin-bottom:5px; font-weight:bold;">アイテム番号 <span style="color:red;">*</span></label>
-        <input type="text" id="modal_item_no" required value="${
-          currentData.item_no || ""
-        }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+        <input type="text" id="modal_item_no" required value="${currentData.item_no || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
       </div>
       <div style="margin-bottom:15px;">
         <label style="display:block; margin-bottom:5px; font-weight:bold;">カテゴリ名</label>
-        <input type="text" id="modal_category_name" value="${
-          currentData.category_name || ""
-        }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+        <input type="text" id="modal_category_name" value="${currentData.category_name || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
       </div>
       <div style="margin-bottom:15px;">
         <label style="display:block; margin-bottom:5px; font-weight:bold;">会社名</label>
-        <input type="text" id="modal_company_name" value="${
-          currentData.company_name || ""
-        }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+        <input type="text" id="modal_company_name" value="${currentData.company_name || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
       </div>
       <div style="margin-bottom:15px;">
         <label style="display:block; margin-bottom:5px; font-weight:bold;">アイテム名 <span style="color:red;">*</span></label>
-        <input type="text" id="modal_item_name" required value="${
-          currentData.item_name || ""
-        }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+        <input type="text" id="modal_item_name" required value="${currentData.item_name || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
       </div>
       <div style="margin-bottom:15px;">
         <label style="display:block; margin-bottom:5px; font-weight:bold;">メーカーコード</label>
-        <input type="text" id="modal_maker_code" value="${
-          currentData.maker_code || ""
-        }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+        <input type="text" id="modal_maker_code" value="${currentData.maker_code || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
       </div>
     `;
   } else if (
@@ -1055,74 +1064,60 @@ function generateEditFormFields(collectionType, currentData) {
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザーID <span style="color:red;">*</span></label>
-          <input type="text" id="modal_user_id" required value="${
-            currentData.user_id || ""
-          }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+          <input type="text" id="modal_user_id" required value="${currentData.user_id || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザー名 <span style="color:red;">*</span></label>
-          <input type="text" id="modal_user_name" required value="${
-            currentData.user_name || ""
-          }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+          <input type="text" id="modal_user_name" required value="${currentData.user_name || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">メールアドレス</label>
-          <input type="email" id="modal_email" value="${
-            currentData.email || ""
-          }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+          <input type="email" id="modal_email" value="${currentData.email || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">電話番号</label>
-          <input type="tel" id="modal_phone" value="${
-            currentData.phone || ""
-          }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+          <input type="tel" id="modal_phone" value="${currentData.phone || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">会社名</label>
-          <input type="text" id="modal_company_name" value="${
-            currentData.company_name || ""
-          }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+          <input type="text" id="modal_company_name" value="${currentData.company_name || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">ステータス</label>
           <select id="modal_status" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-            <option value="-" ${
-              currentData.status === "-" ? "selected" : ""
-            }>-</option>
-            <option value="入場中" ${
-              currentData.status === "入場中" ? "selected" : ""
-            }>入場中</option>
-            <option value="退場済" ${
-              currentData.status === "退場済" ? "selected" : ""
-            }>退場済</option>
+            <option value="-" ${currentData.status === "-" ? "selected" : ""
+      }>-</option>
+            <option value="入場中" ${currentData.status === "入場中" ? "selected" : ""
+      }>入場中</option>
+            <option value="退場済" ${currentData.status === "退場済" ? "selected" : ""
+      }>退場済</option>
           </select>
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザー権限</label>
           <select id="modal_user_role" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-            <option value="user" ${
-              currentData.user_role === "user" ? "selected" : ""
-            }>User</option>
-            <option value="admin" ${
-              currentData.user_role === "admin" ? "selected" : ""
-            }>Admin</option>
-            <option value="staff" ${
-              currentData.user_role === "staff" ? "selected" : ""
-            }>Staff</option>
-            <option value="maker" ${
-              currentData.user_role === "maker" ? "selected" : ""
-            }>Maker</option>
+            <option value="user" ${currentData.user_role === "user" ? "selected" : ""
+      }>User</option>
+            <option value="admin" ${currentData.user_role === "admin" ? "selected" : ""
+      }>Admin</option>
+            <option value="staff" ${currentData.user_role === "staff" ? "selected" : ""
+      }>Staff</option>
+            <option value="maker" ${currentData.user_role === "maker" ? "selected" : ""
+      }>Maker</option>
           </select>
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">印刷ステータス</label>
           <select id="modal_print_status" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-            <option value="not_printed" ${
-              currentData.print_status === "not_printed" ? "selected" : ""
-            }>未印刷</option>
-            <option value="printed" ${
-              currentData.print_status === "printed" ? "selected" : ""
-            }>印刷済み</option>
+            <option value="not_printed" ${currentData.print_status === "not_printed" ? "selected" : ""
+      }>未印刷</option>
+            <option value="printed" ${currentData.print_status === "printed" ? "selected" : ""
+      }>印刷済み</option>
           </select>
         </div>
       </div>
@@ -1215,8 +1210,8 @@ async function submitEditData() {
           (collectionType === "staff"
             ? "staff"
             : collectionType === "maker"
-            ? "maker"
-            : "user"),
+              ? "maker"
+              : "user"),
         print_status:
           document.getElementById("modal_print_status")?.value || "not_printed",
       };
@@ -1231,14 +1226,13 @@ async function submitEditData() {
 
     showResult(
       "firestoreResult",
-      `${
-        collectionType === "items"
-          ? "アイテム"
-          : collectionType === "users"
+      `${collectionType === "items"
+        ? "アイテム"
+        : collectionType === "users"
           ? "ユーザー"
           : collectionType === "staff"
-          ? "スタッフ"
-          : "メーカー"
+            ? "スタッフ"
+            : "メーカー"
       }「${data.item_name || data.user_name}」を更新しました`,
       "success"
     );
@@ -1563,27 +1557,24 @@ async function runMakerPerformanceTest() {
               <p><strong>対象アイテム:</strong> ${aggregation.itemCount}件</p>
               <p><strong>クエリ数:</strong> ${aggregation.queryCount}</p>
               <p><strong>平均クエリ時間:</strong> ${(
-                aggregation.time / aggregation.queryCount
-              ).toFixed(2)}ms</p>
+            aggregation.time / aggregation.queryCount
+          ).toFixed(2)}ms</p>
             </div>
           </div>
           
-          <div style="background: ${
-            improvement > 0 ? "#d4edda" : "#f8d7da"
+          <div style="background: ${improvement > 0 ? "#d4edda" : "#f8d7da"
           }; padding: 20px; border-radius: 8px; text-align: center;">
             <h3>${improvement > 0 ? "🎉" : "⚠️"} パフォーマンス比較結果</h3>
             <p style="font-size: 18px; margin: 10px 0;">
-              <strong>改善率: ${
-                improvement > 0 ? "+" : ""
-              }${improvement.toFixed(1)}%</strong>
+              <strong>改善率: ${improvement > 0 ? "+" : ""
+          }${improvement.toFixed(1)}%</strong>
             </p>
-            ${
-              improvement > 0
-                ? `<p style="font-size: 16px; color: #155724;">✅ Aggregation Queriesが <strong>${speedRatio.toFixed(
-                    1
-                  )}倍高速</strong>です！</p>`
-                : `<p style="font-size: 16px; color: #721c24;">⚠️ 従来方法の方が高速でした</p>`
-            }
+            ${improvement > 0
+            ? `<p style="font-size: 16px; color: #155724;">✅ Aggregation Queriesが <strong>${speedRatio.toFixed(
+              1
+            )}倍高速</strong>です！</p>`
+            : `<p style="font-size: 16px; color: #721c24;">⚠️ 従来方法の方が高速でした</p>`
+          }
           </div>
         `;
 
@@ -1596,14 +1587,13 @@ async function runMakerPerformanceTest() {
             <h4>📈 スケーラビリティ分析</h4>
             <p><strong>現在のデータ量:</strong> ${currentDataSize.toLocaleString()}件</p>
             <p><strong>予想データ量:</strong> ${Math.round(
-              futureDataSize
-            ).toLocaleString()}件 (3-4倍増加)</p>
+          futureDataSize
+        ).toLocaleString()}件 (3-4倍増加)</p>
             <p><strong>推奨事項:</strong> 
-              ${
-                improvement > 0
-                  ? "✅ Aggregation Queriesの実装をお勧めします"
-                  : "⚠️ データ量増加に備えてCloud Functionsでのカウンター管理を検討してください"
-              }
+              ${improvement > 0
+            ? "✅ Aggregation Queriesの実装をお勧めします"
+            : "⚠️ データ量増加に備えてCloud Functionsでのカウンター管理を検討してください"
+          }
             </p>
           </div>
         `;
@@ -1661,8 +1651,7 @@ async function runPerformanceTestForMaker(userId) {
     console.log("❌ 従来方法: エラー -", legacyResult.error);
   } else {
     console.log(
-      `⏱️ 従来方法: ${legacyResult.time.toFixed(2)}ms (${
-        legacyResult.docCount
+      `⏱️ 従来方法: ${legacyResult.time.toFixed(2)}ms (${legacyResult.docCount
       }件読み取り)`
     );
   }
@@ -1671,8 +1660,7 @@ async function runPerformanceTestForMaker(userId) {
     console.log("❌ Aggregation方法: エラー -", aggregationResult.error);
   } else {
     console.log(
-      `⚡ Aggregation方法: ${aggregationResult.time.toFixed(2)}ms (${
-        aggregationResult.queryCount
+      `⚡ Aggregation方法: ${aggregationResult.time.toFixed(2)}ms (${aggregationResult.queryCount
       }クエリ)`
     );
   }
@@ -1681,8 +1669,7 @@ async function runPerformanceTestForMaker(userId) {
     const improvement =
       ((legacyResult.time - aggregationResult.time) / legacyResult.time) * 100;
     console.log(
-      `📈 パフォーマンス改善: ${
-        improvement > 0 ? "+" : ""
+      `📈 パフォーマンス改善: ${improvement > 0 ? "+" : ""
       }${improvement.toFixed(1)}%`
     );
 
@@ -1814,6 +1801,477 @@ function openMakerPage() {
   window.open("maker.html", "_blank");
 }
 
+// ===== プロフィール機能 =====
+
+// プロフィールモーダルを開く
+async function showProfileModal() {
+  console.log("=== プロフィールモーダル開始 ===");
+
+  // 複数の方法でユーザー情報を取得
+  let user = null;
+
+  // 方法1: UserSessionクラスから取得
+  console.log("UserSession確認:", !!window.UserSession);
+  if (window.UserSession && typeof UserSession.getCurrentUser === "function") {
+    try {
+      user = await UserSession.getCurrentUser(); // awaitを追加
+      console.log("UserSession経由でユーザー情報取得成功:", user);
+    } catch (error) {
+      console.log("UserSession取得エラー:", error);
+    }
+  } else {
+    console.log("UserSessionが利用できません");
+  }
+
+  // 方法2: localStorageから直接取得
+  if (!user) {
+    console.log("localStorageから取得を試行...");
+    try {
+      const sessionData = localStorage.getItem("currentUser");
+      console.log("localStorageの生データ:", sessionData);
+      if (sessionData) {
+        user = JSON.parse(sessionData);
+        console.log("localStorage経由でユーザー情報取得成功:", user);
+        console.log("user.user_id:", user.user_id);
+        console.log("user.user_name:", user.user_name);
+        console.log("user.company_name:", user.company_name);
+      } else {
+        console.log("localStorageにcurrentUserデータが存在しません");
+      }
+    } catch (error) {
+      console.log("localStorage解析エラー:", error);
+    }
+  }
+
+  // 方法3: 他のキーも試行
+  if (!user) {
+    console.log("他のlocalStorageキーを確認中...");
+    const keys = Object.keys(localStorage);
+    console.log("利用可能なlocalStorageキー:", keys);
+
+    // firebaseSessionDataも確認
+    const firebaseSession = localStorage.getItem("firebaseSessionData");
+    if (firebaseSession) {
+      console.log("firebaseSessionData:", firebaseSession);
+      try {
+        const fbUser = JSON.parse(firebaseSession);
+        if (fbUser && (fbUser.user_id || fbUser.uid)) {
+          user = fbUser;
+          console.log("firebaseSessionDataから取得:", user);
+        }
+      } catch (error) {
+        console.log("firebaseSessionData解析エラー:", error);
+      }
+    }
+  }
+
+  console.log("最終的に取得したユーザー情報:", user);
+
+  if (!user) {
+    console.error("ユーザー情報を取得できませんでした");
+    alert("ユーザー情報を取得できませんでした。再ログインしてください。");
+    return;
+  }
+
+  const profileContent = document.getElementById("profileContent");
+  if (!profileContent) {
+    console.error("profileContent要素が見つかりません");
+    return;
+  }
+
+  profileContent.innerHTML = `
+    <div class="profile-item">
+      <span class="profile-label">ユーザーID:</span>
+      <span class="profile-value">${user.user_id || user.uid || "未設定"}</span>
+    </div>
+    <div class="profile-item">
+      <span class="profile-label">ユーザー名:</span>
+      <span class="profile-value">${user.user_name || user.name || "未設定"}</span>
+    </div>
+    <div class="profile-item">
+      <span class="profile-label">会社名:</span>
+      <span class="profile-value">${user.company_name || user.companyName || "未設定"}</span>
+    </div>
+    <div class="profile-item">
+      <span class="profile-label">部署:</span>
+      <span class="profile-value">${user.department || "未設定"}</span>
+    </div>
+    <div class="profile-item">
+      <span class="profile-label">ロール:</span>
+      <span class="profile-value">${user.role || "未設定"}</span>
+    </div>
+    <div class="profile-item">
+      <span class="profile-label">メール:</span>
+      <span class="profile-value">${user.email || "未設定"}</span>
+    </div>
+    <div class="profile-item">
+      <span class="profile-label">電話番号:</span>
+      <span class="profile-value">${user.phone || "未設定"}</span>
+    </div>
+    <div class="profile-item">
+      <span class="profile-label">ログイン時刻:</span>
+      <span class="profile-value">${user.timestamp ? new Date(user.timestamp).toLocaleString() : "未設定"}</span>
+    </div>
+  `;
+
+  console.log("プロフィールモーダル内容設定完了");
+  document.getElementById("profileModal").style.display = "block";
+  console.log("=== プロフィールモーダル完了 ===");
+}
+
+// プロフィールモーダルを閉じる
+function closeProfileModal() {
+  document.getElementById("profileModal").style.display = "none";
+}
+
+// プロフィール編集モーダルを開く
+async function editProfile() {
+  // 複数の方法でユーザー情報を取得
+  let user = null;
+
+  // 方法1: UserSessionクラスから取得
+  if (window.UserSession && typeof UserSession.getCurrentUser === "function") {
+    try {
+      user = await UserSession.getCurrentUser(); // awaitを追加
+    } catch (error) {
+      console.log("UserSession取得エラー:", error);
+    }
+  }
+
+  // 方法2: localStorageから直接取得
+  if (!user) {
+    try {
+      const sessionData = localStorage.getItem("currentUser");
+      if (sessionData) {
+        user = JSON.parse(sessionData);
+      }
+    } catch (error) {
+      console.log("localStorage解析エラー:", error);
+    }
+  }
+
+  if (!user) {
+    alert("ユーザー情報を取得できませんでした");
+    return;
+  }
+
+  // 現在のユーザー情報を表示セクションに設定
+  const currentUserDetails = document.getElementById("currentUserDetails");
+  if (currentUserDetails) {
+    console.log("プロフィール編集モーダル用ユーザー情報:", user);
+    currentUserDetails.innerHTML = `
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 14px;">
+        <div>
+          <strong>ユーザーID:</strong><br>
+          <span style="color: #666;">${user.user_id || user.uid || "未設定"}</span>
+        </div>
+        <div>
+          <strong>ユーザー名:</strong><br>
+          <span style="color: #666;">${user.user_name || user.name || "未設定"}</span>
+        </div>
+        <div>
+          <strong>会社名:</strong><br>
+          <span style="color: #666;">${user.company_name || user.companyName || "未設定"}</span>
+        </div>
+        <div>
+          <strong>部署:</strong><br>
+          <span style="color: #666;">${user.department || "未設定"}</span>
+        </div>
+        <div>
+          <strong>ロール:</strong><br>
+          <span style="color: #666;">${user.role || "未設定"}</span>
+        </div>
+        <div>
+          <strong>ログイン時刻:</strong><br>
+          <span style="color: #666;">${user.timestamp ? new Date(user.timestamp).toLocaleString() : "未設定"}</span>
+        </div>
+      </div>
+      <div style="margin-top: 10px; font-size: 14px;">
+        <strong>メール:</strong> <span style="color: #666;">${user.email || "未設定"}</span><br>
+        <strong>電話番号:</strong> <span style="color: #666;">${user.phone || "未設定"}</span>
+      </div>
+    `;
+  } else {
+    console.log("currentUserDetails要素が見つかりません");
+  }
+
+  // フォームに現在の値を設定
+  document.getElementById("edit_user_id").value = user.user_id || user.uid || "";
+  document.getElementById("edit_user_name").value = user.user_name || user.name || "";
+  document.getElementById("edit_company_name").value = user.company_name || user.companyName || "";
+  document.getElementById("edit_department").value = user.department || "";
+  document.getElementById("edit_email").value = user.email || "";
+  document.getElementById("edit_phone").value = user.phone || "";
+
+  // プロフィールモーダルを閉じて編集モーダルを開く
+  closeProfileModal();
+  document.getElementById("profileEditModal").style.display = "block";
+}
+
+// プロフィール編集モーダルを閉じる
+function closeProfileEditModal() {
+  document.getElementById("profileEditModal").style.display = "none";
+}
+
+// プロフィールを保存
+async function saveProfile() {
+  try {
+    // 複数の方法でユーザー情報を取得
+    let currentUser = null;
+
+    // 方法1: UserSessionクラスから取得
+    if (window.UserSession && typeof UserSession.getCurrentUser === "function") {
+      try {
+        currentUser = UserSession.getCurrentUser();
+      } catch (error) {
+        console.log("UserSession取得エラー:", error);
+      }
+    }
+
+    // 方法2: localStorageから直接取得
+    if (!currentUser) {
+      try {
+        const sessionData = localStorage.getItem("currentUser");
+        if (sessionData) {
+          currentUser = JSON.parse(sessionData);
+        }
+      } catch (error) {
+        console.log("localStorage解析エラー:", error);
+      }
+    }
+
+    if (!currentUser) {
+      alert("ユーザー情報を取得できませんでした");
+      return;
+    }
+
+    const updatedData = {
+      user_name: document.getElementById("edit_user_name").value,
+      company_name: document.getElementById("edit_company_name").value,
+      department: document.getElementById("edit_department").value,
+      email: document.getElementById("edit_email").value,
+      phone: document.getElementById("edit_phone").value,
+      updatedAt: new Date()
+    };
+
+    // Firestoreのusersコレクションを更新
+    const userQuery = query(
+      collection(db, "users"),
+      where("user_id", "==", currentUser.user_id)
+    );
+
+    const querySnapshot = await getDocs(userQuery);
+
+    if (!querySnapshot.empty) {
+      const userDoc = querySnapshot.docs[0];
+      await setDoc(doc(db, "users", userDoc.id), updatedData, { merge: true });
+
+      // セッションデータを更新
+      const newUserData = { ...currentUser, ...updatedData };
+      UserSession.updateSession(newUserData);
+
+      alert("プロフィールを更新しました");
+      closeProfileEditModal();
+
+      // ヘッダーのユーザー情報を更新
+      updateHeaderUserInfo();
+
+    } else {
+      alert("ユーザー情報の更新に失敗しました");
+    }
+  } catch (error) {
+    console.error("プロフィール更新エラー:", error);
+    alert("プロフィールの更新中にエラーが発生しました: " + error.message);
+  }
+}
+
+// ===== 設定機能 =====
+
+// 設定モーダルを閉じる
+function closeSettingsModal() {
+  document.getElementById("settingsModal").style.display = "none";
+}
+
+// 設定を保存
+async function saveSettings() {
+  const projectName = document.getElementById("setting_project_name").value.trim();
+  const password = document.getElementById("setting_password").value.trim();
+
+  if (!projectName || !password) {
+    alert("プロジェクト名とパスワードは必須です");
+    return;
+  }
+
+  try {
+    // Firestoreに管理者設定を保存
+    const settingsRef = doc(db, "admin_settings", "config");
+    await setDoc(settingsRef, {
+      project_name: projectName,
+      admin_password: password, // 実際のプロダクションではハッシュ化が必要
+      updated_at: new Date(),
+      updated_by: getCurrentUserId()
+    });
+
+    // localStorage にもバックアップ保存（下位互換性のため）
+    localStorage.setItem("qr_project_name", projectName);
+    localStorage.setItem("qr_password", password);
+
+    alert("設定をFirestoreに保存しました");
+    closeSettingsModal();
+  } catch (error) {
+    console.error("設定保存エラー:", error);
+    alert("設定の保存中にエラーが発生しました: " + error.message);
+  }
+}
+
+// 現在のユーザーIDを取得
+function getCurrentUserId() {
+  try {
+    const sessionData = localStorage.getItem("currentUser");
+    if (sessionData) {
+      const user = JSON.parse(sessionData);
+      return user.user_id || user.uid || "unknown";
+    }
+    return "unknown";
+  } catch (error) {
+    console.error("現在のユーザーID取得エラー:", error);
+    return "unknown";
+  }
+}
+
+// URLプレビューを更新
+function updateUrlPreview() {
+  const projectName = document.getElementById("setting_project_name").value.trim();
+  const urlPreviewElement = document.getElementById("urlPreview");
+
+  if (!urlPreviewElement) return;
+
+  if (projectName) {
+    const baseUrl = window.location.origin;
+    const sampleUrls = [
+      `${baseUrl}/user.html?project=${encodeURIComponent(projectName)}`,
+      `${baseUrl}/staff.html?project=${encodeURIComponent(projectName)}`,
+      `${baseUrl}/maker.html?project=${encodeURIComponent(projectName)}`
+    ];
+
+    urlPreviewElement.innerHTML = `
+      <div style="margin-bottom: 8px;"><strong>生成されるQRコードURL例:</strong></div>
+      <div style="margin: 5px 0; padding: 5px; background-color: #e9ecef; border-radius: 3px;">
+        <strong>ユーザー:</strong><br>
+        <span style="font-size: 12px;">${sampleUrls[0]}</span>
+      </div>
+      <div style="margin: 5px 0; padding: 5px; background-color: #e9ecef; border-radius: 3px;">
+        <strong>スタッフ:</strong><br>
+        <span style="font-size: 12px;">${sampleUrls[1]}</span>
+      </div>
+      <div style="margin: 5px 0; padding: 5px; background-color: #e9ecef; border-radius: 3px;">
+        <strong>メーカー:</strong><br>
+        <span style="font-size: 12px;">${sampleUrls[2]}</span>
+      </div>
+    `;
+  } else {
+    urlPreviewElement.innerHTML = "プロジェクト名を入力するとURLプレビューが表示されます";
+  }
+}
+
+// 設定モーダルを開く
+async function showSettingsModal() {
+  try {
+    // Firestoreから設定を読み込み
+    const settingsRef = doc(db, "admin_settings", "config");
+    const settingsDoc = await getDoc(settingsRef);
+
+    let projectName = "";
+    let password = "";
+
+    if (settingsDoc.exists()) {
+      const settings = settingsDoc.data();
+      projectName = settings.project_name || "";
+      password = settings.admin_password || "";
+      console.log("Firestoreから設定を読み込み:", { projectName, hasPassword: !!password });
+    } else {
+      // Firestoreに設定がない場合、localStorageから読み込み（移行対応）
+      projectName = localStorage.getItem("qr_project_name") || "";
+      password = localStorage.getItem("qr_password") || "";
+      console.log("localStorageから設定を読み込み:", { projectName, hasPassword: !!password });
+    }
+
+    document.getElementById("setting_project_name").value = projectName;
+    document.getElementById("setting_password").value = password;
+
+    // URLプレビューを更新
+    updateUrlPreview();
+
+    // プロジェクト名入力時のリアルタイムプレビュー
+    const projectNameInput = document.getElementById("setting_project_name");
+    if (projectNameInput) {
+      projectNameInput.removeEventListener("input", updateUrlPreview); // 重複防止
+      projectNameInput.addEventListener("input", updateUrlPreview);
+    }
+
+    // モーダルを表示
+    document.getElementById("settingsModal").style.display = "block";
+
+  } catch (error) {
+    console.error("設定読み込みエラー:", error);
+    // エラーが発生してもモーダルは表示する
+    document.getElementById("settingsModal").style.display = "block";
+    alert("設定の読み込み中にエラーが発生しました: " + error.message);
+  }
+}// ヘッダーのユーザー情報を更新
+function updateHeaderUserInfo() {
+  const userInfoElement = document.getElementById("userInfo");
+  if (!userInfoElement) {
+    console.log("userInfo要素が見つかりません");
+    return;
+  }
+
+  // 複数の方法でユーザー情報を取得
+  let user = null;
+
+  // 方法1: UserSessionクラスから取得
+  if (window.UserSession && typeof UserSession.getCurrentUser === "function") {
+    try {
+      user = UserSession.getCurrentUser();
+      console.log("UserSession経由でユーザー情報取得:", user);
+    } catch (error) {
+      console.log("UserSession取得エラー:", error);
+    }
+  }
+
+  // 方法2: localStorageから直接取得
+  if (!user) {
+    try {
+      const sessionData = localStorage.getItem("currentUser");
+      if (sessionData) {
+        user = JSON.parse(sessionData);
+        console.log("localStorage経由でユーザー情報取得:", user);
+      }
+    } catch (error) {
+      console.log("localStorage解析エラー:", error);
+    }
+  }
+
+  if (user && userInfoElement) {
+    const displayName = user.user_name || user.name || "ユーザー";
+    const displayRole = user.role || "未設定";
+    userInfoElement.textContent = `${displayName} (${displayRole})`;
+    console.log("ヘッダーのユーザー情報を更新:", userInfoElement.textContent);
+  } else {
+    console.log("ユーザー情報が取得できませんでした");
+    userInfoElement.textContent = "未ログイン";
+  }
+}
+
 // グローバル関数として公開
 window.runMakerPerformanceTest = runMakerPerformanceTest;
 window.openMakerPage = openMakerPage;
+window.showProfileModal = showProfileModal;
+window.closeProfileModal = closeProfileModal;
+window.editProfile = editProfile;
+window.closeProfileEditModal = closeProfileEditModal;
+window.saveProfile = saveProfile;
+window.showSettingsModal = showSettingsModal;
+window.closeSettingsModal = closeSettingsModal;
+window.saveSettings = saveSettings;
+window.updateUrlPreview = updateUrlPreview;

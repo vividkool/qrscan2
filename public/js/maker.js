@@ -31,6 +31,24 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+// QRコードからの直接アクセス処理（index.htmlにリダイレクト）
+async function handleQRCodeRedirect() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const userId = urlParams.get("user_id");
+
+  if (!userId) {
+    return false; // user_idパラメータがない場合は通常処理
+  }
+
+  console.log("Maker page - QRコード直接アクセス検出 - index.htmlにリダイレクト - user_id:", userId);
+
+  // QRコードからの直接アクセスはindex.htmlにリダイレクト
+  window.location.href = `/?user_id=${userId}`;
+  return true;
+}
+
+// 役割に応じたリダイレクトURL取得は LoginAuth.getRedirectUrl を使用
+
 // ページロード時の初期化
 document.addEventListener("DOMContentLoaded", async function () {
   // ページ読み込み時のデバッグ情報
@@ -39,6 +57,14 @@ document.addEventListener("DOMContentLoaded", async function () {
   console.log("セッション存在確認:", !!localStorage.getItem("currentUser"));
   console.log("セッションデータ:", localStorage.getItem("currentUser"));
   console.log("================================");
+
+  // QRコードからの直接アクセス処理
+  const qrRedirectHandled = await handleQRCodeRedirect();
+
+  if (qrRedirectHandled) {
+    // QRコード直接アクセスの場合はindex.htmlにリダイレクト済み
+    return;
+  }
 
   // ユーザー情報表示
   await displayUserInfo(); // await追加
@@ -105,21 +131,20 @@ async function displayUserInfo() {
                 <span class="label">👤 ロール:</span>
                 <span class="value role-${user.role}">${user.role}</span>
               </div>
-              ${
-                user.department
-                  ? `
+              ${user.department
+            ? `
                 <div class="detail-item">
                   <span class="label">🏭 部署:</span>
                   <span class="value">${user.department}</span>
                 </div>
               `
-                  : ""
-              }
+            : ""
+          }
               <div class="detail-item">
                 <span class="label">⏰ ログイン時刻:</span>
                 <span class="value">${new Date(
-                  user.timestamp
-                ).toLocaleString()}</span>
+            user.timestamp
+          ).toLocaleString()}</span>
               </div>
             </div>
           </div>
@@ -304,21 +329,20 @@ async function displayMakerItems(user) {
             <span class="label">👤 ロール:</span>
             <span class="value role-${user.role}">${user.role}</span>
           </div>
-          ${
-            user.department
-              ? `
+          ${user.department
+        ? `
             <div class="detail-item">
               <span class="label">🏭 部署:</span>
               <span class="value">${user.department}</span>
             </div>
           `
-              : ""
-          }
+        : ""
+      }
           <div class="detail-item">
             <span class="label">⏰ ログイン時刻:</span>
             <span class="value">${new Date(
-              user.timestamp
-            ).toLocaleString()}</span>
+        user.timestamp
+      ).toLocaleString()}</span>
           </div>
         </div>
       </div>
@@ -363,13 +387,25 @@ async function displayMakerItems(user) {
         const data = doc.data();
         const scanCount = scanCounts[data.item_no] || 0;
 
+        // スキャン回数の色分け（staff.jsと同様）
+        let scanCountClass = '';
+        if (scanCount > 10) {
+          scanCountClass = 'style="background-color: #28a745; color: white; font-weight: bold;"'; // 緑：多い
+        } else if (scanCount > 5) {
+          scanCountClass = 'style="background-color: #ffc107; color: black; font-weight: bold;"'; // 黄：中程度
+        } else if (scanCount > 0) {
+          scanCountClass = 'style="background-color: #9cf2aeff;"'; // 白：少し
+        } else {
+          scanCountClass = 'style="background-color: #ffffff;"'; // 白：なし
+        }
+
         html += `
           <tr>
             <td><strong>${data.item_no || "未設定"}</strong></td>
             <td>${data.category_name || "未分類"}</td>
             <td>${data.company_name || "未設定"}</td>
             <td>${data.item_name || "未設定"}</td>
-            <td><span class="scan-count">${scanCount}</span></td>
+            <td class="content-cell" ${scanCountClass}>${scanCount}回</td>
           </tr>
         `;
       });
@@ -404,21 +440,20 @@ async function displayMakerItems(user) {
             <span class="label">👤 ロール:</span>
             <span class="value role-${user.role}">${user.role}</span>
           </div>
-          ${
-            user.department
-              ? `
+          ${user.department
+        ? `
             <div class="detail-item">
               <span class="label">🏭 部署:</span>
               <span class="value">${user.department}</span>
             </div>
           `
-              : ""
-          }
+        : ""
+      }
           <div class="detail-item">
             <span class="label">⏰ ログイン時刻:</span>
             <span class="value">${new Date(
-              user.timestamp
-            ).toLocaleString()}</span>
+        user.timestamp
+      ).toLocaleString()}</span>
           </div>
         </div>
       </div>
@@ -427,9 +462,8 @@ async function displayMakerItems(user) {
           <h3>⚠️ アイテム取得エラー</h3>
         </div>
         <div class="user-details">
-          <p>メーカー関連アイテムの取得中にエラーが発生しました: ${
-            error.message
-          }</p>
+          <p>メーカー関連アイテムの取得中にエラーが発生しました: ${error.message
+      }</p>
           <button onclick="displayUserInfo()" style="background-color: #9c27b0; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer;">再試行</button>
         </div>
       </div>
@@ -862,8 +896,7 @@ async function runPerformanceComparison() {
     console.log("❌ 従来方法: エラー -", legacyResult.error);
   } else {
     console.log(
-      `⏱️ 従来方法: ${legacyResult.time.toFixed(2)}ms (${
-        legacyResult.docCount
+      `⏱️ 従来方法: ${legacyResult.time.toFixed(2)}ms (${legacyResult.docCount
       }件読み取り)`
     );
   }
@@ -872,8 +905,7 @@ async function runPerformanceComparison() {
     console.log("❌ Aggregation方法: エラー -", aggregationResult.error);
   } else {
     console.log(
-      `⚡ Aggregation方法: ${aggregationResult.time.toFixed(2)}ms (${
-        aggregationResult.queryCount
+      `⚡ Aggregation方法: ${aggregationResult.time.toFixed(2)}ms (${aggregationResult.queryCount
       }クエリ)`
     );
   }
@@ -882,8 +914,7 @@ async function runPerformanceComparison() {
     const improvement =
       ((legacyResult.time - aggregationResult.time) / legacyResult.time) * 100;
     console.log(
-      `📈 パフォーマンス改善: ${
-        improvement > 0 ? "+" : ""
+      `📈 パフォーマンス改善: ${improvement > 0 ? "+" : ""
       }${improvement.toFixed(1)}%`
     );
 

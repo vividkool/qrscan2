@@ -2,6 +2,24 @@
 import "./auth.js";
 import "./smart-qr-scanner.js";
 
+// QRコードからの直接アクセス処理（index.htmlにリダイレクト）
+async function handleQRCodeRedirect() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const userId = urlParams.get("user_id");
+
+  if (!userId) {
+    return false; // user_idパラメータがない場合は通常処理
+  }
+
+  console.log("User page - QRコード直接アクセス検出 - index.htmlにリダイレクト - user_id:", userId);
+
+  // QRコードからの直接アクセスはindex.htmlにリダイレクト
+  window.location.href = `/?user_id=${userId}`;
+  return true;
+}
+
+// 役割に応じたリダイレクトURL取得は LoginAuth.getRedirectUrl を使用
+
 // ページロード時の初期化
 document.addEventListener("DOMContentLoaded", async function () {
   // ページ読み込み時のデバッグ情報
@@ -10,6 +28,14 @@ document.addEventListener("DOMContentLoaded", async function () {
   console.log("セッション存在確認:", !!localStorage.getItem("currentUser"));
   console.log("セッションデータ:", localStorage.getItem("currentUser"));
   console.log("================================");
+
+  // QRコードからの直接アクセス処理
+  const qrRedirectHandled = await handleQRCodeRedirect();
+
+  if (qrRedirectHandled) {
+    // QRコード直接アクセスの場合はindex.htmlにリダイレクト済み
+    return;
+  }
 
   // ユーザー情報表示
   await displayUserInfo(); // await追加
