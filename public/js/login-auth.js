@@ -40,6 +40,7 @@ const USER_ROLES = {
   STAFF: "staff",
   MAKER: "maker",
   USER: "user",
+  UKETUKE: "uketuke",
 };
 
 // Google認証プロバイダの設定
@@ -150,6 +151,8 @@ class LoginAuth {
         return "maker.html";
       case USER_ROLES.USER:
         return "user.html";
+      case USER_ROLES.UKETUKE:
+        return "uketuke.html";
       default:
         return "user.html";
     }
