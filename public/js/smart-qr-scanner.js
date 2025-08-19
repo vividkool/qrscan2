@@ -800,9 +800,8 @@ class SmartQRScanner {
       });
 
       // テーブル形式でHTML生成
-      let html = `<h3>📜 ${
-        currentUser.user_name || "あなた"
-      }のスキャン履歴</h3>`;
+      let html = `<h3>
+        スキャン履歴</h3>`;
       html += '<div class="history-table-container">';
       html += '<table class="history-table">';
       html += "<thead>";
@@ -1066,10 +1065,46 @@ window.stopScanning = async function () {
 // 互換性のための関数名
 window.startScan = async function () {
   await window.smartScanner.startScan();
+
+  // スキャン開始時の表示制御
+  const cameraContainer = document.getElementById("cameraContainer");
+  const scanHistory = document.getElementById("scanHistory");
+  const toggleBtn = document.getElementById("toggleBtn");
+
+  if (cameraContainer && scanHistory && toggleBtn) {
+    cameraContainer.style.display = "block";
+    scanHistory.style.display = "none";
+    toggleBtn.textContent = "📋 担当者一覧表示";
+
+    // staff.jsのisShowingScannerフラグも更新
+    if (window.isShowingScanner !== undefined) {
+      window.isShowingScanner = true;
+    }
+
+    console.log("スキャン開始：カメラ表示、履歴非表示");
+  }
 };
 
 window.stopScan = async function () {
   await window.smartScanner.stopScan();
+
+  // スキャン停止時の表示制御
+  const cameraContainer = document.getElementById("cameraContainer");
+  const scanHistory = document.getElementById("scanHistory");
+  const toggleBtn = document.getElementById("toggleBtn");
+
+  if (cameraContainer && scanHistory && toggleBtn) {
+    cameraContainer.style.display = "none";
+    scanHistory.style.display = "block";
+    toggleBtn.textContent = "📷 スキャナー表示";
+
+    // staff.jsのisShowingScannerフラグも更新
+    if (window.isShowingScanner !== undefined) {
+      window.isShowingScanner = false;
+    }
+
+    console.log("スキャン停止：カメラ非表示、履歴表示");
+  }
 };
 
 // グローバル関数として公開

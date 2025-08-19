@@ -576,11 +576,11 @@
                 <span id="userInfo" style="color: rgba(255,255,255,0.9); font-size: 14px;"></span>
                 <button onclick="showProfileModal()"
                     style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
-                    👤 プロフィール
+                    👤 管理者情報
                 </button>
                 <button onclick="showSettingsModal()"
                     style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
-                    ⚙️ 設定
+                    ⚙️ プロジェクト設定
                 </button>
                 <button onclick="UserSession.logout()"
                     style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
@@ -790,7 +790,7 @@
     <div id="profileModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeProfileModal()">&times;</span>
-            <h2>👤 プロフィール情報</h2>
+            <h2>👤 管理者プロフィール情報</h2>
             <div id="profileContent">
                 <!-- プロフィール情報がここに表示されます -->
             </div>
@@ -811,7 +811,7 @@
     <div id="profileEditModal" class="modal">
         <div class="modal-content">
             <span class="close" onclick="closeProfileEditModal()">&times;</span>
-            <h2>✏️ プロフィール編集</h2>
+            <h2>✏️ 管理者プロフィール編集</h2>
 
             <!-- 現在のユーザー情報表示セクション -->
             <div id="currentUserInfo"
@@ -839,8 +839,6 @@
 
                     <!-- 右列 -->
                     <div>
-                        <label>部署:</label>
-                        <input type="text" id="edit_department" />
 
                         <label>メールアドレス:</label>
                         <input type="email" id="edit_email" />
@@ -871,19 +869,19 @@
 
             <!-- QRコード生成設定 -->
             <div style="margin: 20px 0;">
-                <h3>📱 QRコード生成設定</h3>
+                <h3>📱 来場者QRコード生成設定【重要】</h3>
 
                 <label>プロジェクト名:</label>
-                <input type="text" id="setting_project_name" placeholder="プロジェクト名を入力" />
+                <input type="text" id="setting_project_name" placeholder="例: EXPO20250819" />
                 <small style="display: block; color: #666; margin-bottom: 15px;">
-                    QRコードURLのパラメータとして使用されます（例: ?project=プロジェクト名）<br>
-                    複数のadmin管理システムを区別するための識別子にもなります
+                    QRコードURLのパラメータとして使用されます。空の場合はデフォルト値になります<br>
+                    
                 </small>
 
                 <label>パスワード:</label>
                 <input type="password" id="setting_password" placeholder="パスワードを入力" />
                 <small style="display: block; color: #666; margin-bottom: 15px;">
-                    QRコードアクセス時の認証に使用されます
+                    管理者のみがダッシュボードの管理ができます
                 </small>
 
                 <!-- プレビューセクション -->

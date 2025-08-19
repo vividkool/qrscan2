@@ -37,7 +37,10 @@ async function handleQRCodeRedirect() {
     return false; // user_idパラメータがない場合は通常処理
   }
 
-  console.log("Staff page - QRコード直接アクセス検出 - index.htmlにリダイレクト - user_id:", userId);
+  console.log(
+    "Staff page - QRコード直接アクセス検出 - index.htmlにリダイレクト - user_id:",
+    userId
+  );
 
   // QRコードからの直接アクセスはindex.htmlにリダイレクト
   window.location.href = `/?user_id=${userId}`;
@@ -61,7 +64,7 @@ document.addEventListener("DOMContentLoaded", async function () {
   if (qrRedirectHandled) {
     // QRコード直接アクセスの場合はindex.htmlにリダイレクト済み
     return;
-  }  // ユーザー情報表示
+  } // ユーザー情報表示
   await displayUserInfo();
 
   // スキャン履歴の読み込み
@@ -171,30 +174,33 @@ async function initializeTantouUsersList() {
   }
 
   // 担当者一覧表示ボタンを追加
-  const controlsContainer = document.querySelector('.scan-controls');
-  if (controlsContainer && !document.getElementById('toggleTantouListBtn')) {
-    const toggleButton = document.createElement('button');
-    toggleButton.id = 'toggleTantouListBtn';
-    toggleButton.textContent = '📋 担当者一覧表示';
+  const controlsContainer = document.querySelector(".scan-controls");
+  if (controlsContainer && !document.getElementById("toggleTantouListBtn")) {
+    const toggleButton = document.createElement("button");
+    toggleButton.id = "toggleTantouListBtn";
+    toggleButton.textContent = "📋 担当者一覧表示";
     toggleButton.onclick = toggleTantouUsersList;
     controlsContainer.appendChild(toggleButton);
   }
 
   // 担当者一覧表示エリアを追加
-  if (!document.getElementById('tantouUsersSection')) {
-    const existingContainer = document.querySelector('.container:last-of-type');
+  if (!document.getElementById("tantouUsersSection")) {
+    const existingContainer = document.querySelector(".container:last-of-type");
     if (existingContainer) {
-      const tantouSection = document.createElement('div');
-      tantouSection.id = 'tantouUsersSection';
-      tantouSection.className = 'container';
-      tantouSection.style.display = 'none';
+      const tantouSection = document.createElement("div");
+      tantouSection.id = "tantouUsersSection";
+      tantouSection.className = "container";
+      tantouSection.style.display = "none";
       tantouSection.innerHTML = `
         <h2>👥 担当者一覧 (${currentUser.user_name})</h2>
         <div id="tantouUsersContainer">
           <div class="loading">担当者一覧を読み込み中...</div>
         </div>
       `;
-      existingContainer.parentNode.insertBefore(tantouSection, existingContainer.nextSibling);
+      existingContainer.parentNode.insertBefore(
+        tantouSection,
+        existingContainer.nextSibling
+      );
     }
   }
 }
@@ -214,22 +220,22 @@ function getCurrentUserInfo() {
 
 // 担当者一覧の表示切り替え
 async function toggleTantouUsersList() {
-  const tantouSection = document.getElementById('tantouUsersSection');
-  const toggleButton = document.getElementById('toggleTantouListBtn');
+  const tantouSection = document.getElementById("tantouUsersSection");
+  const toggleButton = document.getElementById("toggleTantouListBtn");
 
   if (!tantouSection) return;
 
-  if (tantouSection.style.display === 'none') {
+  if (tantouSection.style.display === "none") {
     // 表示する
-    tantouSection.style.display = 'block';
-    toggleButton.textContent = '🔼 担当者一覧を隠す';
+    tantouSection.style.display = "block";
+    toggleButton.textContent = "🔼 担当者一覧を隠す";
 
     // データを読み込み
     await loadTantouUsersList();
   } else {
     // 隠す
-    tantouSection.style.display = 'none';
-    toggleButton.textContent = '📋 担当者一覧表示';
+    tantouSection.style.display = "none";
+    toggleButton.textContent = "📋 担当者一覧表示";
   }
 }
 
@@ -241,11 +247,12 @@ async function loadTantouUsersList() {
     return;
   }
 
-  const tantouContainer = document.getElementById('tantouUsersContainer');
+  const tantouContainer = document.getElementById("tantouUsersContainer");
   if (!tantouContainer) return;
 
   try {
-    tantouContainer.innerHTML = '<div class="loading">担当者一覧を読み込み中...</div>';
+    tantouContainer.innerHTML =
+      '<div class="loading">担当者一覧を読み込み中...</div>';
 
     console.log("担当者一覧検索開始 - staff_name:", currentUser.user_name);
 
@@ -305,16 +312,16 @@ async function loadTantouUsersList() {
       const scanCount = scanCounts[index];
 
       // ステータス表示の色分け
-      let statusClass = '';
-      let statusText = userData.status || '未設定';
+      let statusClass = "";
+      let statusText = userData.status || "未設定";
       switch (statusText) {
-        case '入場中':
+        case "入場中":
           statusClass = 'style="color: #28a745; font-weight: bold;"';
           break;
-        case '退場済':
+        case "退場済":
           statusClass = 'style="color: #dc3545;"';
           break;
-        case '-':
+        case "-":
           statusClass = 'style="color: #ffc107;"';
           break;
         default:
@@ -322,11 +329,13 @@ async function loadTantouUsersList() {
       }
 
       // スキャン回数の色分け
-      let scanCountClass = '';
+      let scanCountClass = "";
       if (scanCount > 10) {
-        scanCountClass = 'style="background-color: #28a745; font-weight: bold;"'; // 緑：多い
+        scanCountClass =
+          'style="background-color: #28a745; font-weight: bold;"'; // 緑：多い
       } else if (scanCount > 5) {
-        scanCountClass = 'style="background-color: #ffc107; font-weight: bold;"'; // 黄：中程度
+        scanCountClass =
+          'style="background-color: #ffc107; font-weight: bold;"'; // 黄：中程度
       } else if (scanCount > 0) {
         scanCountClass = 'style="background-color: #ffffffff;"'; // 青：少し
       } else {
@@ -335,8 +344,8 @@ async function loadTantouUsersList() {
 
       tableHTML += `
         <tr>
-          <td class="content-cell">${userData.company_name || '未設定'}</td>
-          <td class="content-cell">${userData.user_name || '未設定'}</td>
+          <td class="content-cell">${userData.company_name || "未設定"}</td>
+          <td class="content-cell">${userData.user_name || "未設定"}</td>
           <td class="content-cell" ${statusClass}>${statusText}</td>
           <td class="content-cell" ${scanCountClass}>${scanCount}回</td>
         </tr>
@@ -354,7 +363,6 @@ async function loadTantouUsersList() {
 
     tantouContainer.innerHTML = tableHTML;
     console.log(`担当者一覧表示完了 - ${userCount}人のユーザーを表示`);
-
   } catch (error) {
     console.error("担当者一覧読み込みエラー:", error);
     tantouContainer.innerHTML = `
@@ -382,12 +390,64 @@ async function getScanCountForUser(userId) {
 
     console.log(`ユーザー ${userId} のスキャン回数: ${scanCount}`);
     return scanCount;
-
   } catch (error) {
     console.error(`ユーザー ${userId} のスキャン回数取得エラー:`, error);
     return 0;
   }
 }
+
+// 表示状態管理
+let isShowingScanner = false; // 初期状態はスキャン履歴表示
+
+// 表示切り替え機能
+function toggleView() {
+  const cameraContainer = document.getElementById("cameraContainer");
+  const scanHistory = document.getElementById("scanHistory");
+  const toggleBtn = document.getElementById("toggleBtn");
+
+  if (!cameraContainer || !scanHistory || !toggleBtn) {
+    console.error("必要な要素が見つかりません");
+    return;
+  }
+
+  isShowingScanner = !isShowingScanner;
+
+  if (isShowingScanner) {
+    // スキャナー表示モード
+    cameraContainer.style.display = "block";
+    scanHistory.style.display = "none";
+    toggleBtn.textContent = "📋 担当者一覧表示";
+    console.log("スキャナー表示モードに切り替え");
+  } else {
+    // 履歴表示モード
+    cameraContainer.style.display = "none";
+    scanHistory.style.display = "block";
+    toggleBtn.textContent = "📷 スキャナー表示";
+    console.log("履歴表示モードに切り替え");
+  }
+}
+
+// 初期表示設定（履歴表示）
+function initializeView() {
+  const cameraContainer = document.getElementById("cameraContainer");
+  const scanHistory = document.getElementById("scanHistory");
+  const toggleBtn = document.getElementById("toggleBtn");
+
+  if (cameraContainer && scanHistory && toggleBtn) {
+    // 初期状態：履歴表示、スキャナー非表示
+    cameraContainer.style.display = "none";
+    scanHistory.style.display = "block";
+    toggleBtn.textContent = "📷 スキャナー表示";
+    isShowingScanner = false;
+    console.log("初期表示設定完了：履歴表示モード");
+  }
+}
+
+// ページロード後に初期表示を設定
+document.addEventListener("DOMContentLoaded", function () {
+  // 少し遅延させて確実に要素が読み込まれてから実行
+  setTimeout(initializeView, 100);
+});
 
 // ログアウト処理
 function handleLogout() {
@@ -403,5 +463,7 @@ function handleLogout() {
 
 // グローバル関数として公開
 window.handleLogout = handleLogout;
+window.toggleView = toggleView;
+window.isShowingScanner = isShowingScanner;
 
 console.log("Staff page functions loaded");

@@ -522,9 +522,6 @@
         <canvas id="canvas" style="display: none"></canvas>
         <div style="margin-top: 10px">
           <p id="scanStatus">QRコードをカメラに向けてください</p>
-          <div style="font-size: 12px; color: #666; margin-top: 5px">
-            📷 高性能スキャナー (ZXing優先 + フォールバック対応)
-          </div>
         </div>
         <div id="result" class="result"></div>
       </div>
@@ -535,20 +532,7 @@
     </div>
 
     <div class="controls">
-      <button
-        onclick="UserSession.logout()"
-        style="
-          background: #dc3545;
-          color: white;
-          border: none;
-          padding: 6px 12px;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 12px;
-        "
-      >
-        ログアウト
-      </button>
+      <button onclick="UserSession.logout()">ログアウト</button>
       <button id="startScanBtn" class="scan-button" onclick="startScan()">
         📷 カメラを開始
       </button>

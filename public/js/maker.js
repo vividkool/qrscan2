@@ -31,6 +31,44 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+// ユーザー情報HTMLを生成する共通関数
+function generateUserInfoHTML(user, userId) {
+  const companyName = user.company_name || user.companyName || "未設定";
+
+  return `
+    <div class="user-card">
+      <div class="user-details">
+        <div class="detail-item">
+          <span class="label">🏢 会社名:</span>
+          <span class="value">${companyName}</span>
+        </div>
+      </div>
+      <div class="user-header">
+        <h3>👨‍💼 ${user.user_name || user.name || "ユーザー"}</h3>
+      </div>
+    </div>
+  `;
+}
+
+// エラー表示HTML生成関数
+function generateErrorHTML(title, message, showRetryButton = false) {
+  return `
+    <div class="user-card error">
+      <div class="user-header">
+        <h3>⚠️ ${title}</h3>
+      </div>
+      <div class="user-details">
+        <p>${message}</p>
+        ${
+          showRetryButton
+            ? '<button onclick="displayUserInfo()" style="background-color: #9c27b0; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer;">再試行</button>'
+            : '<button onclick="handleLogout()" class="logout-btn">ログアウト</button>'
+        }
+      </div>
+    </div>
+  `;
+}
+
 // QRコードからの直接アクセス処理（index.htmlにリダイレクト）
 async function handleQRCodeRedirect() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -40,7 +78,10 @@ async function handleQRCodeRedirect() {
     return false; // user_idパラメータがない場合は通常処理
   }
 
-  console.log("Maker page - QRコード直接アクセス検出 - index.htmlにリダイレクト - user_id:", userId);
+  console.log(
+    "Maker page - QRコード直接アクセス検出 - index.htmlにリダイレクト - user_id:",
+    userId
+  );
 
   // QRコードからの直接アクセスはindex.htmlにリダイレクト
   window.location.href = `/?user_id=${userId}`;
@@ -112,42 +153,11 @@ async function displayUserInfo() {
       }
 
       if (user) {
-        // company_nameが未定義の場合のフォールバック処理
-        const companyName = user.company_name || user.companyName || "未設定";
+        const userId = user.user_id || user.uid;
 
         // ローディング表示
         userInfoElement.innerHTML = `
-          <div class="user-card">
-            <div class="user-header">
-              <h3>👨‍💼 ${user.user_name || user.name || "ユーザー"}</h3>
-              <span class="user-id">ID: ${user.user_id || user.uid}</span>
-            </div>
-            <div class="user-details">
-              <div class="detail-item">
-                <span class="label">🏢 会社名:</span>
-                <span class="value">${companyName}</span>
-              </div>
-              <div class="detail-item">
-                <span class="label">👤 ロール:</span>
-                <span class="value role-${user.role}">${user.role}</span>
-              </div>
-              ${user.department
-            ? `
-                <div class="detail-item">
-                  <span class="label">🏭 部署:</span>
-                  <span class="value">${user.department}</span>
-                </div>
-              `
-            : ""
-          }
-              <div class="detail-item">
-                <span class="label">⏰ ログイン時刻:</span>
-                <span class="value">${new Date(
-            user.timestamp
-          ).toLocaleString()}</span>
-              </div>
-            </div>
-          </div>
+          ${generateUserInfoHTML(user, userId)}
           <div class="loading-container">
             <div class="spinner"></div>
             <span>メーカー関連アイテムを読み込み中...</span>
@@ -160,31 +170,17 @@ async function displayUserInfo() {
         console.log("Maker情報表示完了:", user);
       } else {
         console.error("ユーザー情報を取得できませんでした");
-        userInfoElement.innerHTML = `
-          <div class="user-card error">
-            <div class="user-header">
-              <h3>⚠️ エラー</h3>
-            </div>
-            <div class="user-details">
-              <p>ユーザー情報を取得できませんでした。再ログインしてください。</p>
-              <button onclick="handleLogout()" class="logout-btn">ログアウト</button>
-            </div>
-          </div>
-        `;
+        userInfoElement.innerHTML = generateErrorHTML(
+          "エラー",
+          "ユーザー情報を取得できませんでした。再ログインしてください。"
+        );
       }
     } catch (error) {
       console.error("ユーザー情報表示エラー:", error);
-      userInfoElement.innerHTML = `
-        <div class="user-card error">
-          <div class="user-header">
-            <h3>⚠️ エラー</h3>
-          </div>
-          <div class="user-details">
-            <p>ユーザー情報の表示中にエラーが発生しました: ${error.message}</p>
-            <button onclick="handleLogout()" class="logout-btn">ログアウト</button>
-          </div>
-        </div>
-      `;
+      userInfoElement.innerHTML = generateErrorHTML(
+        "エラー",
+        `ユーザー情報の表示中にエラーが発生しました: ${error.message}`
+      );
     }
   }
 }
@@ -312,41 +308,8 @@ async function displayMakerItems(user) {
     console.log("スキャンカウント結果:", scanCounts);
     console.log("=============================================");
 
-    // 現在のユーザー情報を保持してアイテム情報を追加
-    const company_name = user.company_name || user.companyName || "未設定";
-    let html = `
-      <div class="user-card">
-        <div class="user-header">
-          <h3>👨‍💼 ${user.user_name || user.name || "ユーザー"}</h3>
-          <span class="user-id">ID: ${userId}</span>
-        </div>
-        <div class="user-details">
-          <div class="detail-item">
-            <span class="label">🏢 会社名:</span>
-            <span class="value">${company_name}</span>
-          </div>
-          <div class="detail-item">
-            <span class="label">👤 ロール:</span>
-            <span class="value role-${user.role}">${user.role}</span>
-          </div>
-          ${user.department
-        ? `
-            <div class="detail-item">
-              <span class="label">🏭 部署:</span>
-              <span class="value">${user.department}</span>
-            </div>
-          `
-        : ""
-      }
-          <div class="detail-item">
-            <span class="label">⏰ ログイン時刻:</span>
-            <span class="value">${new Date(
-        user.timestamp
-      ).toLocaleString()}</span>
-          </div>
-        </div>
-      </div>
-    `;
+    // 共通関数を使用してユーザー情報HTMLを生成
+    let html = generateUserInfoHTML(user, userId);
 
     // アイテム情報の表示
     if (itemsSnapshot.empty) {
@@ -388,11 +351,13 @@ async function displayMakerItems(user) {
         const scanCount = scanCounts[data.item_no] || 0;
 
         // スキャン回数の色分け（staff.jsと同様）
-        let scanCountClass = '';
+        let scanCountClass = "";
         if (scanCount > 10) {
-          scanCountClass = 'style="background-color: #28a745; color: white; font-weight: bold;"'; // 緑：多い
+          scanCountClass =
+            'style="background-color: #28a745; color: white; font-weight: bold;"'; // 緑：多い
         } else if (scanCount > 5) {
-          scanCountClass = 'style="background-color: #ffc107; color: black; font-weight: bold;"'; // 黄：中程度
+          scanCountClass =
+            'style="background-color: #ffc107; color: black; font-weight: bold;"'; // 黄：中程度
         } else if (scanCount > 0) {
           scanCountClass = 'style="background-color: #9cf2aeff;"'; // 白：少し
         } else {
@@ -423,51 +388,14 @@ async function displayMakerItems(user) {
   } catch (error) {
     console.error("メーカー関連アイテム取得エラー:", error);
 
-    // エラー時はユーザー情報だけ表示してエラーメッセージを追加
-    const company_name = user.company_name || user.companyName || "未設定";
-    userInfoElement.innerHTML = `
-      <div class="user-card">
-        <div class="user-header">
-          <h3>👨‍💼 ${user.user_name || user.name || "ユーザー"}</h3>
-          <span class="user-id">ID: ${userId}</span>
-        </div>
-        <div class="user-details">
-          <div class="detail-item">
-            <span class="label">🏢 会社名:</span>
-            <span class="value">${company_name}</span>
-          </div>
-          <div class="detail-item">
-            <span class="label">👤 ロール:</span>
-            <span class="value role-${user.role}">${user.role}</span>
-          </div>
-          ${user.department
-        ? `
-            <div class="detail-item">
-              <span class="label">🏭 部署:</span>
-              <span class="value">${user.department}</span>
-            </div>
-          `
-        : ""
-      }
-          <div class="detail-item">
-            <span class="label">⏰ ログイン時刻:</span>
-            <span class="value">${new Date(
-        user.timestamp
-      ).toLocaleString()}</span>
-          </div>
-        </div>
-      </div>
-      <div class="user-card error">
-        <div class="user-header">
-          <h3>⚠️ アイテム取得エラー</h3>
-        </div>
-        <div class="user-details">
-          <p>メーカー関連アイテムの取得中にエラーが発生しました: ${error.message
-      }</p>
-          <button onclick="displayUserInfo()" style="background-color: #9c27b0; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer;">再試行</button>
-        </div>
-      </div>
-    `;
+    // エラー時はユーザー情報と共通エラー表示を組み合わせ
+    userInfoElement.innerHTML =
+      generateUserInfoHTML(user, userId) +
+      generateErrorHTML(
+        "アイテム取得エラー",
+        `メーカー関連アイテムの取得中にエラーが発生しました: ${error.message}`,
+        true // 再試行ボタンを表示
+      );
   }
 }
 
@@ -896,7 +824,8 @@ async function runPerformanceComparison() {
     console.log("❌ 従来方法: エラー -", legacyResult.error);
   } else {
     console.log(
-      `⏱️ 従来方法: ${legacyResult.time.toFixed(2)}ms (${legacyResult.docCount
+      `⏱️ 従来方法: ${legacyResult.time.toFixed(2)}ms (${
+        legacyResult.docCount
       }件読み取り)`
     );
   }
@@ -905,7 +834,8 @@ async function runPerformanceComparison() {
     console.log("❌ Aggregation方法: エラー -", aggregationResult.error);
   } else {
     console.log(
-      `⚡ Aggregation方法: ${aggregationResult.time.toFixed(2)}ms (${aggregationResult.queryCount
+      `⚡ Aggregation方法: ${aggregationResult.time.toFixed(2)}ms (${
+        aggregationResult.queryCount
       }クエリ)`
     );
   }
@@ -914,7 +844,8 @@ async function runPerformanceComparison() {
     const improvement =
       ((legacyResult.time - aggregationResult.time) / legacyResult.time) * 100;
     console.log(
-      `📈 パフォーマンス改善: ${improvement > 0 ? "+" : ""
+      `📈 パフォーマンス改善: ${
+        improvement > 0 ? "+" : ""
       }${improvement.toFixed(1)}%`
     );
 

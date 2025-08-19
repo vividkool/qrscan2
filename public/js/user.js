@@ -11,7 +11,10 @@ async function handleQRCodeRedirect() {
     return false; // user_idパラメータがない場合は通常処理
   }
 
-  console.log("User page - QRコード直接アクセス検出 - index.htmlにリダイレクト - user_id:", userId);
+  console.log(
+    "User page - QRコード直接アクセス検出 - index.htmlにリダイレクト - user_id:",
+    userId
+  );
 
   // QRコードからの直接アクセスはindex.htmlにリダイレクト
   window.location.href = `/?user_id=${userId}`;
@@ -98,8 +101,8 @@ async function displayUserInfo() {
         userInfoElement.innerHTML = `
           <div style="display: flex; flex-direction: column; gap: 5px;">
             <div style="display: flex; flex-direction: column;">
-              <span style="font-weight: bold;">会社名：${companyName}</span>
-              <span style="font-weight: bold;">ご芳名：${userName}</span>
+              <span style="font-weight: bold;">会社名：${companyName}様</span>
+              <span style="font-weight: bold;">ご芳名：${userName}様</span>
             </div>
             <div style="font-size: 0.7em; color: #999; font-family: monospace;">
               DEBUG: user_id = ${user.user_id || user.id || "未設定"}

@@ -1,400 +1,412 @@
 <!DOCTYPE html>
 <html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>staff page</title>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        padding-bottom: 160px;
+        /* 固定ボタンのための余白 */
+        background-color: #f5f5f5;
+      }
 
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>staff page</title>
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-        sans-serif;
-      max-width: 800px;
-      margin: 0 auto;
-      padding: 20px;
-      padding-bottom: 160px;
-      /* 固定ボタンのための余白 */
-      background-color: #f5f5f5;
-    }
+      .container {
+        background: white;
+        border-radius: 8px;
+        padding: 20px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+      }
 
-    .container {
-      background: white;
-      border-radius: 8px;
-      padding: 20px;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-      margin-bottom: 20px;
-    }
+      h1 {
+        color: #333;
+        border-bottom: 3px solid #ff6b35;
+        padding-bottom: 10px;
+        text-align: center;
+      }
 
-    h1 {
-      color: #333;
-      border-bottom: 3px solid #ff6b35;
-      padding-bottom: 10px;
-      text-align: center;
-    }
+      button {
+        background-color: #ff6b35;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 4px;
+        cursor: pointer;
+        margin: 5px;
+        font-size: 16px;
+        width: 100%;
+        max-width: 300px;
+      }
 
-    button {
-      background-color: #ff6b35;
-      color: white;
-      border: none;
-      padding: 12px 24px;
-      border-radius: 4px;
-      cursor: pointer;
-      margin: 5px;
-      font-size: 16px;
-      width: 100%;
-      max-width: 300px;
-    }
+      button:hover {
+        background-color: #e55a2b;
+      }
 
-    button:hover {
-      background-color: #e55a2b;
-    }
+      button:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+      }
 
-    button:disabled {
-      background-color: #ccc;
-      cursor: not-allowed;
-    }
+      .scan-button {
+        background-color: #27ae60;
+        font-size: 20px;
+        padding: 15px 30px;
+        flex: 1;
+      }
 
-    .scan-button {
-      background-color: #27ae60;
-      font-size: 20px;
-      padding: 15px 30px;
-      flex: 1;
-    }
+      .scan-button:hover {
+        background-color: #2ecc71;
+      }
 
-    .scan-button:hover {
-      background-color: #2ecc71;
-    }
+      .stop-button {
+        background-color: #e74c3c;
+        font-size: 20px;
+        padding: 15px 30px;
+        flex: 1;
+      }
 
-    .stop-button {
-      background-color: #e74c3c;
-      font-size: 20px;
-      padding: 15px 30px;
-      flex: 1;
-    }
+      .stop-button:hover {
+        background-color: #c0392b;
+      }
 
-    .stop-button:hover {
-      background-color: #c0392b;
-    }
+      .back-button {
+        background-color: #95a5a6;
+        flex: 1;
+        margin: 0;
+      }
 
-    .back-button {
-      background-color: #95a5a6;
-      flex: 1;
-      margin: 0;
-    }
+      .back-button:hover {
+        background-color: #7f8c8d;
+      }
 
-    .back-button:hover {
-      background-color: #7f8c8d;
-    }
+      .camera-container {
+        display: none;
+        text-align: center;
+        margin: 20px 0;
+        padding: 20px;
+        background-color: #ecf0f1;
+        border-radius: 8px;
+      }
 
-    .camera-container {
-      display: none;
-      text-align: center;
-      margin: 20px 0;
-      padding: 20px;
-      background-color: #ecf0f1;
-      border-radius: 8px;
-    }
+      .camera-container.active {
+        display: block;
+      }
 
-    .camera-container.active {
-      display: block;
-    }
+      #camera {
+        width: 100%;
+        max-width: 400px;
+        height: auto;
+        border-radius: 8px;
+      }
 
-    #camera {
-      width: 100%;
-      max-width: 400px;
-      height: auto;
-      border-radius: 8px;
-    }
+      .status {
+        padding: 10px;
+        border-radius: 4px;
+        margin: 10px 0;
+        display: none;
+      }
 
-    .status {
-      padding: 10px;
-      border-radius: 4px;
-      margin: 10px 0;
-      display: none;
-    }
+      .status.info {
+        background-color: #e8f4f8;
+        color: #2e86ab;
+        border: 1px solid #bee5eb;
+      }
 
-    .status.info {
-      background-color: #e8f4f8;
-      color: #2e86ab;
-      border: 1px solid #bee5eb;
-    }
+      .status.success {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+      }
 
-    .status.success {
-      background-color: #d4edda;
-      color: #155724;
-      border: 1px solid #c3e6cb;
-    }
+      .status.warning {
+        background-color: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeaa7;
+      }
 
-    .status.warning {
-      background-color: #fff3cd;
-      color: #856404;
-      border: 1px solid #ffeaa7;
-    }
+      .status.error {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f1aeb5;
+      }
 
-    .status.error {
-      background-color: #f8d7da;
-      color: #721c24;
-      border: 1px solid #f1aeb5;
-    }
+      .button-container {
+        display: flex;
+        gap: 10px;
+        margin: 20px 0;
+        align-items: center;
+        justify-content: center;
+      }
 
-    .button-container {
-      display: flex;
-      gap: 10px;
-      margin: 20px 0;
-      align-items: center;
-      justify-content: center;
-    }
+      .scan-controls {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 8px;
+        background: white;
+        padding: 12px;
+        border-radius: 12px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        z-index: 1000;
+        width: 95%;
+        max-width: 700px;
+        flex-wrap: wrap;
+      }
 
-    .scan-controls {
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      gap: 10px;
-      background: white;
-      padding: 15px;
-      border-radius: 12px;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-      z-index: 1000;
-      width: 90%;
-      max-width: 600px;
-    }
+      .scan-controls button {
+        flex: 1;
+        min-width: 120px;
+        font-size: 14px;
+        padding: 12px 8px;
+      }
 
-    .history-table-container {
-      max-height: 400px;
-      overflow-y: auto;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      margin: 10px 0;
-    }
+      .history-table-container {
+        max-height: 400px;
+        overflow-y: auto;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        margin: 10px 0;
+      }
 
-    .history-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 14px;
-    }
+      .history-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
 
-    .history-table th,
-    .history-table td {
-      padding: 8px 12px;
-      text-align: left;
-      border-bottom: 1px solid #eee;
-    }
+      .history-table th,
+      .history-table td {
+        padding: 8px 12px;
+        text-align: left;
+        border-bottom: 1px solid #eee;
+      }
 
-    .history-table th {
-      background-color: #f8f9fa;
-      font-weight: bold;
-      position: sticky;
-      top: 0;
-      z-index: 10;
-    }
+      .history-table th {
+        background-color: #f8f9fa;
+        font-weight: bold;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
 
-    .history-table tr:hover {
-      background-color: #f5f5f5;
-    }
+      .history-table tr:hover {
+        background-color: #f5f5f5;
+      }
 
-    .content-cell {
-      max-width: 150px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
+      .content-cell {
+        max-width: 150px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
 
-    .time-cell {
-      white-space: nowrap;
-      font-size: 12px;
-      color: #666;
-    }
+      .time-cell {
+        white-space: nowrap;
+        font-size: 12px;
+        color: #666;
+      }
 
-    .history-footer {
-      text-align: center;
-      padding: 10px;
-      color: #666;
-      font-size: 12px;
-    }
+      .history-footer {
+        text-align: center;
+        padding: 10px;
+        color: #666;
+        font-size: 12px;
+      }
 
-    .loading {
-      text-align: center;
-      padding: 20px;
-      color: #666;
-    }
+      .loading {
+        text-align: center;
+        padding: 20px;
+        color: #666;
+      }
 
-    .no-data {
-      text-align: center;
-      padding: 20px;
-      color: #666;
-    }
+      .no-data {
+        text-align: center;
+        padding: 20px;
+        color: #666;
+      }
 
-    .error {
-      text-align: center;
-      padding: 20px;
-      color: #d32f2f;
-    }
+      .error {
+        text-align: center;
+        padding: 20px;
+        color: #d32f2f;
+      }
 
-    .modal {
-      display: none;
-      position: fixed;
-      z-index: 10000;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.4);
-    }
+      .modal {
+        display: none;
+        position: fixed;
+        z-index: 10000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.4);
+      }
 
-    .modal.show {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
+      .modal.show {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
 
-    .modal-content {
-      background-color: white;
-      padding: 20px;
-      border-radius: 8px;
-      max-width: 500px;
-      width: 90%;
-      max-height: 80vh;
-      overflow-y: auto;
-    }
+      .modal-content {
+        background-color: white;
+        padding: 20px;
+        border-radius: 8px;
+        max-width: 500px;
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+      }
 
-    .modal-header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 15px;
-      font-size: 18px;
-      font-weight: bold;
-    }
+      .modal-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 15px;
+        font-size: 18px;
+        font-weight: bold;
+      }
 
-    .modal-body {
-      margin-bottom: 20px;
-      line-height: 1.6;
-    }
+      .modal-body {
+        margin-bottom: 20px;
+        line-height: 1.6;
+      }
 
-    .modal-close {
-      background-color: #6c757d;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 4px;
-      cursor: pointer;
-      width: 100%;
-    }
+      .modal-close {
+        background-color: #6c757d;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        cursor: pointer;
+        width: 100%;
+      }
 
-    .modal-close:hover {
-      background-color: #5a6268;
-    }
+      .modal-close:hover {
+        background-color: #5a6268;
+      }
 
-    .delete-btn {
-      background-color: #dc3545;
-      color: white;
-      border: none;
-      padding: 4px 8px;
-      border-radius: 3px;
-      cursor: pointer;
-      font-size: 12px;
-    }
+      .delete-btn {
+        background-color: #dc3545;
+        color: white;
+        border: none;
+        padding: 4px 8px;
+        border-radius: 3px;
+        cursor: pointer;
+        font-size: 12px;
+      }
 
-    .delete-btn:hover {
-      background-color: #c82333;
-    }
+      .delete-btn:hover {
+        background-color: #c82333;
+      }
 
-    .delete-cell {
-      text-align: center;
-      width: 60px;
-    }
+      .delete-cell {
+        text-align: center;
+        width: 60px;
+      }
 
-    /* ロール確認メッセージのスタイル */
-    .role-info {
-      background-color: #fff3cd;
-      border: 1px solid #ffeaa7;
-      color: #856404;
-      padding: 15px;
-      border-radius: 8px;
-      margin-bottom: 20px;
-      text-align: center;
-    }
+      /* ロール確認メッセージのスタイル */
+      .role-info {
+        background-color: #fff3cd;
+        border: 1px solid #ffeaa7;
+        color: #856404;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        text-align: center;
+      }
 
-    .role-info h3 {
-      margin: 0 0 10px 0;
-      color: #ff6b35;
-    }
-  </style>
-</head>
+      .role-info h3 {
+        margin: 0 0 10px 0;
+        color: #ff6b35;
+      }
+    </style>
+  </head>
 
-<body>
-  <div class="container">
-    <h1>🏢 スタッフページ</h1>
-
-    <!-- ロール確認情報 -->
-    <div class="role-info">
-      <div id="userInfo" style="margin-top: 10px; font-weight: bold"></div>
-    </div>
-
-    <!-- QRスキャナー部分 -->
+  <body>
     <div class="container">
-      <h2>📱 QRコードスキャナー</h2>
+      <!-- ロール確認情報 -->
+      <div class="role-info">
+        <div id="userInfo" style="margin-top: 10px; font-weight: bold"></div>
+      </div>
 
-      <!-- ステータス表示 -->
-      <div id="scannerStatus" class="status"></div>
+      <!-- QRスキャナー部分 -->
+      <div class="container">
+        <h2>📱 QRコードスキャナー</h2>
 
-      <!-- カメラコンテナ -->
-      <div id="cameraContainer" class="camera-container">
-        <video id="camera" playsinline></video>
+        <!-- ステータス表示 -->
+        <div id="scannerStatus" class="status"></div>
+
+        <!-- カメラコンテナ -->
+        <div id="cameraContainer" class="camera-container">
+          <video id="camera" playsinline></video>
+        </div>
+      </div>
+
+      <!-- スキャン履歴 -->
+      <div class="container">
+        <div id="scanHistory">
+          <div class="loading">📜 履歴を読み込み中...</div>
+        </div>
       </div>
     </div>
 
-    <!-- スキャン履歴 -->
-    <div class="container">
-      <div id="scanHistory">
-        <div class="loading">📜 履歴を読み込み中...</div>
+    <!-- 固定スキャンコントロール -->
+    <div class="scan-controls">
+      <button id="startScanBtn" class="scan-button" onclick="startScan()">
+        📷 スキャン開始
+      </button>
+      <button
+        id="stopScanBtn"
+        class="stop-button"
+        onclick="stopScan()"
+        style="display: none"
+      >
+        ⏹️ スキャン停止
+      </button>
+      <button id="toggleBtn" class="back-button" onclick="toggleView()">
+        📋 担当者一覧表示
+      </button>
+      <button class="back-button" onclick="handleLogout()">
+        🚪 ログアウト
+      </button>
+    </div>
+
+    <!-- 成功モーダル -->
+    <div id="successModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">✅ スキャン成功</div>
+        <div class="modal-body" id="modalBody">
+          <!-- スキャン結果がここに表示されます -->
+        </div>
+        <button class="modal-close" onclick="closeModal()">閉じる</button>
       </div>
     </div>
-  </div>
 
-  <!-- 固定スキャンコントロール -->
-  <div class="scan-controls">
-    <button id="startScanBtn" class="scan-button" onclick="startScan()">
-      📷 スキャン開始
-    </button>
-    <button id="stopScanBtn" class="stop-button" onclick="stopScan()" style="display: none">
-      ⏹️ スキャン停止
-    </button>
-    <button class="back-button" onclick="handleLogout()">
-      🚪 ログアウト
-    </button>
-  </div>
-
-  <!-- 成功モーダル -->
-  <div id="successModal" class="modal">
-    <div class="modal-content">
-      <div class="modal-header">✅ スキャン成功</div>
-      <div class="modal-body" id="modalBody">
-        <!-- スキャン結果がここに表示されます -->
+    <!-- エラーモーダル -->
+    <div id="errorModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">❌ <span id="errorTitle">エラー</span></div>
+        <div class="modal-body" id="errorModalBody">
+          <!-- エラーメッセージがここに表示されます -->
+        </div>
+        <button class="modal-close" onclick="closeErrorModal()">閉じる</button>
       </div>
-      <button class="modal-close" onclick="closeModal()">閉じる</button>
     </div>
-  </div>
 
-  <!-- エラーモーダル -->
-  <div id="errorModal" class="modal">
-    <div class="modal-content">
-      <div class="modal-header">❌ <span id="errorTitle">エラー</span></div>
-      <div class="modal-body" id="errorModalBody">
-        <!-- エラーメッセージがここに表示されます -->
-      </div>
-      <button class="modal-close" onclick="closeErrorModal()">閉じる</button>
-    </div>
-  </div>
-
-  <!-- Firebase SDK & QRスキャナー -->
-  <script src="https://unpkg.com/@zxing/library@latest/umd/index.min.js"></script>
-  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-  <script type="module" src="js/auth.js"></script>
-  <script type="module" src="js/smart-qr-scanner.js"></script>
-  <script type="module" src="js/staff.js"></script>
-</body>
-
+    <!-- Firebase SDK & QRスキャナー -->
+    <script src="https://unpkg.com/@zxing/library@latest/umd/index.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <script type="module" src="js/auth.js"></script>
+    <script type="module" src="js/smart-qr-scanner.js"></script>
+    <script type="module" src="js/staff.js"></script>
+  </body>
 </html>
