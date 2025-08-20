@@ -2155,41 +2155,130 @@ async function showProfileModal() {
     return;
   }
 
-  // displayAdminInfo()の情報をprofileContentに表示
+  // admin_settingsから設定情報を取得
+  let adminSettings = null;
+  try {
+    const settingsRef = doc(db, "admin_settings", currentAdmin.admin_id);
+    const settingsDoc = await getDoc(settingsRef);
+    if (settingsDoc.exists()) {
+      adminSettings = settingsDoc.data();
+      console.log("admin_settings取得成功:", adminSettings);
+    }
+  } catch (error) {
+    console.error("admin_settings取得エラー:", error);
+  }
+
+  // パスワードを伏字にする
+  const passwordDisplay = adminSettings?.admin_password
+    ? "●".repeat(adminSettings.admin_password.length)
+    : "未設定";
+
+  // statusの表示を判定
+  const statusDisplay =
+    adminSettings?.status === "production"
+      ? "本番モード"
+      : adminSettings?.status === "test"
+      ? "テストモード"
+      : "未設定";
+
+  // 統合レイアウトで表示と編集フィールドを生成
   profileContent.innerHTML = `
-    <div class="profile-item">
-      <span class="profile-label">Admin ID:</span>
-      <span class="profile-value">${currentAdmin.admin_id}</span>
+    <!-- 左列: 基本情報 -->
+    <div class="profile-column">
+      <div class="profile-item">
+        <label class="profile-label">管理者 ID:</label>
+        <input type="text" id="edit_admin_id" class="profile-input" value="${
+          currentAdmin.admin_id
+        }" disabled />
+        <small>変更不可</small>
+      </div>
+
+      <div class="profile-item">
+        <label class="profile-label">管理者名:</label>
+        <input type="text" id="edit_admin_name" class="profile-input" value="${
+          currentAdmin.admin_name || ""
+        }" disabled />
+      </div>
+
+      <div class="profile-item">
+        <label class="profile-label">会社名:</label>
+        <input type="text" id="edit_company_name" class="profile-input" value="${
+          currentAdmin.company_name || ""
+        }" disabled />
+      </div>
+
+      <div class="profile-item">
+        <label class="profile-label">メールアドレス:</label>
+        <input type="email" id="edit_email" class="profile-input" value="${
+          currentAdmin.email || ""
+        }" disabled />
+      </div>
+
+      <div class="profile-item">
+        <label class="profile-label">電話番号:</label>
+        <input type="text" id="edit_phone" class="profile-input" value="${
+          currentAdmin.phone || ""
+        }" disabled />
+      </div>
     </div>
-    <div class="profile-item">
-      <span class="profile-label">管理者名:</span>
-      <span class="profile-value">${currentAdmin.admin_name}</span>
-    </div>
-    <div class="profile-item">
-      <span class="profile-label">権限:</span>
-      <span class="profile-value">${currentAdmin.role}</span>
-    </div>
-    <div class="profile-item">
-      <span class="profile-label">メール:</span>
-      <span class="profile-value">${currentAdmin.email || "未設定"}</span>
-    </div>
-    <div class="profile-item">
-      <span class="profile-label">電話番号:</span>
-      <span class="profile-value">${currentAdmin.phone || "未設定"}</span>
-    </div>
-    <div class="profile-item">
-      <span class="profile-label">会社名:</span>
-      <span class="profile-value">${
-        currentAdmin.company_name || "未設定"
-      }</span>
-    </div>
-    <div class="profile-item">
-      <span class="profile-label">データパス:</span>
-      <span class="profile-value" style="font-family: monospace; background-color: #f8f9fa; padding: 4px 8px; border-radius: 4px;">admin_collections/${
-        currentAdmin.admin_id
-      }/</span>
+
+    <!-- 右列: 設定情報 -->
+    <div class="profile-column">
+      <div class="profile-item">
+        <label class="profile-label">管理者パスワード:</label>
+        <div class="password-container">
+          <input type="password" id="edit_password" class="profile-input password-input" value="${
+            adminSettings?.password || ""
+          }" disabled />
+          <button type="button" class="password-toggle" onclick="togglePasswordVisibility('edit_password', this)">
+            👁️
+          </button>
+        </div>
+        <small>管理者のみがダッシュボードにアクセスできます</small>
+      </div>
+
+      <div class="profile-item">
+        <label class="profile-label">運用状況:</label>
+        <select id="edit_status" class="profile-input" disabled>
+          <option value="test" ${
+            adminSettings?.status === "test" ? "selected" : ""
+          }>テストモード</option>
+          <option value="production" ${
+            adminSettings?.status === "production" ? "selected" : ""
+          }>本番モード</option>
+        </select>
+        <small>テストモードは３０日間のみになります</small>
+      </div>
+
+      <div class="profile-item">
+        <label class="profile-label">プロジェクト名:</label>
+        <input type="text" id="edit_project_id" class="profile-input" value="${
+          adminSettings?.project_id || ""
+        }" disabled />
+        <small>名札印刷に使用されます</small>
+      </div>
+
+      <div class="profile-item">
+        <label class="profile-label">展示会日:</label>
+        <input type="date" id="edit_project_day" class="profile-input" value="${
+          adminSettings?.project_day || ""
+        }" disabled />
+        <small>名札印刷に使用されます</small>
+      </div>
+
+      <div class="profile-item">
+        <label class="profile-label">データパス:</label>
+        <input type="text" class="profile-input" value="admin_collections/${
+          currentAdmin.admin_id
+        }/" disabled 
+               style="font-family: monospace; background-color: #f8f9fa;" />
+        <small>Firestore保存パス</small>
+      </div>
     </div>
   `;
+
+  // 編集モードのフラグを設定
+  window.isEditMode = false;
 
   console.log("Admin情報をプロフィールモーダルに表示完了");
   document.getElementById("profileModal").style.display = "block";
@@ -2198,7 +2287,82 @@ async function showProfileModal() {
 
 // プロフィールモーダルを閉じる
 function closeProfileModal() {
+  // 編集モードがオンの場合はリセット
+  if (window.isEditMode) {
+    window.isEditMode = false;
+    const editToggleBtn = document.getElementById("editToggleBtn");
+    const saveProfileBtn = document.getElementById("saveProfileBtn");
+
+    if (editToggleBtn) editToggleBtn.style.display = "inline-block";
+    if (saveProfileBtn) saveProfileBtn.style.display = "none";
+  }
+
   document.getElementById("profileModal").style.display = "none";
+}
+
+// 編集モード切り替え
+function toggleEditMode() {
+  const isEditMode = window.isEditMode || false;
+  const editToggleBtn = document.getElementById("editToggleBtn");
+  const saveProfileBtn = document.getElementById("saveProfileBtn");
+
+  // 編集可能なフィールドを取得
+  const editableFields = [
+    "edit_admin_name",
+    "edit_company_name",
+    "edit_email",
+    "edit_phone",
+    "edit_password",
+    "edit_status",
+    "edit_project_id",
+    "edit_project_day",
+  ];
+
+  if (!isEditMode) {
+    // 編集モードに切り替え
+    editableFields.forEach((fieldId) => {
+      const field = document.getElementById(fieldId);
+      if (field) {
+        field.disabled = false;
+        field.style.backgroundColor = "#fff";
+        field.style.borderColor = "#4285f4";
+      }
+    });
+
+    editToggleBtn.style.display = "none";
+    saveProfileBtn.style.display = "inline-block";
+    window.isEditMode = true;
+  } else {
+    // 表示モードに戻す
+    editableFields.forEach((fieldId) => {
+      const field = document.getElementById(fieldId);
+      if (field) {
+        field.disabled = true;
+        field.style.backgroundColor = "#f5f5f5";
+        field.style.borderColor = "#e0e0e0";
+      }
+    });
+
+    editToggleBtn.style.display = "inline-block";
+    saveProfileBtn.style.display = "none";
+    window.isEditMode = false;
+  }
+}
+
+// パスワード表示/非表示切り替え
+function togglePasswordVisibility(fieldId, toggleButton) {
+  const passwordField = document.getElementById(fieldId);
+  if (!passwordField) return;
+  
+  if (passwordField.type === "password") {
+    passwordField.type = "text";
+    toggleButton.textContent = "🙈"; // 隠すアイコン
+    toggleButton.title = "パスワードを隠す";
+  } else {
+    passwordField.type = "password";
+    toggleButton.textContent = "👁️"; // 表示アイコン
+    toggleButton.title = "パスワードを表示";
+  }
 }
 
 // プロフィール編集モーダルを開く
@@ -2210,6 +2374,21 @@ async function editProfile() {
       console.error("Admin認証情報がありません");
       alert("Admin認証情報を取得できませんでした。再ログインしてください。");
       return;
+    }
+
+    // admin_settingsから設定情報を取得
+    let adminSettings = null;
+    try {
+      const settingsRef = doc(db, "admin_settings", currentAdmin.admin_id);
+      const settingsDoc = await getDoc(settingsRef);
+      if (settingsDoc.exists()) {
+        adminSettings = settingsDoc.data();
+        console.log("admin_settings取得成功:", adminSettings);
+      } else {
+        console.log("admin_settings文書が存在しません");
+      }
+    } catch (error) {
+      console.error("admin_settings取得エラー:", error);
     }
 
     // 現在のAdmin情報を表示セクションに設定
@@ -2260,13 +2439,21 @@ async function editProfile() {
       edit_company_name: currentAdmin.company_name || "",
       edit_email: currentAdmin.email || "",
       edit_phone: currentAdmin.phone || "",
+      setting_password: adminSettings?.admin_password || "", // パスワード設定
+      project_id: adminSettings?.project_id || "", // プロジェクト名
+      project_day: adminSettings?.project_day || "", // 展示会日
+      setting_status: adminSettings?.status || "test", // 運用状況
     };
 
     // 要素の存在確認とエラーハンドリング
     Object.entries(elements).forEach(([elementId, value]) => {
       const element = document.getElementById(elementId);
       if (element) {
-        element.value = value;
+        if (element.type === "select-one") {
+          element.value = value;
+        } else {
+          element.value = value;
+        }
       } else {
         console.error(`要素が見つかりません: ${elementId}`);
       }
@@ -2304,13 +2491,54 @@ async function saveProfile() {
       return;
     }
 
+    // 新しいフィールドIDから値を取得
     const updatedData = {
-      admin_name: document.getElementById("edit_user_name").value,
+      admin_name: document.getElementById("edit_admin_name").value,
       company_name: document.getElementById("edit_company_name").value,
       email: document.getElementById("edit_email").value,
       phone: document.getElementById("edit_phone").value,
       updatedAt: new Date(),
     };
+
+    // admin_settingsに設定情報を保存
+    try {
+      const settingsRef = doc(db, "admin_settings", currentAdmin.admin_id);
+      const settingsData = {
+        admin_id: currentAdmin.admin_id,
+        updatedAt: new Date(),
+      };
+
+      // パスワード
+      const passwordField = document.getElementById("edit_password");
+      if (passwordField && passwordField.value.trim()) {
+        settingsData.password = passwordField.value.trim();
+      }
+
+      // プロジェクト名
+      const projectIdField = document.getElementById("edit_project_id");
+      if (projectIdField) {
+        settingsData.project_id = projectIdField.value.trim();
+      }
+
+      // 展示会日
+      const projectDayField = document.getElementById("edit_project_day");
+      if (projectDayField) {
+        settingsData.project_day = projectDayField.value.trim();
+      }
+
+      // 運用状況
+      const statusField = document.getElementById("edit_status");
+      if (statusField) {
+        settingsData.status = statusField.value;
+      }
+
+      await setDoc(settingsRef, settingsData, { merge: true });
+      console.log("admin_settingsに設定を保存しました:", settingsData);
+    } catch (error) {
+      console.error("admin_settings保存エラー:", error);
+      alert("設定の保存中にエラーが発生しました: " + error.message);
+      return;
+    }
 
     // currentAdminの情報を更新
     const newAdminData = { ...currentAdmin, ...updatedData };
@@ -2324,8 +2552,10 @@ async function saveProfile() {
 
     console.log("Admin情報を更新しました:", newAdminData);
 
+    // 編集モードを終了
+    toggleEditMode();
+
     alert("管理者プロフィールを更新しました");
-    closeProfileEditModal();
 
     // Admin情報表示を更新
     //displayAdminInfo();
@@ -2903,6 +3133,8 @@ window.runMakerPerformanceTest = runMakerPerformanceTest;
 window.openMakerPage = openMakerPage;
 window.showProfileModal = showProfileModal;
 window.closeProfileModal = closeProfileModal;
+window.toggleEditMode = toggleEditMode;
+window.togglePasswordVisibility = togglePasswordVisibility;
 window.editProfile = editProfile;
 window.closeProfileEditModal = closeProfileEditModal;
 window.saveProfile = saveProfile;

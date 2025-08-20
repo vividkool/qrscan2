@@ -403,16 +403,6 @@
             outline: none;
         }
 
-        @media (max-width: 768px) {
-            .action-buttons {
-                grid-template-columns: 1fr;
-            }
-
-            .dashboard-header {
-                padding: 20px;
-            }
-        }
-
         /* 削除ボタンのスタイル */
         .delete-btn {
             background-color: #dc3545;
@@ -436,10 +426,8 @@
         }
 
         /* プロフィールと設定モーダル用スタイル */
-        #profileModal .modal-content,
-        #profileEditModal .modal-content {
-            max-width: 700px;
-            /* プロフィール編集用 */
+        #profileModal .modal-content {
+            max-width: 900px;
             width: 90%;
         }
 
@@ -456,7 +444,7 @@
             margin: 15px 0;
         }
 
-        #profileContent .profile-item {
+        #profileContent .profile-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -464,7 +452,7 @@
             border-bottom: 1px solid #e0e0e0;
         }
 
-        #profileContent .profile-item:last-child {
+        #profileContent .profile-row:last-child {
             border-bottom: none;
         }
 
@@ -472,12 +460,87 @@
             font-weight: bold;
             color: #555;
             min-width: 120px;
+            margin-bottom: 5px;
         }
 
         #profileContent .profile-value {
             color: #333;
             flex: 1;
-            text-align: right;
+            padding: 8px;
+            border-radius: 4px;
+        }
+
+        #profileContent .profile-input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        #profileContent .profile-input:disabled {
+            background-color: #f5f5f5;
+            color: #666;
+            border: 1px solid #e0e0e0;
+        }
+
+        #profileContent .profile-column {
+            display: flex;
+            flex-direction: column;
+        }
+
+        #profileContent .profile-column .profile-item {
+            margin-bottom: 15px;
+        }
+
+        #profileContent select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        #profileContent small {
+            display: block;
+            color: #666;
+            font-size: 12px;
+            margin-top: 3px;
+        }
+
+        /* パスワード表示切り替えボタン */
+        .password-container {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            font-size: 16px;
+            color: #666;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .password-toggle:hover {
+            color: #4285f4;
+        }
+
+        .password-input {
+            padding-right: 35px !important;
         }
 
         #profileEditModal input,
@@ -506,37 +569,6 @@
             margin: 20px 0 15px 0;
         }
 
-        /* プロフィール編集フォームのレスポンシブ対応 */
-        @media (max-width: 768px) {
-
-            #profileEditModal .modal-content,
-            #settingsModal .modal-content {
-                max-width: 95%;
-            }
-
-            /* 小さい画面では1列表示 */
-            #profileEditModal div[style*="grid-template-columns"],
-            #settingsModal div[style*="grid-template-columns"] {
-                display: block !important;
-            }
-
-            #profileEditModal div[style*="grid-template-columns"]>div,
-            #settingsModal div[style*="grid-template-columns"]>div {
-                margin-bottom: 10px;
-            }
-
-            /* 設定モーダルのボタンを縦並びに */
-            #settingsModal div[style*="text-align: right"] {
-                text-align: center !important;
-            }
-
-            #settingsModal div[style*="text-align: right"] button {
-                display: block !important;
-                width: 100% !important;
-                margin: 5px 0 !important;
-            }
-        }
-
         /* 現在のユーザー情報表示セクション用スタイル */
         #currentUserInfo {
             animation: fadeIn 0.3s ease;
@@ -555,13 +587,6 @@
             to {
                 opacity: 1;
                 transform: translateY(0);
-            }
-        }
-
-        @media (max-width: 768px) {
-            #currentUserDetails>div:first-child {
-                grid-template-columns: 1fr !important;
-                gap: 10px !important;
             }
         }
     </style>
@@ -808,71 +833,22 @@
         <div class="modal-content">
             <span class="close" onclick="closeProfileModal()">&times;</span>
             <h2>👤 管理者プロフィール情報</h2>
-            <div id="profileContent">
-                <!-- プロフィール情報がここに表示されます -->
+            <div id="profileContent" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start;">
+                <!-- プロフィール情報と入力フィールドがここに表示されます -->
             </div>
+            
             <div style="margin-top: 20px; text-align: right;">
-                <button onclick="editProfile()"
+                <button id="editToggleBtn" onclick="toggleEditMode()"
                     style="background-color: #4285f4; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin-right: 10px;">
                     ✏️ 編集
+                </button>
+                <button id="saveProfileBtn" onclick="saveProfile()" 
+                    style="background-color: #4CAF50; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin-right: 10px; display: none;">
+                    💾 保存
                 </button>
                 <button onclick="closeProfileModal()"
                     style="background-color: #666; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer;">
                     閉じる
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- プロフィール編集モーダル -->
-    <div id="profileEditModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeProfileEditModal()">&times;</span>
-            <h2>✏️ 管理者プロフィール編集</h2>
-
-            <!-- 現在のユーザー情報表示セクション -->
-            <div id="currentUserInfo"
-                style="background-color: #e8f4fd; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #4285f4;">
-                <h4 style="margin: 0 0 10px 0; color: #4285f4;">📋 現在のユーザー情報</h4>
-                <div id="currentUserDetails">
-                    <!-- 現在のユーザー情報がここに表示されます -->
-                </div>
-            </div>
-
-            <div style="margin: 20px 0;">
-                <!-- 2列グリッドレイアウト -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start;">
-                    <!-- 左列 -->
-                    <div>
-                        <label>ユーザーID:</label>
-                        <input type="text" id="edit_user_id" readonly style="background-color: #f5f5f5;" />
-
-                        <label>ユーザー名:</label>
-                        <input type="text" id="edit_user_name" />
-
-                        <label>会社名:</label>
-                        <input type="text" id="edit_company_name" />
-                    </div>
-
-                    <!-- 右列 -->
-                    <div>
-
-                        <label>メールアドレス:</label>
-                        <input type="email" id="edit_email" />
-
-                        <label>電話番号:</label>
-                        <input type="text" id="edit_phone" />
-                    </div>
-                </div>
-            </div>
-            <div style="margin-top: 20px; text-align: right;">
-                <button onclick="saveProfile()"
-                    style="background-color: #4CAF50; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin-right: 10px;">
-                    💾 保存
-                </button>
-                <button onclick="closeProfileEditModal()"
-                    style="background-color: #666; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer;">
-                    キャンセル
                 </button>
             </div>
         </div>
@@ -886,13 +862,17 @@
 
             <!-- QRコード生成設定 -->
             <div style="margin: 20px 0;">
-                <h3>📱 来場者QRコード生成設定【重要】</h3>
+                <h3>📱 来場者QRコード生成設定</h3>
 
-                <label>管理者パスワード:</label>
-                <input type="password" id="setting_password" placeholder="パスワードを入力" />
-                <small style="display: block; color: #666; margin-bottom: 15px;">
-                    管理者のみがダッシュボードにアクセスできます
-                </small>
+                <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <p style="margin: 0 0 10px 0; font-size: 14px;"><strong>🔍 QRコード機能:</strong></p>
+                    <ul style="margin: 0 0 0 20px; font-size: 13px;">
+                        <li>来場者ごとの個別QRコード生成</li>
+                        <li>URLパラメータの暗号化でセキュリティ向上</li>
+                        <li>スマートフォンで簡単ログイン</li>
+                        <li>名札印刷への組み込み対応</li>
+                    </ul>
+                </div>
 
                 <!-- プレビューセクション -->
                 <div
@@ -906,13 +886,9 @@
             </div>
 
             <div style="margin-top: 20px; text-align: right; border-top: 2px solid #e0e0e0; padding-top: 20px;">
-                <button onclick="saveSettings()"
-                    style="background-color: #4CAF50; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; margin-right: 10px; font-size: 16px;">
-                    💾 設定保存
-                </button>
                 <button onclick="closeSettingsModal()"
                     style="background-color: #666; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; font-size: 16px;">
-                    キャンセル
+                    閉じる
                 </button>
             </div>
         </div>
