@@ -582,13 +582,16 @@
                     style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
                     ⚙️ プロジェクト設定
                 </button>
-                <button onclick="UserSession.logout()"
+                <button onclick="handleAdminLogout()"
                     style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
                     ログアウト
                 </button>
             </div>
         </div>
-        <p>データベース管理とQRスキャン機能を統合管理</p>
+        <p>Admin別データベース管理とQRスキャン機能を統合管理</p>
+
+        <!-- Admin情報表示エリア -->
+        <div id="adminInfo"></div>
     </div>
 
     <!-- アクションボタン -->
@@ -610,6 +613,9 @@
 
             <button onclick="clearResults('firestoreResult')" class="btn-clear action-button">
                 🗑️ 結果をクリア
+            </button>
+            <button onclick="window.open('https://www.labelyasan.com/', '_blank')" class="btn btn-secondary">
+                🏷️ ラベル屋さんホームページ
             </button>
         </div>
 

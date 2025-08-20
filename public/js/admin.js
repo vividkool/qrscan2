@@ -1,4 +1,4 @@
-﻿// Firebase Index Page Functions (クリーンアップ版)
+﻿// Firebase Index Page Functions (Admin別データ管理版)
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
   getFirestore,
@@ -32,26 +32,155 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// ページ読み込み時のデバッグ情報
-document.addEventListener("DOMContentLoaded", function () {
-  console.log("=== admin.htmlページ読み込み ===");
-  console.log("現在のURL:", window.location.href);
-  console.log("セッション存在確認:", !!localStorage.getItem("currentUser"));
-  console.log("セッションデータ:", localStorage.getItem("currentUser"));
+// 現在のAdmin情報を管理
+let currentAdmin = null;
 
-  // localStorage全体の内容を確認
-  console.log("=== localStorage全体の内容 ===");
-  for (let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    const value = localStorage.getItem(key);
-    console.log(`${key}:`, value);
+// Admin認証チェック関数
+function checkAdminAuthentication() {
+  console.log("=== Admin認証チェック開始 ===");
+  console.log("localStorage全体:", { ...localStorage });
+
+  const adminData = localStorage.getItem("currentAdmin");
+  console.log("取得したcurrentAdmin:", adminData);
+
+  if (!adminData) {
+    console.log("❌ Admin認証情報がありません");
+    console.log("localStorage.length:", localStorage.length);
+    console.log("利用可能なキー:", Object.keys(localStorage));
+
+    // デバッグのため3秒待機
+    setTimeout(() => {
+      alert("管理者認証が必要です。ログイン画面に移動します。");
+      window.location.href = "./index.html";
+    }, 3000);
+    return null;
   }
+
+  try {
+    currentAdmin = JSON.parse(adminData);
+    console.log("✅ Admin認証確認:", currentAdmin);
+
+    if (!currentAdmin.admin_id || currentAdmin.role !== "admin") {
+      throw new Error("無効な管理者データです");
+    }
+
+    return currentAdmin;
+  } catch (error) {
+    console.error("❌ Admin認証データが破損しています:", error);
+    alert("認証データが破損しています。再ログインしてください。");
+    localStorage.removeItem("currentAdmin");
+    window.location.href = "./index.html";
+    return null;
+  }
+}
+
+// Admin情報表示関数
+function displayAdminInfo() {
+  if (!currentAdmin) return;
+
+  const adminInfoContainer = document.getElementById("adminInfo");
+  if (adminInfoContainer) {
+    adminInfoContainer.innerHTML = `
+      <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">
+        <h4 style="margin: 0 0 15px 0; font-size: 18px;">👤 現在ログイン中のAdmin</h4>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+          <div>
+            <p style="margin: 5px 0; opacity: 0.9;"><strong>Admin ID:</strong></p>
+            <p style="margin: 0; font-size: 18px; font-weight: bold;">${currentAdmin.admin_id}</p>
+          </div>
+          <div>
+            <p style="margin: 5px 0; opacity: 0.9;"><strong>管理者名:</strong></p>
+            <p style="margin: 0; font-size: 16px;">${currentAdmin.admin_name}</p>
+          </div>
+        </div>
+        <div style="margin-bottom: 15px;">
+          <p style="margin: 5px 0; opacity: 0.9;"><strong>データパス:</strong></p>
+          <p style="margin: 0; font-family: monospace; background: rgba(255,255,255,0.1); padding: 8px; border-radius: 4px;">admin_collections/${currentAdmin.admin_id}/</p>
+        </div>
+        <p style="margin: 0; font-size: 14px; opacity: 0.8;">このAdminが管理するデータのみが表示されます</p>
+      </div>
+    `;
+  }
+}
+
+// Admin用ログアウト処理
+function handleAdminLogout() {
+  localStorage.removeItem("currentAdmin");
+  alert("ログアウトしました。");
+  window.location.href = "./index.html";
+}
+
+// Admin別コレクション参照を取得する関数
+function getAdminCollection(collectionName) {
+  if (!currentAdmin || !currentAdmin.admin_id) {
+    throw new Error("Admin認証が必要です");
+  }
+
+  return collection(db, "admin_collections", currentAdmin.admin_id, collectionName);
+}
+
+// Admin別ドキュメント参照を取得する関数  
+function getAdminDoc(collectionName, docId) {
+  if (!currentAdmin || !currentAdmin.admin_id) {
+    throw new Error("Admin認証が必要です");
+  }
+
+  return doc(db, "admin_collections", currentAdmin.admin_id, collectionName, docId);
+}
+
+// ページ読み込み時の処理
+document.addEventListener("DOMContentLoaded", function () {
+  console.log("=== admin.htmlページ読み込み (Admin別データ管理版) ===");
+  console.log("現在のURL:", window.location.href);
+  console.log("読み込み時のlocalStorage:", { ...localStorage });
+
+  // Admin認証チェック（古いセッションクリア前）
+  const admin = checkAdminAuthentication();
+  if (!admin) {
+    return; // 認証失敗時はリダイレクト済み
+  }
+
+  console.log("✅ Admin認証成功:", admin);
+
+  // Admin認証が成功した場合のみ、古いセッションをクリア
+  if (localStorage.getItem("currentUser")) {
+    console.log("🧹 古いcurrentUserセッションをクリアします");
+    localStorage.removeItem("currentUser");
+  }
+  if (localStorage.getItem("qrscan_user_session")) {
+    console.log("🧹 古いqrscan_user_sessionをクリアします");
+    localStorage.removeItem("qrscan_user_session");
+  }
+
+  console.log("認証済みAdmin:", admin);
+
+  // Admin情報を表示
+  displayAdminInfo();
+
+  console.log("Admin別コレクションパス:", `admin_collections/${admin.admin_id}/`);
+  console.log("クリア後のlocalStorage:", { ...localStorage });
   console.log("================================");
 
-  // ヘッダーのユーザー情報を更新
+  // レガシーセッションシステムは無効化
+  // UserSessionやauth.jsの機能は使用しない
+
+  // auth.jsの自動認証チェックを無効化
+  window.isRedirecting = true; // リダイレクトフラグでauth.jsをブロック
+
+  // プロフィール機能を無効化（Admin情報のみ使用）
+  if (window.UserSession) {
+    console.log("🚫 UserSessionシステムを無効化します");
+    window.UserSession.checkPageAccess = () => {
+      console.log("🔐 Admin認証システム優先 - ページアクセスチェックをスキップ");
+      return Promise.resolve(true);
+    };
+  }
+
+  // ヘッダーのユーザー情報を更新（Admin情報を使用）
   setTimeout(() => {
-    console.log("updateHeaderUserInfo実行中...");
-    updateHeaderUserInfo();
+    console.log("Admin情報でヘッダーを更新中...");
+    // updateHeaderUserInfo(); // 無効化
+    console.log("🔐 Admin専用画面のためupdateHeaderUserInfoをスキップ");
   }, 500);
 });
 
@@ -143,14 +272,18 @@ async function getAllItems() {
   try {
     showLoading("firestoreResult");
 
-    // item_noで昇順ソートのクエリを作成
-    const q = query(collection(db, "items"), orderBy("item_no", "asc"));
+    // Admin別のitemsコレクションからデータ取得
+    const adminItemsCollection = getAdminCollection("items");
+    const q = query(adminItemsCollection, orderBy("item_no", "asc"));
     const querySnapshot = await getDocs(q);
 
     if (querySnapshot.empty) {
-      showResult("firestoreResult", "アイテムデータがありません", "error");
+      showResult("firestoreResult", `${currentAdmin.admin_id}の管理するアイテムデータがありません`, "info");
+      console.log(`Admin ${currentAdmin.admin_id}: アイテムデータなし`);
       return;
     }
+
+    console.log(`Admin ${currentAdmin.admin_id}: ${querySnapshot.size}件のアイテムデータを取得`);
 
     let html = "<table><thead><tr>";
     html +=
@@ -195,14 +328,18 @@ async function getAllUsers() {
   try {
     showLoading("firestoreResult");
 
-    // user_roleが"user"のみを取得（一時的にソート無し）
-    const q = query(collection(db, "users"), where("user_role", "==", "user"));
+    // Admin別のusersコレクションからデータ取得
+    const adminUsersCollection = getAdminCollection("users");
+    const q = query(adminUsersCollection, where("user_role", "==", "user"));
     const querySnapshot = await getDocs(q);
 
     if (querySnapshot.empty) {
-      showResult("firestoreResult", "ユーザーデータがありません", "error");
+      showResult("firestoreResult", `${currentAdmin.admin_id}の管理するユーザーデータがありません`, "info");
+      console.log(`Admin ${currentAdmin.admin_id}: ユーザーデータなし`);
       return;
     }
+
+    console.log(`Admin ${currentAdmin.admin_id}: ${querySnapshot.size}件のユーザーデータを取得`);
 
     // クライアント側でソート
     const sortedDocs = querySnapshot.docs.sort((a, b) => {
@@ -253,17 +390,19 @@ async function getAllUsers() {
   }
 }
 
-// scanItemsコレクション一覧表示
+// Admin別scanItemsコレクション一覧表示
 async function getAllScanItems() {
   try {
     showLoading("firestoreResult");
 
-    // timestampで降順ソートのクエリを作成
-    const q = query(collection(db, "scanItems"), orderBy("timestamp", "desc"));
+    // Admin別のscanItemsコレクションからデータ取得
+    const adminScanItemsCollection = getAdminCollection("scanItems");
+    const q = query(adminScanItemsCollection, orderBy("timestamp", "desc"));
     const querySnapshot = await getDocs(q);
 
     if (querySnapshot.empty) {
-      showResult("firestoreResult", "スキャンデータがありません", "error");
+      showResult("firestoreResult", `${currentAdmin.admin_id}の管理するスキャンデータがありません`, "info");
+      console.log(`Admin ${currentAdmin.admin_id}: スキャンデータなし`);
       return;
     }
 
@@ -316,17 +455,19 @@ async function getAllScanItems() {
   }
 }
 
-// staffコレクション一覧表示（usersコレクションのuser_role: "staff"のみ）
+// Admin別staffコレクション一覧表示（usersコレクションのuser_role: "staff"のみ）
 async function getAllStaff() {
   try {
     showLoading("firestoreResult");
 
-    // user_roleが"staff"のみを取得（一時的にソート無し）
-    const q = query(collection(db, "users"), where("user_role", "==", "staff"));
+    // Admin別のusersコレクションからstaffデータ取得
+    const adminUsersCollection = getAdminCollection("users");
+    const q = query(adminUsersCollection, where("user_role", "==", "staff"));
     const querySnapshot = await getDocs(q);
 
     if (querySnapshot.empty) {
-      showResult("firestoreResult", "スタッフデータがありません", "error");
+      showResult("firestoreResult", `${currentAdmin.admin_id}の管理するスタッフデータがありません`, "info");
+      console.log(`Admin ${currentAdmin.admin_id}: スタッフデータなし`);
       return;
     }
 
@@ -380,17 +521,19 @@ async function getAllStaff() {
   }
 }
 
-// makerコレクション一覧表示（usersコレクションのuser_role: "maker"のみ）
+// Admin別makerコレクション一覧表示（usersコレクションのuser_role: "maker"のみ）
 async function getAllMaker() {
   try {
     showLoading("firestoreResult");
 
-    // user_roleが"maker"のみを取得（一時的にソート無し）
-    const q = query(collection(db, "users"), where("user_role", "==", "maker"));
+    // Admin別のusersコレクションからmakerデータ取得
+    const adminUsersCollection = getAdminCollection("users");
+    const q = query(adminUsersCollection, where("user_role", "==", "maker"));
     const querySnapshot = await getDocs(q);
 
     if (querySnapshot.empty) {
-      showResult("firestoreResult", "メーカーデータがありません", "error");
+      showResult("firestoreResult", `${currentAdmin.admin_id}の管理するメーカーデータがありません`, "info");
+      console.log(`Admin ${currentAdmin.admin_id}: メーカーデータなし`);
       return;
     }
 
@@ -913,28 +1056,31 @@ async function submitAddData() {
       };
     }
 
-    // Firestoreに追加（スタッフとメーカーの場合もusersコレクションに保存）
+    // Admin別Firestoreコレクションに追加
     const targetCollection =
       currentCollectionType === "staff" || currentCollectionType === "maker"
         ? "users"
         : currentCollectionType;
-    await setDoc(doc(db, targetCollection, docId), data);
 
-    showResult(
-      "firestoreResult",
-      `${
-        currentCollectionType === "items"
-          ? "アイテム"
-          : currentCollectionType === "users"
-          ? "ユーザー"
-          : currentCollectionType === "staff"
-          ? "スタッフ"
-          : "メーカー"
-      }「${data.item_name || data.user_name}」を追加しました`,
-      "success"
-    );
+    // Admin別コレクションに保存
+    const adminDocRef = getAdminDoc(targetCollection, docId);
+    await setDoc(adminDocRef, data);
 
-    // モーダルを閉じる
+    console.log(`Admin ${currentAdmin.admin_id}: ${targetCollection}コレクションに${docId}を追加`);
+
+      showResult(
+        "firestoreResult",
+        `${
+          currentCollectionType === "items"
+            ? "アイテム"
+            : currentCollectionType === "users"
+              ? "ユーザー"
+              : currentCollectionType === "staff"
+                ? "スタッフ"
+                : "メーカー"
+        }「${data.item_name || data.user_name}」を${currentAdmin.admin_id}の管理下に追加しました`,
+        "success"
+      );    // モーダルを閉じる
     closeModal();
 
     // 一覧を再表示
@@ -1279,7 +1425,7 @@ async function submitEditData() {
   }
 }
 
-// グローバル関数として登録
+// グローバル関数として登録（Admin別データ管理版）
 window.getAllItems = getAllItems;
 window.getAllUsers = getAllUsers;
 window.getAllStaff = getAllStaff;
@@ -1299,6 +1445,12 @@ window.clearSelectedFile = clearSelectedFile;
 window.handleFileUpload = handleFileUpload;
 window.processSelectedFile = processSelectedFile;
 window.proceedWithUpload = proceedWithUpload;
+
+// Admin別データ管理用関数
+window.handleAdminLogout = handleAdminLogout;
+window.checkAdminAuthentication = checkAdminAuthentication;
+window.getAdminCollection = getAdminCollection;
+window.getAdminDoc = getAdminDoc;
 
 // ファイルアップロードモーダル関連の変数
 let selectedFile = null;

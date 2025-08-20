@@ -756,6 +756,7 @@ class UserSession {
       case USER_ROLES.GUEST:
         return "user.html";
       default:
+
         return "login.html";
     }
   }
@@ -768,6 +769,12 @@ class UserSession {
     console.log("=== ページアクセスチェック開始 ===");
     console.log("現在のページ:", currentPage);
     console.log("リダイレクト中フラグ:", window.isRedirecting);
+
+    // Admin認証システム優先チェック
+    if (localStorage.getItem("currentAdmin")) {
+      console.log("🔐 Admin認証システム検出 - ページアクセスチェックをスキップ");
+      return true;
+    }
 
     // ログイン画面の場合は認証チェックをスキップ
     if (currentPage === "login.html" || currentPage === "index.html") {
@@ -792,6 +799,7 @@ class UserSession {
     if (!session) {
       console.log("認証セッションなし - ログインページへリダイレクト");
       if (currentPage !== "login.html" && currentPage !== "index.html") {
+        alert("stop");
         this.redirectTo("login.html");
       }
       return false;
@@ -836,8 +844,7 @@ class UserSession {
     if (allowedRoles.length > 0 && !allowedRoles.includes(session.role)) {
       const redirectUrl = this.getRedirectUrl(session.role);
       console.log(
-        `権限不足 - 現在のロール: ${
-          session.role
+        `権限不足 - 現在のロール: ${session.role
         }, 必要なロール: [${allowedRoles.join(", ")}]`
       );
       console.log(`${redirectUrl}へリダイレクト`);
@@ -1102,6 +1109,12 @@ if (
       currentPage !== "index.html" &&
       !window.isRedirecting
     ) {
+      // Admin認証システム使用時はスキップ
+      if (localStorage.getItem("currentAdmin")) {
+        console.log("🔐 Admin認証システム使用中 - Firebase認証監視をスキップ");
+        return;
+      }
+
       // 認証状態監視による自動チェックは控えめに実行
       setTimeout(async () => {
         console.log("認証状態監視からのページアクセスチェック実行");

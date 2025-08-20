@@ -1,241 +1,364 @@
 <!DOCTYPE html>
 <html lang="ja">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="google-site-verification" content="4e4fa1e3c40dcc41" />
-    <title>QRスキャンシステム</title>
-    <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="google-site-verification" content="4e4fa1e3c40dcc41" />
+  <title>QRスキャンシステム</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .landing-container {
+      background: white;
+      border-radius: 20px;
+      padding: 60px 40px;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+      max-width: 500px;
+      width: 90%;
+    }
+
+    .logo {
+      font-size: 48px;
+      margin-bottom: 20px;
+    }
+
+    .title {
+      font-size: 28px;
+      color: #333;
+      margin-bottom: 15px;
+      font-weight: 600;
+    }
+
+    .subtitle {
+      color: #666;
+      margin-bottom: 40px;
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    .button-group {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .btn {
+      padding: 15px 30px;
+      border: none;
+      border-radius: 50px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-secondary {
+      background: #f8f9fa;
+      color: #495057;
+      border: 2px solid #e9ecef;
+    }
+
+    .btn-secondary:hover {
+      background: #e9ecef;
+      transform: translateY(-2px);
+    }
+
+    .features {
+      margin-top: 40px;
+      padding-top: 30px;
+      border-top: 1px solid #e9ecef;
+    }
+
+    .feature-list {
+      display: grid;
+      gap: 15px;
+      text-align: left;
+    }
+
+    .feature-item {
+      display: flex;
+      align-items: center;
+      color: #666;
+      font-size: 14px;
+    }
+
+    .feature-icon {
+      margin-right: 10px;
+      font-size: 16px;
+    }
+
+    .loading-spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #667eea;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+      margin: 20px auto;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
       }
 
-      body {
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        min-height: 100vh;
-        display: flex;
-        justify-content: center;
-        align-items: center;
+      100% {
+        transform: rotate(360deg);
       }
+    }
 
-      .landing-container {
-        background: white;
-        border-radius: 20px;
-        padding: 60px 40px;
-        text-align: center;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
-        max-width: 500px;
-        width: 90%;
-      }
+    /* Admin認証画面用スタイル */
+    .auth-container {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+      max-width: 450px;
+      width: 90%;
+    }
 
-      .logo {
-        font-size: 48px;
-        margin-bottom: 20px;
-      }
+    .auth-form {
+      text-align: center;
+    }
 
-      .title {
-        font-size: 28px;
-        color: #333;
-        margin-bottom: 15px;
-        font-weight: 600;
-      }
+    .form-group {
+      margin-bottom: 20px;
+      text-align: left;
+    }
 
-      .subtitle {
-        color: #666;
-        margin-bottom: 40px;
-        font-size: 16px;
-        line-height: 1.6;
-      }
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 600;
+      color: #333;
+    }
 
-      .button-group {
-        display: flex;
-        flex-direction: column;
-        gap: 15px;
-      }
+    .form-group input {
+      width: 100%;
+      padding: 12px 15px;
+      border: 2px solid #e1e5e9;
+      border-radius: 10px;
+      font-size: 16px;
+      transition: border-color 0.3s ease;
+    }
 
-      .btn {
-        padding: 15px 30px;
-        border: none;
-        border-radius: 50px;
-        font-size: 16px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        text-decoration: none;
-        display: inline-block;
-      }
+    .form-group input:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
 
-      .btn-primary {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-      }
+    .form-group small {
+      display: block;
+      margin-top: 5px;
+      font-size: 12px;
+      color: #666;
+    }
 
-      .btn-primary:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
-      }
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 20px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
 
-      .btn-secondary {
-        background: #f8f9fa;
-        color: #495057;
-        border: 2px solid #e9ecef;
-      }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+    }
 
-      .btn-secondary:hover {
-        background: #e9ecef;
-        transform: translateY(-2px);
-      }
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
 
-      .features {
-        margin-top: 40px;
-        padding-top: 30px;
-        border-top: 1px solid #e9ecef;
-      }
+    .btn-link {
+      background: none;
+      border: none;
+      color: #667eea;
+      cursor: pointer;
+      text-decoration: underline;
+      font-size: 14px;
+      padding: 5px;
+    }
 
-      .feature-list {
-        display: grid;
-        gap: 15px;
-        text-align: left;
-      }
+    .btn-link:hover {
+      color: #764ba2;
+    }
 
-      .feature-item {
-        display: flex;
-        align-items: center;
-        color: #666;
-        font-size: 14px;
-      }
+    .form-footer {
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #e1e5e9;
+    }
 
-      .feature-icon {
-        margin-right: 10px;
-        font-size: 16px;
-      }
-    </style>
-  </head>
+    .form-footer p {
+      margin-bottom: 10px;
+      color: #666;
+      font-size: 14px;
+    }
+  </style>
+</head>
 
-  <body>
-    <div class="landing-container">
-      <div class="logo">📱</div>
-      <h1 class="title">QRスキャンシステム</h1>
-      <p class="subtitle">
-        展示会用QRコード識別システム<br />効率的なデータ管理とスキャニング機能
-      </p>
+<body>
+  <div class="landing-container">
+    <div class="logo">📱</div>
+    <h1 class="title">QRスキャンシステム</h1>
+    <p class="subtitle">
+      展示会用QRコード識別システム<br />効率的なデータ管理とスキャニング機能
+    </p>
 
-      <div class="button-group">
-        <a href="login.html" class="btn btn-primary">🔑 ログイン</a>
-        <a href="login.html" class="btn btn-secondary" style="display: none"
-          >📝 新規登録</a
-        >
-      </div>
+    <div class="button-group">
+      <a href="login.html" class="btn btn-primary">🔑 ログイン</a>
+      <a href="login.html" class="btn btn-secondary" style="display: none">📝 新規登録</a>
     </div>
+  </div>
 
-    <!-- QRコード自動ログイン処理 -->
-    <script type="module">
-      // QRコードからの自動ログイン処理
-      async function handleQRCodeAutoLogin() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const userId = urlParams.get("user_id");
+  <!-- QRコード自動ログイン処理 -->
+  <script type="module">
+    // QRコードからの自動ログイン処理
+    async function handleQRCodeAutoLogin() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const userId = urlParams.get("user_id");
 
-        if (!userId) {
-          return false; // user_idパラメータがない場合は通常表示
+      if (!userId) {
+        return false; // user_idパラメータがない場合は通常表示
+      }
+
+      console.log(
+        "Index page - QRコードからのアクセス検出 - user_id:",
+        userId
+      );
+
+      // ローディング表示を追加
+      document.body.innerHTML = `
+      <div class="landing-container" style="text-align: center;">
+        <div class="logo">📱</div>
+        <h1 class="title">自動ログイン中...</h1>
+        <p class="subtitle">QRコードからのログインを処理しています</p>
+        <div style="margin: 20px 0;">
+          <div style="display: inline-block; width: 20px; height: 20px; border: 3px solid #f3f3f3; border-top: 3px solid #667eea; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+        </div>
+        <p style="color: #666; font-size: 14px;">ユーザーID: ${userId}</p>
+      </div>
+      <style>
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      </style>
+    `;
+
+      try {
+        // login-auth.jsを動的インポート
+        await import("./js/login-auth.js");
+
+        if (!window.LoginAuth) {
+          throw new Error("LoginAuth が見つかりません");
         }
 
-        console.log(
-          "Index page - QRコードからのアクセス検出 - user_id:",
-          userId
-        );
+        // 自動ログイン実行
+        const result = await window.LoginAuth.login(userId);
 
-        // ローディング表示を追加
-        document.body.innerHTML = `
-        <div class="landing-container" style="text-align: center;">
-          <div class="logo">📱</div>
-          <h1 class="title">自動ログイン中...</h1>
-          <p class="subtitle">QRコードからのログインを処理しています</p>
-          <div style="margin: 20px 0;">
-            <div style="display: inline-block; width: 20px; height: 20px; border: 3px solid #f3f3f3; border-top: 3px solid #667eea; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-          </div>
-          <p style="color: #666; font-size: 14px;">ユーザーID: ${userId}</p>
-        </div>
-        <style>
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        </style>
-      `;
+        if (result.success) {
+          console.log("=== Index QR自動ログイン成功 ===");
+          console.log("ユーザー情報:", result.user);
+          console.log("リダイレクト先:", result.redirectUrl);
+          console.log("===============================");
 
-        try {
-          // login-auth.jsを動的インポート
-          await import("./js/login-auth.js");
-
-          if (!window.LoginAuth) {
-            throw new Error("LoginAuth が見つかりません");
-          }
-
-          // 自動ログイン実行
-          const result = await window.LoginAuth.login(userId);
-
-          if (result.success) {
-            console.log("=== Index QR自動ログイン成功 ===");
-            console.log("ユーザー情報:", result.user);
-            console.log("リダイレクト先:", result.redirectUrl);
-            console.log("===============================");
-
-            // 成功メッセージを表示してからリダイレクト
-            document.body.innerHTML = `
-            <div class="landing-container" style="text-align: center;">
-              <div class="logo">✅</div>
-              <h1 class="title" style="color: #28a745;">ログイン成功！</h1>
-              <p class="subtitle">
-                ${result.user.user_name || userId}さん、こんにちは！<br>
-                ${result.user.role}ページにリダイレクトしています...
-              </p>
-            </div>
-          `;
-
-            // 1.5秒後にリダイレクト
-            setTimeout(() => {
-              console.log("QR自動リダイレクト実行中...", result.redirectUrl);
-              window.location.href = result.redirectUrl;
-            }, 1500);
-
-            return true;
-          } else {
-            throw new Error(result.error || "ログインに失敗しました");
-          }
-        } catch (error) {
-          console.error("QR自動ログインエラー:", error);
-
-          // エラー表示してからlogin.htmlにリダイレクト
+          // 成功メッセージを表示してからリダイレクト
           document.body.innerHTML = `
           <div class="landing-container" style="text-align: center;">
-            <div class="logo">❌</div>
-            <h1 class="title" style="color: #dc3545;">ログイン失敗</h1>
+            <div class="logo">✅</div>
+            <h1 class="title" style="color: #28a745;">ログイン成功！</h1>
             <p class="subtitle">
-              ユーザーID「${userId}」でのログインに失敗しました<br>
-              ログイン画面にリダイレクトしています...
-            </p>
-            <p style="color: #666; font-size: 12px; margin-top: 10px;">
-              エラー: ${error.message}
+              ${result.user.user_name || userId}さん、こんにちは！<br>
+              ${result.user.role}ページにリダイレクトしています...
             </p>
           </div>
         `;
 
-          // 3秒後にログイン画面にリダイレクト
+          // 1.5秒後にリダイレクト
           setTimeout(() => {
-            window.location.href = `./login.html?user_id=${userId}`;
-          }, 3000);
+            console.log("QR自動リダイレクト実行中...", result.redirectUrl);
+            window.location.href = result.redirectUrl;
+          }, 1500);
 
           return true;
+        } else {
+          throw new Error(result.error || "ログインに失敗しました");
         }
-      }
+      } catch (error) {
+        console.error("QR自動ログインエラー:", error);
 
-      // ページロード時に自動ログインチェック
-      document.addEventListener("DOMContentLoaded", async function () {
-        await handleQRCodeAutoLogin();
-      });
-    </script>
-  </body>
+        // エラー表示してからlogin.htmlにリダイレクト
+        document.body.innerHTML = `
+        <div class="landing-container" style="text-align: center;">
+          <div class="logo">❌</div>
+          <h1 class="title" style="color: #dc3545;">ログイン失敗</h1>
+          <p class="subtitle">
+            ユーザーID「${userId}」でのログインに失敗しました<br>
+            ログイン画面にリダイレクトしています...
+          </p>
+          <p style="color: #666; font-size: 12px; margin-top: 10px;">
+            エラー: ${error.message}
+          </p>
+        </div>
+      `;
+
+        // 3秒後にログイン画面にリダイレクト
+        setTimeout(() => {
+          window.location.href = `./login.html?user_id=${userId}`;
+        }, 3000);
+
+        return true;
+      }
+    }
+
+    // ページロード時に自動ログインチェック
+    document.addEventListener("DOMContentLoaded", async function () {
+      await handleQRCodeAutoLogin();
+    });
+  </script>
+
+  <!-- 必要なスクリプト読み込み -->
+  <script type="module" src="./js/login-auth.js"></script>
+  <script type="module" src="./js/index.js"></script>
+</body>
+
 </html>
