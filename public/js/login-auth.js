@@ -51,6 +51,107 @@ googleProvider.setCustomParameters({
 
 // ログイン専用のシンプルな認証クラス
 class LoginAuth {
+  // Admin専用ログイン処理（Admin別コレクション対応）
+  static async adminLogin(userId, adminId) {
+    try {
+      console.log("Admin専用ログイン試行:", { userId, adminId });
+
+      // Admin情報をlocalStorageに設定（admin.jsで使用するため）
+      const adminData = {
+        admin_id: adminId,
+        admin_name: adminId, // デフォルト名称
+        role: "admin",
+        login_time: new Date().toISOString(),
+      };
+
+      // Admin別コレクションからユーザーを検索
+      const adminUsersQuery = query(
+        collection(db, "admin_collections", adminId, "users"),
+        where("user_id", "==", String(userId))
+      );
+
+      let querySnapshot = await getDocs(adminUsersQuery);
+
+      // 文字列で見つからない場合は数値で再検索
+      if (querySnapshot.empty) {
+        const userIdAsNumber = parseInt(userId, 10);
+        if (!isNaN(userIdAsNumber)) {
+          const numberQuery = query(
+            collection(db, "admin_collections", adminId, "users"),
+            where("user_id", "==", userIdAsNumber)
+          );
+          querySnapshot = await getDocs(numberQuery);
+        }
+      }
+
+      // Admin別コレクションで見つからない場合は、通常のusersコレクションを検索
+      if (querySnapshot.empty) {
+        console.log(
+          "Admin別コレクションに見つからないため、通常のusersコレクションを検索"
+        );
+        const fallbackQuery = query(
+          collection(db, "users"),
+          where("user_id", "==", String(userId))
+        );
+        querySnapshot = await getDocs(fallbackQuery);
+      }
+
+      if (querySnapshot.empty) {
+        throw new Error(
+          `Admin: ${adminId} の管理下でユーザーID「${userId}」が見つかりません。`
+        );
+      }
+
+      const userDoc = querySnapshot.docs[0];
+      const userData = userDoc.data();
+      const userRole = userData.user_role || userData.role;
+
+      if (userData.status === "退場済") {
+        throw new Error("このユーザーは退場済みです");
+      }
+
+      // セッション保存（通常のユーザーセッション）
+      const sessionData = {
+        uid: userData.uid || userData.user_id,
+        user_id: String(userData.user_id),
+        user_name: userData.user_name,
+        company_name: userData.company_name,
+        role: userRole,
+        department: userData.department,
+        timestamp: new Date().getTime(),
+        admin_context: {
+          admin_id: adminId,
+        },
+      };
+
+      localStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
+
+      // Admin認証情報も別途保存（admin.htmlで使用）
+      localStorage.setItem("currentAdmin", JSON.stringify(adminData));
+
+      // リダイレクトURL決定（Admin管理下の場合は特別処理）
+      let redirectUrl = this.getRedirectUrl(userRole);
+
+      // Adminユーザーの場合はadmin.htmlにリダイレクト
+      if (userRole === USER_ROLES.ADMIN) {
+        redirectUrl = "admin.html";
+      }
+
+      return {
+        success: true,
+        user: sessionData,
+        admin: adminData,
+        redirectUrl: redirectUrl,
+      };
+    } catch (error) {
+      console.error("Admin Login error:", error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
   // ログイン処理
   static async login(userId) {
     try {

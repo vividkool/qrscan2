@@ -35,6 +35,9 @@ const db = getFirestore(app);
 // 現在のAdmin情報を管理
 let currentAdmin = null;
 
+// currentAdminをグローバルに公開
+window.currentAdmin = currentAdmin;
+
 // Admin認証チェック関数
 function checkAdminAuthentication() {
   console.log("=== Admin認証チェック開始 ===");
@@ -58,6 +61,7 @@ function checkAdminAuthentication() {
 
   try {
     currentAdmin = JSON.parse(adminData);
+    window.currentAdmin = currentAdmin; // グローバルに公開
     console.log("✅ Admin認証確認:", currentAdmin);
 
     if (!currentAdmin.admin_id || currentAdmin.role !== "admin") {
@@ -116,16 +120,30 @@ function getAdminCollection(collectionName) {
     throw new Error("Admin認証が必要です");
   }
 
-  return collection(db, "admin_collections", currentAdmin.admin_id, collectionName);
+  const adminPath = `admin_collections/${currentAdmin.admin_id}/${collectionName}`;
+  console.log(`[DEBUG] Admin collection path: ${adminPath}`);
+
+  return collection(
+    db,
+    "admin_collections",
+    currentAdmin.admin_id,
+    collectionName
+  );
 }
 
-// Admin別ドキュメント参照を取得する関数  
+// Admin別ドキュメント参照を取得する関数
 function getAdminDoc(collectionName, docId) {
   if (!currentAdmin || !currentAdmin.admin_id) {
     throw new Error("Admin認証が必要です");
   }
 
-  return doc(db, "admin_collections", currentAdmin.admin_id, collectionName, docId);
+  return doc(
+    db,
+    "admin_collections",
+    currentAdmin.admin_id,
+    collectionName,
+    docId
+  );
 }
 
 // ページ読み込み時の処理
@@ -155,9 +173,12 @@ document.addEventListener("DOMContentLoaded", function () {
   console.log("認証済みAdmin:", admin);
 
   // Admin情報を表示
-  displayAdminInfo();
+  //displayAdminInfo();
 
-  console.log("Admin別コレクションパス:", `admin_collections/${admin.admin_id}/`);
+  console.log(
+    "Admin別コレクションパス:",
+    `admin_collections/${admin.admin_id}/`
+  );
   console.log("クリア後のlocalStorage:", { ...localStorage });
   console.log("================================");
 
@@ -171,7 +192,9 @@ document.addEventListener("DOMContentLoaded", function () {
   if (window.UserSession) {
     console.log("🚫 UserSessionシステムを無効化します");
     window.UserSession.checkPageAccess = () => {
-      console.log("🔐 Admin認証システム優先 - ページアクセスチェックをスキップ");
+      console.log(
+        "🔐 Admin認証システム優先 - ページアクセスチェックをスキップ"
+      );
       return Promise.resolve(true);
     };
   }
@@ -278,12 +301,18 @@ async function getAllItems() {
     const querySnapshot = await getDocs(q);
 
     if (querySnapshot.empty) {
-      showResult("firestoreResult", `${currentAdmin.admin_id}の管理するアイテムデータがありません`, "info");
+      showResult(
+        "firestoreResult",
+        `${currentAdmin.admin_id}の管理するアイテムデータがありません`,
+        "info"
+      );
       console.log(`Admin ${currentAdmin.admin_id}: アイテムデータなし`);
       return;
     }
 
-    console.log(`Admin ${currentAdmin.admin_id}: ${querySnapshot.size}件のアイテムデータを取得`);
+    console.log(
+      `Admin ${currentAdmin.admin_id}: ${querySnapshot.size}件のアイテムデータを取得`
+    );
 
     let html = "<table><thead><tr>";
     html +=
@@ -330,16 +359,29 @@ async function getAllUsers() {
 
     // Admin別のusersコレクションからデータ取得
     const adminUsersCollection = getAdminCollection("users");
+    const usersQueryPath = `admin_collections/${currentAdmin.admin_id}/users`;
+    console.log(`[DEBUG] Querying path: ${usersQueryPath}`);
+
     const q = query(adminUsersCollection, where("user_role", "==", "user"));
     const querySnapshot = await getDocs(q);
 
+    console.log(
+      `[DEBUG] Query result from ${usersQueryPath}: ${querySnapshot.size} documents`
+    );
+
     if (querySnapshot.empty) {
-      showResult("firestoreResult", `${currentAdmin.admin_id}の管理するユーザーデータがありません`, "info");
+      showResult(
+        "firestoreResult",
+        `${currentAdmin.admin_id}の管理するユーザーデータがありません<br><small>📂 参照パス: ${usersQueryPath}</small>`,
+        "info"
+      );
       console.log(`Admin ${currentAdmin.admin_id}: ユーザーデータなし`);
       return;
     }
 
-    console.log(`Admin ${currentAdmin.admin_id}: ${querySnapshot.size}件のユーザーデータを取得`);
+    console.log(
+      `Admin ${currentAdmin.admin_id}: ${querySnapshot.size}件のユーザーデータを取得`
+    );
 
     // クライアント側でソート
     const sortedDocs = querySnapshot.docs.sort((a, b) => {
@@ -374,8 +416,10 @@ async function getAllUsers() {
     html += "</tbody></table>";
 
     showResult("firestoreResult", html, "success");
-    document.getElementById("firestoreResult-collectionname").textContent =
-      "usersデータベース";
+    const usersAdminPath = `admin_collections/${currentAdmin.admin_id}/users`;
+    document.getElementById(
+      "firestoreResult-collectionname"
+    ).textContent = `usersデータベース (${usersAdminPath})`;
     document.getElementById(
       "firestoreResult-count"
     ).textContent = `${sortedDocs.length}件`;
@@ -401,7 +445,11 @@ async function getAllScanItems() {
     const querySnapshot = await getDocs(q);
 
     if (querySnapshot.empty) {
-      showResult("firestoreResult", `${currentAdmin.admin_id}の管理するスキャンデータがありません`, "info");
+      showResult(
+        "firestoreResult",
+        `${currentAdmin.admin_id}の管理するスキャンデータがありません`,
+        "info"
+      );
       console.log(`Admin ${currentAdmin.admin_id}: スキャンデータなし`);
       return;
     }
@@ -466,7 +514,11 @@ async function getAllStaff() {
     const querySnapshot = await getDocs(q);
 
     if (querySnapshot.empty) {
-      showResult("firestoreResult", `${currentAdmin.admin_id}の管理するスタッフデータがありません`, "info");
+      showResult(
+        "firestoreResult",
+        `${currentAdmin.admin_id}の管理するスタッフデータがありません`,
+        "info"
+      );
       console.log(`Admin ${currentAdmin.admin_id}: スタッフデータなし`);
       return;
     }
@@ -532,7 +584,11 @@ async function getAllMaker() {
     const querySnapshot = await getDocs(q);
 
     if (querySnapshot.empty) {
-      showResult("firestoreResult", `${currentAdmin.admin_id}の管理するメーカーデータがありません`, "info");
+      showResult(
+        "firestoreResult",
+        `${currentAdmin.admin_id}の管理するメーカーデータがありません`,
+        "info"
+      );
       console.log(`Admin ${currentAdmin.admin_id}: メーカーデータなし`);
       return;
     }
@@ -1066,21 +1122,25 @@ async function submitAddData() {
     const adminDocRef = getAdminDoc(targetCollection, docId);
     await setDoc(adminDocRef, data);
 
-    console.log(`Admin ${currentAdmin.admin_id}: ${targetCollection}コレクションに${docId}を追加`);
+    console.log(
+      `Admin ${currentAdmin.admin_id}: ${targetCollection}コレクションに${docId}を追加`
+    );
 
-      showResult(
-        "firestoreResult",
-        `${
-          currentCollectionType === "items"
-            ? "アイテム"
-            : currentCollectionType === "users"
-              ? "ユーザー"
-              : currentCollectionType === "staff"
-                ? "スタッフ"
-                : "メーカー"
-        }「${data.item_name || data.user_name}」を${currentAdmin.admin_id}の管理下に追加しました`,
-        "success"
-      );    // モーダルを閉じる
+    showResult(
+      "firestoreResult",
+      `${
+        currentCollectionType === "items"
+          ? "アイテム"
+          : currentCollectionType === "users"
+          ? "ユーザー"
+          : currentCollectionType === "staff"
+          ? "スタッフ"
+          : "メーカー"
+      }「${data.item_name || data.user_name}」を${
+        currentAdmin.admin_id
+      }の管理下に追加しました`,
+      "success"
+    ); // モーダルを閉じる
     closeModal();
 
     // 一覧を再表示
@@ -1451,6 +1511,102 @@ window.handleAdminLogout = handleAdminLogout;
 window.checkAdminAuthentication = checkAdminAuthentication;
 window.getAdminCollection = getAdminCollection;
 window.getAdminDoc = getAdminDoc;
+
+// デバッグ用：通常のusersコレクションと比較する関数
+window.compareCollections = async function () {
+  console.log("=== コレクション比較開始 ===");
+
+  try {
+    // 通常のusersコレクション
+    const normalCollection = collection(db, "users");
+    const normalSnapshot = await getDocs(normalCollection);
+    console.log(`📊 通常のusersコレクション: ${normalSnapshot.size}件`);
+    console.log(`📂 パス: users/`);
+
+    // Admin別のusersコレクション
+    if (currentAdmin) {
+      const adminCollection = getAdminCollection("users");
+      const adminSnapshot = await getDocs(adminCollection);
+      console.log(`📊 Admin別usersコレクション: ${adminSnapshot.size}件`);
+      console.log(`📂 パス: admin_collections/${currentAdmin.admin_id}/users/`);
+    }
+
+    console.log("=== 比較完了 ===");
+  } catch (error) {
+    console.error("比較エラー:", error);
+  }
+};
+
+// 旧コレクションから新Adminにテンプレートデータをコピーする関数
+window.copyTemplateDataToNewAdmin = async function (targetAdminId = null) {
+  const adminId = targetAdminId || currentAdmin?.admin_id;
+
+  if (!adminId) {
+    alert("AdminIDが指定されていません。");
+    return;
+  }
+
+  console.log(`=== ${adminId}へのテンプレートデータコピー開始 ===`);
+
+  if (
+    !confirm(
+      `テンプレートデータを${adminId}にコピーしますか？\n\n⚠️ 既存データは上書きされません（追加されます）`
+    )
+  ) {
+    return;
+  }
+
+  try {
+    const collections = ["users", "items"];
+    let totalCopied = 0;
+
+    for (const collectionName of collections) {
+      console.log(`📋 ${collectionName}コレクションをコピー中...`);
+
+      // 旧コレクションからデータを取得
+      const sourceCollection = collection(db, collectionName);
+      const sourceSnapshot = await getDocs(sourceCollection);
+
+      if (sourceSnapshot.empty) {
+        console.log(`⚠️ ${collectionName}にデータがありません`);
+        continue;
+      }
+
+      // 新Admin用のコレクションに追加
+      const targetCollection = collection(
+        db,
+        "admin_collections",
+        adminId,
+        collectionName
+      );
+
+      for (const docSnap of sourceSnapshot.docs) {
+        const data = docSnap.data();
+        await addDoc(targetCollection, data);
+        totalCopied++;
+        console.log(`✅ ${collectionName}/${docSnap.id} をコピー`);
+      }
+
+      console.log(`📊 ${collectionName}: ${sourceSnapshot.size}件コピー完了`);
+    }
+
+    console.log(
+      `🎉 コピー完了 - 合計${totalCopied}件のデータを${adminId}に複製`
+    );
+    alert(
+      `テンプレートデータのコピーが完了しました。\n対象Admin: ${adminId}\nコピー件数: ${totalCopied}件`
+    );
+
+    // 現在表示中のデータを更新
+    if (currentCollectionType) {
+      if (currentCollectionType === "users") getAllUsers();
+      else if (currentCollectionType === "items") getAllItems();
+    }
+  } catch (error) {
+    console.error("コピーエラー:", error);
+    alert(`エラーが発生しました: ${error.message}`);
+  }
+};
 
 // ファイルアップロードモーダル関連の変数
 let selectedFile = null;
@@ -1987,69 +2143,9 @@ function openMakerPage() {
 async function showProfileModal() {
   console.log("=== プロフィールモーダル開始 ===");
 
-  // 複数の方法でユーザー情報を取得
-  let user = null;
-
-  // 方法1: UserSessionクラスから取得
-  console.log("UserSession確認:", !!window.UserSession);
-  if (window.UserSession && typeof UserSession.getCurrentUser === "function") {
-    try {
-      user = await UserSession.getCurrentUser(); // awaitを追加
-      console.log("UserSession経由でユーザー情報取得成功:", user);
-    } catch (error) {
-      console.log("UserSession取得エラー:", error);
-    }
-  } else {
-    console.log("UserSessionが利用できません");
-  }
-
-  // 方法2: localStorageから直接取得
-  if (!user) {
-    console.log("localStorageから取得を試行...");
-    try {
-      const sessionData = localStorage.getItem("currentUser");
-      console.log("localStorageの生データ:", sessionData);
-      if (sessionData) {
-        user = JSON.parse(sessionData);
-        console.log("localStorage経由でユーザー情報取得成功:", user);
-        console.log("user.user_id:", user.user_id);
-        console.log("user.user_name:", user.user_name);
-        console.log("user.company_name:", user.company_name);
-      } else {
-        console.log("localStorageにcurrentUserデータが存在しません");
-      }
-    } catch (error) {
-      console.log("localStorage解析エラー:", error);
-    }
-  }
-
-  // 方法3: 他のキーも試行
-  if (!user) {
-    console.log("他のlocalStorageキーを確認中...");
-    const keys = Object.keys(localStorage);
-    console.log("利用可能なlocalStorageキー:", keys);
-
-    // firebaseSessionDataも確認
-    const firebaseSession = localStorage.getItem("firebaseSessionData");
-    if (firebaseSession) {
-      console.log("firebaseSessionData:", firebaseSession);
-      try {
-        const fbUser = JSON.parse(firebaseSession);
-        if (fbUser && (fbUser.user_id || fbUser.uid)) {
-          user = fbUser;
-          console.log("firebaseSessionDataから取得:", user);
-        }
-      } catch (error) {
-        console.log("firebaseSessionData解析エラー:", error);
-      }
-    }
-  }
-
-  console.log("最終的に取得したユーザー情報:", user);
-
-  if (!user) {
-    console.error("ユーザー情報を取得できませんでした");
-    alert("ユーザー情報を取得できませんでした。再ログインしてください。");
+  if (!currentAdmin) {
+    console.error("Admin認証情報がありません");
+    alert("Admin認証情報を取得できませんでした。再ログインしてください。");
     return;
   }
 
@@ -2059,40 +2155,43 @@ async function showProfileModal() {
     return;
   }
 
+  // displayAdminInfo()の情報をprofileContentに表示
   profileContent.innerHTML = `
     <div class="profile-item">
-      <span class="profile-label">ユーザーID:</span>
-      <span class="profile-value">${user.user_id || user.uid || "未設定"}</span>
+      <span class="profile-label">Admin ID:</span>
+      <span class="profile-value">${currentAdmin.admin_id}</span>
     </div>
     <div class="profile-item">
-      <span class="profile-label">ユーザー名:</span>
-      <span class="profile-value">${
-        user.user_name || user.name || "未設定"
-      }</span>
+      <span class="profile-label">管理者名:</span>
+      <span class="profile-value">${currentAdmin.admin_name}</span>
+    </div>
+    <div class="profile-item">
+      <span class="profile-label">権限:</span>
+      <span class="profile-value">${currentAdmin.role}</span>
+    </div>
+    <div class="profile-item">
+      <span class="profile-label">メール:</span>
+      <span class="profile-value">${currentAdmin.email || "未設定"}</span>
+    </div>
+    <div class="profile-item">
+      <span class="profile-label">電話番号:</span>
+      <span class="profile-value">${currentAdmin.phone || "未設定"}</span>
     </div>
     <div class="profile-item">
       <span class="profile-label">会社名:</span>
       <span class="profile-value">${
-        user.company_name || user.companyName || "未設定"
+        currentAdmin.company_name || "未設定"
       }</span>
     </div>
-    
     <div class="profile-item">
-      <span class="profile-label">権限:</span>
-      <span class="profile-value">${user.role || "未設定"}</span>
+      <span class="profile-label">データパス:</span>
+      <span class="profile-value" style="font-family: monospace; background-color: #f8f9fa; padding: 4px 8px; border-radius: 4px;">admin_collections/${
+        currentAdmin.admin_id
+      }/</span>
     </div>
-    <div class="profile-item">
-      <span class="profile-label">メール:</span>
-      <span class="profile-value">${user.email || "未設定"}</span>
-    </div>
-    <div class="profile-item">
-      <span class="profile-label">電話番号:</span>
-      <span class="profile-value">${user.phone || "未設定"}</span>
-    </div>
-    
   `;
 
-  console.log("プロフィールモーダル内容設定完了");
+  console.log("Admin情報をプロフィールモーダルに表示完了");
   document.getElementById("profileModal").style.display = "block";
   console.log("=== プロフィールモーダル完了 ===");
 }
@@ -2107,86 +2206,60 @@ async function editProfile() {
   try {
     console.log("editProfile関数開始");
 
-    // 複数の方法でユーザー情報を取得
-    let user = null;
-
-    // 方法1: UserSessionクラスから取得
-    if (
-      window.UserSession &&
-      typeof UserSession.getCurrentUser === "function"
-    ) {
-      try {
-        user = await UserSession.getCurrentUser(); // awaitを追加
-      } catch (error) {
-        console.log("UserSession取得エラー:", error);
-      }
-    }
-
-    // 方法2: localStorageから直接取得
-    if (!user) {
-      try {
-        const sessionData = localStorage.getItem("currentUser");
-        if (sessionData) {
-          user = JSON.parse(sessionData);
-        }
-      } catch (error) {
-        console.log("localStorage解析エラー:", error);
-      }
-    }
-
-    if (!user) {
-      console.error("ユーザー情報を取得できませんでした");
-      alert("ユーザー情報を取得できませんでした。再ログインしてください。");
+    if (!currentAdmin) {
+      console.error("Admin認証情報がありません");
+      alert("Admin認証情報を取得できませんでした。再ログインしてください。");
       return;
     }
 
-    // 現在のユーザー情報を表示セクションに設定
+    // 現在のAdmin情報を表示セクションに設定
     const currentUserDetails = document.getElementById("currentUserDetails");
     if (currentUserDetails) {
-      console.log("プロフィール編集モーダル用ユーザー情報:", user);
+      console.log("プロフィール編集モーダル用Admin情報:", currentAdmin);
       currentUserDetails.innerHTML = `
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 14px;">
         <div>
-          <strong>ユーザーID:</strong><br>
-          <span style="color: #666;">${
-            user.user_id || user.uid || "未設定"
-          }</span>
+          <strong>Admin ID:</strong><br>
+          <span style="color: #666;">${currentAdmin.admin_id}</span>
         </div>
         <div>
-          <strong>ユーザー名:</strong><br>
-          <span style="color: #666;">${
-            user.user_name || user.name || "未設定"
-          }</span>
+          <strong>管理者名:</strong><br>
+          <span style="color: #666;">${currentAdmin.admin_name}</span>
         </div>
         <div>
           <strong>会社名:</strong><br>
           <span style="color: #666;">${
-            user.company_name || user.companyName || "未設定"
+            currentAdmin.company_name || "未設定"
           }</span>
         </div>
-        
+        <div>
+          <strong>権限:</strong><br>
+          <span style="color: #666;">${currentAdmin.role}</span>
+        </div>
       </div>
       <div style="margin-top: 10px; font-size: 14px;">
         <strong>メール:</strong> <span style="color: #666;">${
-          user.email || "未設定"
+          currentAdmin.email || "未設定"
         }</span><br>
         <strong>電話番号:</strong> <span style="color: #666;">${
-          user.phone || "未設定"
-        }</span>
+          currentAdmin.phone || "未設定"
+        }</span><br>
+        <strong>データパス:</strong> <span style="color: #666; font-family: monospace;">admin_collections/${
+          currentAdmin.admin_id
+        }/</span>
       </div>
     `;
     } else {
       console.log("currentUserDetails要素が見つかりません");
     }
 
-    // フォームに現在の値を設定（要素の存在確認を追加）
+    // フォームに現在の値を設定
     const elements = {
-      edit_user_id: user.user_id || user.uid || "",
-      edit_user_name: user.user_name || user.name || "",
-      edit_company_name: user.company_name || user.companyName || "",
-      edit_department: user.department || "",
-      edit_email: user.email || "",
-      edit_phone: user.phone || "",
+      edit_user_id: currentAdmin.admin_id || "",
+      edit_user_name: currentAdmin.admin_name || "",
+      edit_company_name: currentAdmin.company_name || "",
+      edit_email: currentAdmin.email || "",
+      edit_phone: currentAdmin.phone || "",
     };
 
     // 要素の存在確認とエラーハンドリング
@@ -2226,72 +2299,38 @@ function closeProfileEditModal() {
 // プロフィールを保存
 async function saveProfile() {
   try {
-    // 複数の方法でユーザー情報を取得
-    let currentUser = null;
-
-    // 方法1: UserSessionクラスから取得
-    if (
-      window.UserSession &&
-      typeof UserSession.getCurrentUser === "function"
-    ) {
-      try {
-        currentUser = UserSession.getCurrentUser();
-      } catch (error) {
-        console.log("UserSession取得エラー:", error);
-      }
-    }
-
-    // 方法2: localStorageから直接取得
-    if (!currentUser) {
-      try {
-        const sessionData = localStorage.getItem("currentUser");
-        if (sessionData) {
-          currentUser = JSON.parse(sessionData);
-        }
-      } catch (error) {
-        console.log("localStorage解析エラー:", error);
-      }
-    }
-
-    if (!currentUser) {
-      alert("ユーザー情報を取得できませんでした");
+    if (!currentAdmin) {
+      alert("Admin認証情報を取得できませんでした");
       return;
     }
 
     const updatedData = {
-      user_name: document.getElementById("edit_user_name").value,
+      admin_name: document.getElementById("edit_user_name").value,
       company_name: document.getElementById("edit_company_name").value,
       email: document.getElementById("edit_email").value,
       phone: document.getElementById("edit_phone").value,
       updatedAt: new Date(),
     };
 
-    // Firestoreのusersコレクションを更新
-    const userQuery = query(
-      collection(db, "users"),
-      where("user_id", "==", currentUser.user_id)
-    );
+    // currentAdminの情報を更新
+    const newAdminData = { ...currentAdmin, ...updatedData };
 
-    const querySnapshot = await getDocs(userQuery);
+    // localStorageのcurrentAdminを更新
+    localStorage.setItem("currentAdmin", JSON.stringify(newAdminData));
 
-    if (!querySnapshot.empty) {
-      const userDoc = querySnapshot.docs[0];
-      await setDoc(doc(db, "users", userDoc.id), updatedData, { merge: true });
+    // グローバル変数も更新
+    currentAdmin = newAdminData;
+    window.currentAdmin = newAdminData;
 
-      // セッションデータを更新
-      const newUserData = { ...currentUser, ...updatedData };
-      UserSession.updateSession(newUserData);
+    console.log("Admin情報を更新しました:", newAdminData);
 
-      alert("プロフィールを更新しました");
-      closeProfileEditModal();
+    alert("管理者プロフィールを更新しました");
+    closeProfileEditModal();
 
-      // ヘッダーのユーザー情報を更新
-      updateHeaderUserInfo();
-    } else {
-      alert("ユーザー情報の更新に失敗しました");
-    }
+    // Admin情報表示を更新
+    //displayAdminInfo();
   } catch (error) {
-    console.error("プロフィール更新エラー:", error);
+    console.error("Adminプロフィール更新エラー:", error);
     alert("プロフィールの更新中にエラーが発生しました: " + error.message);
   }
 }
@@ -2305,19 +2344,10 @@ function closeSettingsModal() {
 
 // 設定を保存
 async function saveSettings() {
-  let projectName = document
-    .getElementById("setting_project_name")
-    .value.trim();
   const password = document.getElementById("setting_password").value.trim();
 
-  // プロジェクト名が空の場合はデフォルト値を使用
-  if (!projectName) {
-    projectName = generateDefaultProjectName();
-    console.log("プロジェクト名が空のため、デフォルト値を使用:", projectName);
-  }
-
   if (!password) {
-    alert("パスワードは必須です");
+    alert("管理者パスワードは必須です");
     return;
   }
 
@@ -2325,17 +2355,15 @@ async function saveSettings() {
     // Firestoreに管理者設定を保存
     const settingsRef = doc(db, "admin_settings", "config");
     await setDoc(settingsRef, {
-      project_name: projectName,
       admin_password: password, // 実際のプロダクションではハッシュ化が必要
       updated_at: new Date(),
       updated_by: getCurrentUserId(),
     });
 
     // localStorage にもバックアップ保存（下位互換性のため）
-    localStorage.setItem("qr_project_name", projectName);
     localStorage.setItem("qr_password", password);
 
-    alert(`設定をFirestoreに保存しました\nプロジェクト名: ${projectName}`);
+    alert("管理者設定をFirestoreに保存しました");
     closeSettingsModal();
   } catch (error) {
     console.error("設定保存エラー:", error);
@@ -2360,34 +2388,423 @@ function getCurrentUserId() {
 
 // URLプレビューを更新
 function updateUrlPreview() {
-  const projectName = document
-    .getElementById("setting_project_name")
-    .value.trim();
   const urlPreviewElement = document.getElementById("urlPreview");
-
   if (!urlPreviewElement) return;
 
-  // プロジェクト名が空の場合はデフォルト値を使用
-  const displayProjectName = projectName || generateDefaultProjectName();
-  const isDefault = !projectName;
-
   const baseUrl = window.location.origin;
-  const sampleUrls = [
-    `${baseUrl}/?project=${encodeURIComponent(displayProjectName)}`,
+
+  // currentAdminが利用可能な場合はAdmin IDを使用
+  const adminId = currentAdmin?.admin_id || "ADMIN001";
+
+  // 暗号化用のサンプルデータ
+  const sampleData = [
+    { user_id: "USER123", admin_id: adminId },
+    { user_id: "USER456", admin_id: adminId },
   ];
 
-  const defaultMessage = isDefault
-    ? `<div style="color: #28a745; font-size: 12px; margin-bottom: 8px;">💡 プロジェクト名が空の場合、自動生成される値: <strong>${displayProjectName}</strong></div>`
-    : "";
+  // 簡単な暗号化機能（index.htmlと同じ）
+  function simpleEncrypt(text) {
+    const rot13 = text.replace(/[a-zA-Z]/g, function (c) {
+      return String.fromCharCode(
+        (c <= "Z" ? 90 : 122) >= (c = c.charCodeAt(0) + 13) ? c : c - 26
+      );
+    });
+    return btoa(rot13).replace(/[+/=]/g, function (c) {
+      return { "+": `-`, "/": "_", "=": "" }[c];
+    });
+  }
+
+  // 通常のURL（従来互換）
+  const normalUrls = sampleData.map(
+    (data) => `${baseUrl}/?user_id=${data.user_id}&admin_id=${data.admin_id}`
+  );
+
+  // 暗号化されたURL（推奨）
+  const encryptedUrls = sampleData.map((data) => {
+    const encrypted = simpleEncrypt(JSON.stringify(data));
+    return `${baseUrl}/?d=${encrypted}`;
+  });
 
   urlPreviewElement.innerHTML = `
-    ${defaultMessage}
-    <div style="margin-bottom: 8px;"><strong>生成されるQRコードURL例:</strong></div>
-    <div style="margin: 5px 0; padding: 5px; background-color: #e9ecef; border-radius: 3px;">
-      <strong>ユーザー:</strong><br>
-      <span style="font-size: 12px;">${sampleUrls[0]}</span>
+    <div style="color: #495057; margin-bottom: 8px;">
+      <strong>� QRコードで生成されるURL例:</strong>
+    </div>
+    
+    <div style="margin-bottom: 15px;">
+      <h4 style="color: #28a745; margin: 0 0 8px 0; font-size: 14px;">🔒 暗号化URL（推奨）</h4>
+      <div style="font-family: monospace; font-size: 11px; line-height: 1.6; color: #6c757d; background: #f8f9fa; padding: 10px; border-radius: 4px; border-left: 4px solid #28a745;">
+        ${encryptedUrls
+          .map(
+            (url) =>
+              `<div style="margin-bottom: 5px; word-break: break-all;">${url}</div>`
+          )
+          .join("")}
+      </div>
+      <div style="margin-top: 5px; font-size: 11px; color: #28a745;">
+        ✅ パラメータが暗号化され、URLが短くなります
+      </div>
+    </div>
+
+    <div style="margin-bottom: 15px;">
+      <h4 style="color: #6c757d; margin: 0 0 8px 0; font-size: 14px;">� 通常URL（互換性）</h4>
+      <div style="font-family: monospace; font-size: 11px; line-height: 1.6; color: #6c757d; background: white; padding: 10px; border-radius: 4px; border: 1px solid #e0e0e0;">
+        ${normalUrls
+          .map(
+            (url) =>
+              `<div style="margin-bottom: 5px; word-break: break-all;">${url}</div>`
+          )
+          .join("")}
+      </div>
+    </div>
+
+    <div style="margin-top: 8px; font-size: 11px; color: #6c757d;">
+      <strong>パラメータ説明:</strong><br>
+      • <code>d</code>: 暗号化されたデータ（user_id + admin_id）<br>
+      • <code>user_id</code>: 来場者のユーザーID（通常URL用）<br>
+      • <code>admin_id</code>: 管理者ID (${adminId}) - Admin別データ管理用
+    </div>
+
+    <div style="margin-top: 15px; text-align: center;">
+      <button onclick="generateTestQRCodes()" 
+        style="background: #4285f4; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; margin: 0 5px;">
+        🔍 テスト用QRコード生成
+      </button>
+      <button onclick="testUrlDecryption()" 
+        style="background: #34a853; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; margin: 0 5px;">
+        🧪 暗号化テスト
+      </button>
     </div>
   `;
+}
+
+// QRコード生成テスト
+function generateTestQRCodes() {
+  const baseUrl = window.location.origin;
+  const adminId = currentAdmin?.admin_id || "ADMIN001";
+
+  const testData = { user_id: "TEST001", admin_id: adminId };
+
+  function simpleEncrypt(text) {
+    const rot13 = text.replace(/[a-zA-Z]/g, function (c) {
+      return String.fromCharCode(
+        (c <= "Z" ? 90 : 122) >= (c = c.charCodeAt(0) + 13) ? c : c - 26
+      );
+    });
+    return btoa(rot13).replace(/[+/=]/g, function (c) {
+      return { "+": `-`, "/": "_", "=": "" }[c];
+    });
+  }
+
+  const normalUrl = `${baseUrl}/?user_id=${testData.user_id}&admin_id=${testData.admin_id}`;
+  const encryptedUrl = `${baseUrl}/?d=${simpleEncrypt(
+    JSON.stringify(testData)
+  )}`;
+
+  console.log("生成するURL:", { normalUrl, encryptedUrl });
+
+  // モーダルで表示
+  const modalHtml = `
+    <div id="qrTestModal" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 2000; display: flex; justify-content: center; align-items: center;">
+      <div style="background: white; padding: 30px; border-radius: 12px; max-width: 700px; max-height: 90vh; overflow-y: auto;">
+        <h3 style="margin: 0 0 20px 0; text-align: center;">📱 QRコード読み取りテスト</h3>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+          <div style="text-align: center;">
+            <h4 style="color: #6c757d; margin-bottom: 15px;">🔓 通常URL</h4>
+            <div style="border: 2px solid #ddd; border-radius: 8px; padding: 15px; background: white;">
+              <canvas id="normalQR" width="200" height="200" style="border-radius: 4px;"></canvas>
+            </div>
+            <div style="font-size: 10px; margin-top: 10px; word-break: break-all; font-family: monospace; background: #f8f9fa; padding: 8px; border-radius: 4px; max-height: 60px; overflow-y: auto;">
+              ${normalUrl}
+            </div>
+          </div>
+          
+          <div style="text-align: center;">
+            <h4 style="color: #28a745; margin-bottom: 15px;">🔒 暗号化URL</h4>
+            <div style="border: 2px solid #28a745; border-radius: 8px; padding: 15px; background: #f8fff8;">
+              <canvas id="encryptedQR" width="200" height="200" style="border-radius: 4px;"></canvas>
+            </div>
+            <div style="font-size: 10px; margin-top: 10px; word-break: break-all; font-family: monospace; background: #f8f9fa; padding: 8px; border-radius: 4px; max-height: 60px; overflow-y: auto;">
+              ${encryptedUrl}
+            </div>
+          </div>
+        </div>
+        
+        <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+          <p style="margin: 0 0 10px 0; font-size: 14px;"><strong>📋 テスト手順:</strong></p>
+          <ol style="margin: 0 0 0 20px; font-size: 13px;">
+            <li>スマートフォンのカメラでQRコードを読み取り</li>
+            <li>ブラウザでURLが開くことを確認</li>
+            <li>自動ログイン処理が正常に動作することを確認</li>
+            <li>両方のQRコードで同じ結果になることを確認</li>
+          </ol>
+        </div>
+        
+        <div style="background: #fff3e0; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+          <p style="margin: 0 0 10px 0; font-size: 14px;"><strong>🏷️ 名札印刷用途:</strong></p>
+          <ul style="margin: 0 0 0 20px; font-size: 13px;">
+            <li>来場者ごとに個別のQRコードを生成</li>
+            <li>名札テンプレートにQRコードを組み込み</li>
+            <li>PDF生成で一括印刷対応</li>
+            <li>暗号化URLでセキュリティ確保</li>
+          </ul>
+        </div>
+        
+        <div style="text-align: center;">
+          <button onclick="generateNameCardPreview()" 
+            style="background: #ff9800; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; margin: 0 10px;">
+            🏷️ 名札プレビュー
+          </button>
+          <button onclick="document.getElementById('qrTestModal').remove()" 
+            style="background: #666; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; margin: 0 10px;">
+            閉じる
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.insertAdjacentHTML("beforeend", modalHtml);
+
+  // QRコードを生成
+  setTimeout(() => {
+    try {
+      if (typeof QRious !== "undefined") {
+        const normalCanvas = document.getElementById("normalQR");
+        const encryptedCanvas = document.getElementById("encryptedQR");
+
+        if (normalCanvas && encryptedCanvas) {
+          new QRious({
+            element: normalCanvas,
+            value: normalUrl,
+            size: 200,
+            background: "white",
+            foreground: "black",
+          });
+
+          new QRious({
+            element: encryptedCanvas,
+            value: encryptedUrl,
+            size: 200,
+            background: "white",
+            foreground: "black",
+          });
+
+          console.log("QRコード生成成功");
+        }
+      } else {
+        console.error("QRious ライブラリが読み込まれていません");
+        alert(
+          "QRコード生成ライブラリの読み込みに失敗しました。ページを再読み込みしてください。"
+        );
+      }
+    } catch (error) {
+      console.error("QRコード生成エラー:", error);
+      alert("QRコード生成中にエラーが発生しました: " + error.message);
+    }
+  }, 100);
+}
+
+// 暗号化テスト機能
+function testUrlDecryption() {
+  const testData = { user_id: "TEST999", admin_id: "ADMIN001" };
+  const jsonString = JSON.stringify(testData);
+
+  function simpleEncrypt(text) {
+    const rot13 = text.replace(/[a-zA-Z]/g, function (c) {
+      return String.fromCharCode(
+        (c <= "Z" ? 90 : 122) >= (c = c.charCodeAt(0) + 13) ? c : c - 26
+      );
+    });
+    return btoa(rot13).replace(/[+/=]/g, function (c) {
+      return { "+": `-`, "/": "_", "=": "" }[c];
+    });
+  }
+
+  function simpleDecrypt(encoded) {
+    try {
+      const base64 =
+        encoded.replace(/[-_]/g, function (c) {
+          return { "-": "+", _: "/" }[c];
+        }) + "===".slice(0, (4 - (encoded.length % 4)) % 4);
+
+      const rot13 = atob(base64);
+      return rot13.replace(/[a-zA-Z]/g, function (c) {
+        return String.fromCharCode(
+          (c <= "Z" ? 90 : 122) >= (c = c.charCodeAt(0) + 13) ? c : c - 26
+        );
+      });
+    } catch (error) {
+      return null;
+    }
+  }
+
+  const encrypted = simpleEncrypt(jsonString);
+  const decrypted = simpleDecrypt(encrypted);
+
+  const result = `
+🧪 暗号化テスト結果:
+
+📝 元データ:
+${jsonString}
+
+🔒 暗号化後:
+${encrypted}
+
+🔓 復号化後:
+${decrypted}
+
+✅ 復号化${decrypted === jsonString ? "成功" : "失敗"}
+${
+  decrypted === jsonString
+    ? "✅ データが正常に復元されました"
+    : "❌ データ復元に失敗しました"
+}
+  `;
+
+  alert(result);
+}
+
+// 名札プレビュー機能
+function generateNameCardPreview() {
+  const baseUrl = window.location.origin;
+  const adminId = currentAdmin?.admin_id || "ADMIN001";
+
+  // サンプル来場者データ
+  const sampleVisitors = [
+    {
+      user_id: "V001",
+      user_name: "田中太郎",
+      company_name: "株式会社サンプル",
+      admin_id: adminId,
+    },
+    {
+      user_id: "V002",
+      user_name: "佐藤花子",
+      company_name: "テスト商事",
+      admin_id: adminId,
+    },
+    {
+      user_id: "V003",
+      user_name: "鈴木次郎",
+      company_name: "デモ株式会社",
+      admin_id: adminId,
+    },
+  ];
+
+  function simpleEncrypt(text) {
+    const rot13 = text.replace(/[a-zA-Z]/g, function (c) {
+      return String.fromCharCode(
+        (c <= "Z" ? 90 : 122) >= (c = c.charCodeAt(0) + 13) ? c : c - 26
+      );
+    });
+    return btoa(rot13).replace(/[+/=]/g, function (c) {
+      return { "+": `-`, "/": "_", "=": "" }[c];
+    });
+  }
+
+  const modalHtml = `
+    <div id="nameCardModal" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 2500; display: flex; justify-content: center; align-items: center;">
+      <div style="background: white; padding: 30px; border-radius: 12px; max-width: 900px; max-height: 90vh; overflow-y: auto;">
+        <h3 style="margin: 0 0 20px 0; text-align: center;">🏷️ 来場者名札プレビュー</h3>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 20px;">
+          ${sampleVisitors
+            .map((visitor, index) => {
+              const qrData = {
+                user_id: visitor.user_id,
+                admin_id: visitor.admin_id,
+              };
+              const encryptedUrl = `${baseUrl}/?d=${simpleEncrypt(
+                JSON.stringify(qrData)
+              )}`;
+
+              return `
+              <div style="border: 2px solid #ddd; border-radius: 12px; padding: 20px; background: linear-gradient(135deg, #f8f9ff 0%, #fff 100%);">
+                <div style="text-align: center; margin-bottom: 15px;">
+                  <div style="font-size: 18px; font-weight: bold; color: #333; margin-bottom: 5px;">${visitor.user_name}</div>
+                  <div style="font-size: 14px; color: #666; margin-bottom: 10px;">${visitor.company_name}</div>
+                  <div style="font-size: 12px; color: #999;">ID: ${visitor.user_id}</div>
+                </div>
+                
+                <div style="text-align: center; margin-bottom: 15px;">
+                  <div style="display: inline-block; border: 2px solid #4285f4; border-radius: 8px; padding: 10px; background: white;">
+                    <canvas id="nameCardQR${index}" width="120" height="120"></canvas>
+                  </div>
+                </div>
+                
+                <div style="text-align: center; font-size: 10px; color: #888; font-family: monospace;">
+                  QRコードでかんたんログイン
+                </div>
+              </div>
+            `;
+            })
+            .join("")}
+        </div>
+        
+        <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+          <h4 style="margin: 0 0 10px 0; color: #2e7d2e;">📋 印刷機能の実装予定</h4>
+          <ul style="margin: 0 0 0 20px; font-size: 13px;">
+            <li>Excel/CSVファイルから来場者データを一括読み込み</li>
+            <li>PDF形式で名札を一括生成（A4用紙に複数枚配置）</li>
+            <li>QRコード付き名札テンプレートのカスタマイズ</li>
+            <li>プリンターで直接印刷可能</li>
+          </ul>
+        </div>
+        
+        <div style="text-align: center;">
+          <button onclick="generateNameCardPDF()" 
+            style="background: #4CAF50; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; margin: 0 10px;">
+            📄 PDF出力（準備中）
+          </button>
+          <button onclick="document.getElementById('nameCardModal').remove()" 
+            style="background: #666; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; margin: 0 10px;">
+            閉じる
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.body.insertAdjacentHTML("beforeend", modalHtml);
+
+  // 各名札のQRコードを生成
+  setTimeout(() => {
+    try {
+      if (typeof QRious !== "undefined") {
+        sampleVisitors.forEach((visitor, index) => {
+          const canvas = document.getElementById(`nameCardQR${index}`);
+          if (canvas) {
+            const qrData = {
+              user_id: visitor.user_id,
+              admin_id: visitor.admin_id,
+            };
+            const encryptedUrl = `${baseUrl}/?d=${simpleEncrypt(
+              JSON.stringify(qrData)
+            )}`;
+
+            new QRious({
+              element: canvas,
+              value: encryptedUrl,
+              size: 120,
+              background: "white",
+              foreground: "black",
+            });
+          }
+        });
+        console.log("名札QRコード生成成功");
+      }
+    } catch (error) {
+      console.error("名札QRコード生成エラー:", error);
+    }
+  }, 100);
+}
+
+// PDF生成機能（将来実装予定）
+function generateNameCardPDF() {
+  alert(
+    "PDF生成機能は今後実装予定です。\n\n実装予定機能:\n• Excel/CSVから来場者データ読み込み\n• 名札テンプレートのカスタマイズ\n• A4用紙レイアウトでの一括印刷\n• QRコード付き名札の自動生成"
+  );
 }
 
 // デフォルトプロジェクト名を生成する関数
@@ -2407,45 +2824,26 @@ async function showSettingsModal() {
     const settingsRef = doc(db, "admin_settings", "config");
     const settingsDoc = await getDoc(settingsRef);
 
-    let projectName = "";
     let password = "";
 
     if (settingsDoc.exists()) {
       const settings = settingsDoc.data();
-      projectName = settings.project_name || "";
       password = settings.admin_password || "";
       console.log("Firestoreから設定を読み込み:", {
-        projectName,
         hasPassword: !!password,
       });
     } else {
       // Firestoreに設定がない場合、localStorageから読み込み（移行対応）
-      projectName = localStorage.getItem("qr_project_name") || "";
       password = localStorage.getItem("qr_password") || "";
       console.log("localStorageから設定を読み込み:", {
-        projectName,
         hasPassword: !!password,
       });
     }
 
-    // プロジェクト名が空の場合、デフォルト値を設定
-    if (!projectName) {
-      projectName = generateDefaultProjectName();
-      console.log("デフォルトプロジェクト名を生成:", projectName);
-    }
-
-    document.getElementById("setting_project_name").value = projectName;
     document.getElementById("setting_password").value = password;
 
     // URLプレビューを更新
     updateUrlPreview();
-
-    // プロジェクト名入力時のリアルタイムプレビュー
-    const projectNameInput = document.getElementById("setting_project_name");
-    if (projectNameInput) {
-      projectNameInput.removeEventListener("input", updateUrlPreview); // 重複防止
-      projectNameInput.addEventListener("input", updateUrlPreview);
-    }
 
     // モーダルを表示
     document.getElementById("settingsModal").style.display = "block";
@@ -2512,3 +2910,7 @@ window.showSettingsModal = showSettingsModal;
 window.closeSettingsModal = closeSettingsModal;
 window.saveSettings = saveSettings;
 window.updateUrlPreview = updateUrlPreview;
+window.generateTestQRCodes = generateTestQRCodes;
+window.testUrlDecryption = testUrlDecryption;
+window.generateNameCardPreview = generateNameCardPreview;
+window.generateNameCardPDF = generateNameCardPDF;

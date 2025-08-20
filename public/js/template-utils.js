@@ -12,6 +12,7 @@ import {
   getDocs,
   query,
   orderBy,
+  where,
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 // Firebase設定
@@ -228,7 +229,20 @@ async function downloadItemsTemplateFromHosting() {
     showLoading("firestoreResult");
 
     // Firestoreからアイテムデータを取得
-    const querySnapshot = await getDocs(collection(db, "items"));
+    let querySnapshot;
+    if (
+      window.getAdminCollection &&
+      typeof window.getAdminCollection === "function"
+    ) {
+      console.log("[DEBUG] Using Admin collection for items template download");
+      const adminItemsCollection = window.getAdminCollection("items");
+      querySnapshot = await getDocs(adminItemsCollection);
+    } else {
+      console.log(
+        "[DEBUG] Using standard collection for items template download"
+      );
+      querySnapshot = await getDocs(collection(db, "items"));
+    }
 
     if (querySnapshot.empty) {
       console.log("No items data found, downloading empty template file...");
@@ -283,7 +297,20 @@ async function downloadUsersTemplateFromHosting() {
     showLoading("firestoreResult");
 
     // Firestoreからユーザーデータを取得
-    const querySnapshot = await getDocs(collection(db, "users"));
+    let querySnapshot;
+    if (
+      window.getAdminCollection &&
+      typeof window.getAdminCollection === "function"
+    ) {
+      console.log("[DEBUG] Using Admin collection for users template download");
+      const adminUsersCollection = window.getAdminCollection("users");
+      querySnapshot = await getDocs(adminUsersCollection);
+    } else {
+      console.log(
+        "[DEBUG] Using standard collection for users template download"
+      );
+      querySnapshot = await getDocs(collection(db, "users"));
+    }
 
     if (querySnapshot.empty) {
       console.log("No users data found, downloading empty template file...");
@@ -339,7 +366,22 @@ async function downloadStaffTemplateFromHosting() {
     showLoading("firestoreResult");
 
     // Firestoreからスタッフデータを取得
-    const querySnapshot = await getDocs(collection(db, "staff"));
+    let querySnapshot;
+    if (
+      window.getAdminCollection &&
+      typeof window.getAdminCollection === "function"
+    ) {
+      console.log("[DEBUG] Using Admin collection for staff template download");
+      // staffはusersコレクション内のrole: "staff"なので、usersコレクションを使用
+      const adminUsersCollection = window.getAdminCollection("users");
+      const q = query(adminUsersCollection, where("user_role", "==", "staff"));
+      querySnapshot = await getDocs(q);
+    } else {
+      console.log(
+        "[DEBUG] Using standard collection for staff template download"
+      );
+      querySnapshot = await getDocs(collection(db, "staff"));
+    }
     console.log("Staff data query result:", querySnapshot.size, "documents");
 
     if (querySnapshot.empty) {
@@ -808,7 +850,21 @@ async function uploadExcelFile(file, mode = "add") {
         showLoading("firestoreResult");
 
         // 既存データを取得して削除
-        const collectionRef = collection(db, collectionType);
+        let collectionRef;
+        if (
+          window.getAdminCollection &&
+          typeof window.getAdminCollection === "function"
+        ) {
+          console.log(
+            `[DEBUG] Using Admin collection reference for deletion: ${collectionType}`
+          );
+          collectionRef = window.getAdminCollection(collectionType);
+        } else {
+          console.log(
+            `[DEBUG] Using standard collection reference for deletion: ${collectionType}`
+          );
+          collectionRef = collection(db, collectionType);
+        }
         const snapshot = await getDocs(collectionRef);
 
         if (!snapshot.empty) {
@@ -842,7 +898,8 @@ async function uploadExcelFile(file, mode = "add") {
               if (userData.role === "admin" || userData.user_role === "admin") {
                 protectedAdminCount++;
                 console.log(
-                  `Admin user protected: ${userData.user_name || userData.name
+                  `Admin user protected: ${
+                    userData.user_name || userData.name
                   } (ID: ${userData.user_id})`
                 );
               }
@@ -854,14 +911,16 @@ async function uploadExcelFile(file, mode = "add") {
               ) {
                 deletePromises.push(deleteDoc(doc.ref));
                 console.log(
-                  `${fileTypeDescription}ユーザーを削除対象に追加: ${userData.user_name || userData.name
+                  `${fileTypeDescription}ユーザーを削除対象に追加: ${
+                    userData.user_name || userData.name
                   } (ID: ${userData.user_id})`
                 );
               }
               // その他のロールは保持
               else {
                 console.log(
-                  `Other role user preserved: ${userData.user_name || userData.name
+                  `Other role user preserved: ${
+                    userData.user_name || userData.name
                   } (Role: ${userData.role || userData.user_role})`
                 );
               }
@@ -998,7 +1057,27 @@ async function uploadExcelFile(file, mode = "add") {
           `[DEBUG] Saving to Firestore collection '${collectionType}':`,
           documentData
         );
-        await addDoc(collection(db, collectionType), documentData);
+
+        // Admin別コレクションを使用
+        if (
+          window.getAdminCollection &&
+          typeof window.getAdminCollection === "function"
+        ) {
+          console.log(
+            `[DEBUG] Using Admin collection path for ${collectionType}`
+          );
+          console.log(`[DEBUG] Current admin:`, window.currentAdmin);
+          const adminCollection = window.getAdminCollection(collectionType);
+          console.log(`[DEBUG] Admin collection reference:`, adminCollection);
+          await addDoc(adminCollection, documentData);
+        } else {
+          console.log(
+            `[DEBUG] Using standard collection path for ${collectionType}`
+          );
+          console.log(`[DEBUG] getAdminCollection function not available`);
+          await addDoc(collection(db, collectionType), documentData);
+        }
+
         successCount++;
         console.log(
           `[DEBUG] Successfully saved row ${index + 1} to ${collectionType}`
