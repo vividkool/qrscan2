@@ -573,22 +573,17 @@
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
             <h1 style="margin: 0;">QR Scan 管理ダッシュボード</h1>
             <div style="display: flex; align-items: center; gap: 10px;">
-                <span id="userInfo" style="color: rgba(255,255,255,0.9); font-size: 14px;"></span>
-                <button onclick="showProfileModal()"
-                    style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
-                    👤 プロフィール
-                </button>
-                <button onclick="showSettingsModal()"
-                    style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
-                    ⚙️ 設定
-                </button>
-                <button onclick="UserSession.logout()"
+                <span id="userInfo" style="color: rgba(255,255,255,0.9); font-size: 14px;">Admin別データ管理システム</span>
+                <button onclick="handleAdminLogout()"
                     style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
                     ログアウト
                 </button>
             </div>
         </div>
-        <p>データベース管理とQRスキャン機能を統合管理</p>
+        <p>Admin別データベース管理とQRスキャン機能を統合管理</p>
+
+        <!-- Admin情報表示エリア -->
+        <div id="adminInfo"></div>
     </div>
 
     <!-- アクションボタン -->
