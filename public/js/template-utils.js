@@ -726,6 +726,28 @@ async function uploadExcelFile(file, mode = "add") {
     return;
   }
 
+  // テストアカウントの制限チェック (admin.jsから参照)
+  if (window.currentAdmin) {
+    const accountStatus = window.currentAdmin.account_status || "test";
+    if (accountStatus === "test") {
+      const collectionType = window.currentCollectionType || 'users';
+      // 既存件数取得
+      const adminId = window.currentAdmin.admin_id;
+      const db = window.db;
+      const targetCollection = db ? db.collection("admin_collections").doc(adminId).collection(collectionType) : null;
+      let currentCount = 0;
+      if (targetCollection) {
+        const snapshot = await getDocs(targetCollection);
+        currentCount = snapshot.size;
+      }
+      // ファイル内の件数取得（SheetJSで後ほど）
+      // ここでは仮に最大件数とする
+      // → 実際の件数取得はSheetJS処理後に再度判定
+      // ここでは先に既存件数を取得しておく
+      window.__excelUploadCurrentCount = currentCount;
+    }
+  }
+
   const fileExtension = file.name.split(".").pop().toLowerCase();
   const fileName = file.name.toLowerCase();
 
@@ -830,6 +852,19 @@ async function uploadExcelFile(file, mode = "add") {
     console.log("- JSON data length:", jsonData.length);
     console.log("- First row sample:", jsonData[0]);
 
+    // テストアカウントの件数制限チェック
+    if (window.currentAdmin) {
+      const accountStatus = window.currentAdmin.account_status || "test";
+      if (accountStatus === "test") {
+        const currentCount = window.__excelUploadCurrentCount || 0;
+        const addCount = jsonData.length;
+        if (currentCount + addCount > 30) {
+          showResult("firestoreResult", `テストアカウントは${collectionType}の合計件数が30件を超えるためアップロードできません。\n現在: ${currentCount}件, アップロード予定: ${addCount}件`, "error");
+          return;
+        }
+      }
+    }
+
     if (jsonData.length === 0) {
       console.error("[DEBUG] No data found in sheet:", targetSheetName);
       showResult(
@@ -898,8 +933,7 @@ async function uploadExcelFile(file, mode = "add") {
               if (userData.role === "admin" || userData.user_role === "admin") {
                 protectedAdminCount++;
                 console.log(
-                  `Admin user protected: ${
-                    userData.user_name || userData.name
+                  `Admin user protected: ${userData.user_name || userData.name
                   } (ID: ${userData.user_id})`
                 );
               }
@@ -911,16 +945,14 @@ async function uploadExcelFile(file, mode = "add") {
               ) {
                 deletePromises.push(deleteDoc(doc.ref));
                 console.log(
-                  `${fileTypeDescription}ユーザーを削除対象に追加: ${
-                    userData.user_name || userData.name
+                  `${fileTypeDescription}ユーザーを削除対象に追加: ${userData.user_name || userData.name
                   } (ID: ${userData.user_id})`
                 );
               }
               // その他のロールは保持
               else {
                 console.log(
-                  `Other role user preserved: ${
-                    userData.user_name || userData.name
+                  `Other role user preserved: ${userData.user_name || userData.name
                   } (Role: ${userData.role || userData.user_role})`
                 );
               }

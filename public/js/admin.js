@@ -82,6 +82,27 @@ function checkAdminAuthentication() {
 function displayAdminInfo() {
   if (!currentAdmin) return;
 
+  // アカウント状態の表示
+  const accountStatus = currentAdmin.account_status || "test";
+  const planType = currentAdmin.plan_type || "free";
+  const isActive = currentAdmin.is_active !== false;
+
+  // ステータス表示用のスタイルと文字列
+  const statusConfig = {
+    test: { color: "#ffc107", text: "テストアカウント", icon: "🧪" },
+    real: { color: "#28a745", text: "本番アカウント", icon: "✅" },
+    suspended: { color: "#dc3545", text: "停止中", icon: "⚠️" }
+  };
+
+  const planConfig = {
+    free: { color: "#6c757d", text: "フリー", icon: "🆓" },
+    basic: { color: "#17a2b8", text: "ベーシック", icon: "📊" },
+    real: { color: "#6f42c1", text: "プレミアム", icon: "⭐" }
+  };
+
+  const currentStatusConfig = statusConfig[accountStatus] || statusConfig.test;
+  const currentPlanConfig = planConfig[planType] || planConfig.free;
+
   const adminInfoContainer = document.getElementById("adminInfo");
   if (adminInfoContainer) {
     adminInfoContainer.innerHTML = `
@@ -97,6 +118,44 @@ function displayAdminInfo() {
             <p style="margin: 0; font-size: 16px;">${currentAdmin.admin_name}</p>
           </div>
         </div>
+        
+        <!-- アカウント状態表示 -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+          <div style="background: rgba(255,255,255,0.15); padding: 12px; border-radius: 8px;">
+            <p style="margin: 0 0 5px 0; opacity: 0.9; font-size: 12px;">アカウント種別</p>
+            <p style="margin: 0; font-size: 16px; font-weight: bold; color: ${currentStatusConfig.color};">
+              ${currentStatusConfig.icon} ${currentStatusConfig.text}
+            </p>
+          </div>
+          <div style="background: rgba(255,255,255,0.15); padding: 12px; border-radius: 8px;">
+            <p style="margin: 0 0 5px 0; opacity: 0.9; font-size: 12px;">プラン</p>
+            <p style="margin: 0; font-size: 16px; font-weight: bold; color: ${currentPlanConfig.color};">
+              ${currentPlanConfig.icon} ${currentPlanConfig.text}
+            </p>
+          </div>
+        </div>
+        
+        ${currentAdmin.usage_limits ? `
+        <!-- 使用制限表示 -->
+        <div style="background: rgba(255,255,255,0.1); padding: 12px; border-radius: 8px; margin-bottom: 10px;">
+          <p style="margin: 0 0 8px 0; opacity: 0.9; font-size: 12px;">使用制限</p>
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; font-size: 12px;">
+            <div>最大ユーザー: ${currentAdmin.usage_limits.max_users === -1 ? '無制限' : currentAdmin.usage_limits.max_users}</div>
+            <div>月間スキャン: ${currentAdmin.usage_limits.max_scans_per_month === -1 ? '無制限' : currentAdmin.usage_limits.max_scans_per_month}</div>
+            <div>データ出力: ${currentAdmin.usage_limits.max_data_export === -1 ? '無制限' : currentAdmin.usage_limits.max_data_export}</div>
+          </div>
+        </div>
+        ` : ''}
+        
+        ${accountStatus === 'test' ? `
+        <!-- アップグレードボタン -->
+        <div style="text-align: center; margin-top: 15px;">
+          <button onclick="showUpgradeModal()" style="background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 12px; cursor: pointer;">
+            💳 本番アカウントにアップグレード
+          </button>
+        </div>
+        ` : ''}
+        
         <div style="margin-bottom: 15px;">
           <p style="margin: 5px 0; opacity: 0.9;"><strong>データパス:</strong></p>
           <p style="margin: 0; font-family: monospace; background: rgba(255,255,255,0.1); padding: 8px; border-radius: 4px;">admin_collections/${currentAdmin.admin_id}/</p>
@@ -144,6 +203,52 @@ function getAdminDoc(collectionName, docId) {
     collectionName,
     docId
   );
+}
+
+// テストアカウントの制限チェック関数
+async function checkDataLimits(collectionName, action = 'add') {
+  if (!currentAdmin) {
+    throw new Error("Admin認証が必要です");
+  }
+
+  // 本番アカウントまたはプレミアムプランは制限なし
+  const accountStatus = currentAdmin.account_status || "test";
+  const planType = currentAdmin.plan_type || "free";
+
+  if (accountStatus === "real" || planType === "real") {
+    return { allowed: true, message: "制限なし" };
+  }
+
+  // テストアカウントの制限をチェック
+  if (accountStatus === "test" && action === 'add') {
+    try {
+      const adminCollection = getAdminCollection(collectionName);
+      const snapshot = await getDocs(adminCollection);
+      const currentCount = snapshot.size;
+      const limit = 30; // テストアカウントの制限
+
+      if (currentCount >= limit) {
+        return {
+          allowed: false,
+          message: `テストアカウントでは${collectionName}は最大${limit}件までです。\n現在: ${currentCount}件\n\n本番アカウントにアップグレードすると制限が解除されます。`,
+          currentCount,
+          limit
+        };
+      }
+
+      return {
+        allowed: true,
+        message: `追加可能 (${currentCount}/${limit}件)`,
+        currentCount,
+        limit
+      };
+    } catch (error) {
+      console.error("制限チェックエラー:", error);
+      return { allowed: true, message: "制限チェック失敗" };
+    }
+  }
+
+  return { allowed: true, message: "制限チェックスキップ" };
 }
 
 // ページ読み込み時の処理
@@ -314,7 +419,22 @@ async function getAllItems() {
       `Admin ${currentAdmin.admin_id}: ${querySnapshot.size}件のアイテムデータを取得`
     );
 
-    let html = "<table><thead><tr>";
+    // テストアカウントの制限状況を表示
+    let limitInfo = "";
+    const accountStatus = currentAdmin.account_status || "test";
+    console.log(`[DEBUG] Account status: ${accountStatus}`);
+    if (accountStatus === "test") {
+      const limit = 30;
+      const currentCount = querySnapshot.size;
+      const remaining = Math.max(0, limit - currentCount);
+      limitInfo = `<div style="background: ${currentCount >= limit ? '#fff3cd' : '#d1ecf1'}; padding: 10px; border-radius: 8px; margin-bottom: 10px; border: 1px solid ${currentCount >= limit ? '#ffeaa7' : '#bee5eb'};">
+        <strong>📊 テストアカウント制限:</strong> ${currentCount}/${limit}件 
+        ${remaining > 0 ? `(残り ${remaining}件追加可能)` : '<span style=\"color: #856404;\">⚠️ 上限到達</span>'}
+        ${currentCount >= limit ? '<br><small style=\"color: #856404;\">本番アカウントにアップグレードすると制限が解除されます</small>' : ''}
+      </div>`;
+    }
+
+    let html = limitInfo + "<table><thead><tr>";
     html +=
       "<th>item_no</th><th>category_name</th><th>company_name</th><th>item_name</th><th>maker_code</th><th>操作</th>";
     html += "</tr></thead><tbody>";
@@ -465,8 +585,8 @@ async function getAllScanItems() {
       const timestamp = data.timestamp || data.createdAt;
       const timeStr = timestamp
         ? new Date(
-            timestamp.seconds ? timestamp.toDate() : timestamp
-          ).toLocaleString("ja-JP")
+          timestamp.seconds ? timestamp.toDate() : timestamp
+        ).toLocaleString("ja-JP")
         : "不明";
       const content = data.content || "データなし";
       const userName = data.user_name || data.user_id || "不明";
@@ -655,6 +775,13 @@ async function addDocument() {
   }
 
   try {
+    // テストアカウントの制限チェック
+    const limitCheck = await checkDataLimits("test", "add");
+    if (!limitCheck.allowed) {
+      showResult("firestoreResult", limitCheck.message, "error");
+      return;
+    }
+
     showLoading("firestoreResult");
     let docRef;
 
@@ -665,12 +792,13 @@ async function addDocument() {
     };
 
     if (documentId) {
-      // IDを指定してドキュメントを作成
-      docRef = doc(db, "test", documentId);
+      // IDを指定してドキュメントを作成 (Admin別コレクション)
+      docRef = getAdminDoc("test", documentId);
       await setDoc(docRef, documentData);
     } else {
-      // 自動生成IDでドキュメントを作成
-      docRef = await addDoc(collection(db, "test"), documentData);
+      // 自動生成IDでドキュメントを作成 (Admin別コレクション)
+      const adminCollection = getAdminCollection("test");
+      docRef = await addDoc(adminCollection, documentData);
     }
 
     showResult(
@@ -1032,6 +1160,13 @@ async function submitAddData() {
       return;
     }
 
+    // テストアカウントの制限チェック
+    const limitCheck = await checkDataLimits(currentCollectionType, "add");
+    if (!limitCheck.allowed) {
+      showResult("firestoreResult", limitCheck.message, "error");
+      return;
+    }
+
     showLoading("firestoreResult");
 
     const docId = generateUUID();
@@ -1105,8 +1240,8 @@ async function submitAddData() {
           (currentCollectionType === "staff"
             ? "staff"
             : currentCollectionType === "maker"
-            ? "maker"
-            : "user"),
+              ? "maker"
+              : "user"),
         print_status:
           document.getElementById("modal_print_status")?.value || "not_printed",
       };
@@ -1128,16 +1263,14 @@ async function submitAddData() {
 
     showResult(
       "firestoreResult",
-      `${
-        currentCollectionType === "items"
-          ? "アイテム"
-          : currentCollectionType === "users"
+      `${currentCollectionType === "items"
+        ? "アイテム"
+        : currentCollectionType === "users"
           ? "ユーザー"
           : currentCollectionType === "staff"
-          ? "スタッフ"
-          : "メーカー"
-      }「${data.item_name || data.user_name}」を${
-        currentAdmin.admin_id
+            ? "スタッフ"
+            : "メーカー"
+      }「${data.item_name || data.user_name}」を${currentAdmin.admin_id
       }の管理下に追加しました`,
       "success"
     ); // モーダルを閉じる
@@ -1238,33 +1371,28 @@ function generateEditFormFields(collectionType, currentData) {
     fields = `
       <div style="margin-bottom:15px;">
         <label style="display:block; margin-bottom:5px; font-weight:bold;">アイテム番号 <span style="color:red;">*</span></label>
-        <input type="text" id="modal_item_no" required value="${
-          currentData.item_no || ""
-        }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+        <input type="text" id="modal_item_no" required value="${currentData.item_no || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
       </div>
       <div style="margin-bottom:15px;">
         <label style="display:block; margin-bottom:5px; font-weight:bold;">カテゴリ名</label>
-        <input type="text" id="modal_category_name" value="${
-          currentData.category_name || ""
-        }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+        <input type="text" id="modal_category_name" value="${currentData.category_name || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
       </div>
       <div style="margin-bottom:15px;">
         <label style="display:block; margin-bottom:5px; font-weight:bold;">会社名</label>
-        <input type="text" id="modal_company_name" value="${
-          currentData.company_name || ""
-        }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+        <input type="text" id="modal_company_name" value="${currentData.company_name || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
       </div>
       <div style="margin-bottom:15px;">
         <label style="display:block; margin-bottom:5px; font-weight:bold;">アイテム名 <span style="color:red;">*</span></label>
-        <input type="text" id="modal_item_name" required value="${
-          currentData.item_name || ""
-        }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+        <input type="text" id="modal_item_name" required value="${currentData.item_name || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
       </div>
       <div style="margin-bottom:15px;">
         <label style="display:block; margin-bottom:5px; font-weight:bold;">メーカーコード</label>
-        <input type="text" id="modal_maker_code" value="${
-          currentData.maker_code || ""
-        }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+        <input type="text" id="modal_maker_code" value="${currentData.maker_code || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
       </div>
     `;
   } else if (
@@ -1276,74 +1404,60 @@ function generateEditFormFields(collectionType, currentData) {
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザーID <span style="color:red;">*</span></label>
-          <input type="text" id="modal_user_id" required value="${
-            currentData.user_id || ""
-          }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+          <input type="text" id="modal_user_id" required value="${currentData.user_id || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザー名 <span style="color:red;">*</span></label>
-          <input type="text" id="modal_user_name" required value="${
-            currentData.user_name || ""
-          }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+          <input type="text" id="modal_user_name" required value="${currentData.user_name || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">メールアドレス</label>
-          <input type="email" id="modal_email" value="${
-            currentData.email || ""
-          }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+          <input type="email" id="modal_email" value="${currentData.email || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">電話番号</label>
-          <input type="tel" id="modal_phone" value="${
-            currentData.phone || ""
-          }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+          <input type="tel" id="modal_phone" value="${currentData.phone || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">会社名</label>
-          <input type="text" id="modal_company_name" value="${
-            currentData.company_name || ""
-          }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+          <input type="text" id="modal_company_name" value="${currentData.company_name || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">ステータス</label>
           <select id="modal_status" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-            <option value="-" ${
-              currentData.status === "-" ? "selected" : ""
-            }>-</option>
-            <option value="入場中" ${
-              currentData.status === "入場中" ? "selected" : ""
-            }>入場中</option>
-            <option value="退場済" ${
-              currentData.status === "退場済" ? "selected" : ""
-            }>退場済</option>
+            <option value="-" ${currentData.status === "-" ? "selected" : ""
+      }>-</option>
+            <option value="入場中" ${currentData.status === "入場中" ? "selected" : ""
+      }>入場中</option>
+            <option value="退場済" ${currentData.status === "退場済" ? "selected" : ""
+      }>退場済</option>
           </select>
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザー権限</label>
           <select id="modal_user_role" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-            <option value="user" ${
-              currentData.user_role === "user" ? "selected" : ""
-            }>User</option>
-            <option value="admin" ${
-              currentData.user_role === "admin" ? "selected" : ""
-            }>Admin</option>
-            <option value="staff" ${
-              currentData.user_role === "staff" ? "selected" : ""
-            }>Staff</option>
-            <option value="maker" ${
-              currentData.user_role === "maker" ? "selected" : ""
-            }>Maker</option>
+            <option value="user" ${currentData.user_role === "user" ? "selected" : ""
+      }>User</option>
+            <option value="admin" ${currentData.user_role === "admin" ? "selected" : ""
+      }>Admin</option>
+            <option value="staff" ${currentData.user_role === "staff" ? "selected" : ""
+      }>Staff</option>
+            <option value="maker" ${currentData.user_role === "maker" ? "selected" : ""
+      }>Maker</option>
           </select>
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">印刷ステータス</label>
           <select id="modal_print_status" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-            <option value="not_printed" ${
-              currentData.print_status === "not_printed" ? "selected" : ""
-            }>未印刷</option>
-            <option value="printed" ${
-              currentData.print_status === "printed" ? "selected" : ""
-            }>印刷済み</option>
+            <option value="not_printed" ${currentData.print_status === "not_printed" ? "selected" : ""
+      }>未印刷</option>
+            <option value="printed" ${currentData.print_status === "printed" ? "selected" : ""
+      }>印刷済み</option>
           </select>
         </div>
       </div>
@@ -1436,8 +1550,8 @@ async function submitEditData() {
           (collectionType === "staff"
             ? "staff"
             : collectionType === "maker"
-            ? "maker"
-            : "user"),
+              ? "maker"
+              : "user"),
         print_status:
           document.getElementById("modal_print_status")?.value || "not_printed",
       };
@@ -1452,14 +1566,13 @@ async function submitEditData() {
 
     showResult(
       "firestoreResult",
-      `${
-        collectionType === "items"
-          ? "アイテム"
-          : collectionType === "users"
+      `${collectionType === "items"
+        ? "アイテム"
+        : collectionType === "users"
           ? "ユーザー"
           : collectionType === "staff"
-          ? "スタッフ"
-          : "メーカー"
+            ? "スタッフ"
+            : "メーカー"
       }「${data.item_name || data.user_name}」を更新しました`,
       "success"
     );
@@ -1580,9 +1693,18 @@ window.copyTemplateDataToNewAdmin = async function (targetAdminId = null) {
         collectionName
       );
 
+      // 既存件数取得
+      const targetSnapshot = await getDocs(targetCollection);
+      const currentCount = targetSnapshot.size;
+      const addCount = sourceSnapshot.size;
+      const accountStatus = currentAdmin?.account_status || "test";
+      if (accountStatus === "test" && currentCount + addCount > 30) {
+        alert(`テストアカウントは${collectionName}の合計件数が30件を超えるためコピーできません。\n現在: ${currentCount}件, コピー予定: ${addCount}件`);
+        continue;
+      }
+
       for (const docSnap of sourceSnapshot.docs) {
-        const data = docSnap.data();
-        await addDoc(targetCollection, data);
+        await addDoc(targetCollection, docSnap.data());
         totalCopied++;
         console.log(`✅ ${collectionName}/${docSnap.id} をコピー`);
       }
@@ -1886,27 +2008,24 @@ async function runMakerPerformanceTest() {
               <p><strong>対象アイテム:</strong> ${aggregation.itemCount}件</p>
               <p><strong>クエリ数:</strong> ${aggregation.queryCount}</p>
               <p><strong>平均クエリ時間:</strong> ${(
-                aggregation.time / aggregation.queryCount
-              ).toFixed(2)}ms</p>
+            aggregation.time / aggregation.queryCount
+          ).toFixed(2)}ms</p>
             </div>
           </div>
           
-          <div style="background: ${
-            improvement > 0 ? "#d4edda" : "#f8d7da"
+          <div style="background: ${improvement > 0 ? "#d4edda" : "#f8d7da"
           }; padding: 20px; border-radius: 8px; text-align: center;">
             <h3>${improvement > 0 ? "🎉" : "⚠️"} パフォーマンス比較結果</h3>
             <p style="font-size: 18px; margin: 10px 0;">
-              <strong>改善率: ${
-                improvement > 0 ? "+" : ""
-              }${improvement.toFixed(1)}%</strong>
+              <strong>改善率: ${improvement > 0 ? "+" : ""
+          }${improvement.toFixed(1)}%</strong>
             </p>
-            ${
-              improvement > 0
-                ? `<p style="font-size: 16px; color: #155724;">✅ Aggregation Queriesが <strong>${speedRatio.toFixed(
-                    1
-                  )}倍高速</strong>です！</p>`
-                : `<p style="font-size: 16px; color: #721c24;">⚠️ 従来方法の方が高速でした</p>`
-            }
+            ${improvement > 0
+            ? `<p style="font-size: 16px; color: #155724;">✅ Aggregation Queriesが <strong>${speedRatio.toFixed(
+              1
+            )}倍高速</strong>です！</p>`
+            : `<p style="font-size: 16px; color: #721c24;">⚠️ 従来方法の方が高速でした</p>`
+          }
           </div>
         `;
 
@@ -1919,14 +2038,13 @@ async function runMakerPerformanceTest() {
             <h4>📈 スケーラビリティ分析</h4>
             <p><strong>現在のデータ量:</strong> ${currentDataSize.toLocaleString()}件</p>
             <p><strong>予想データ量:</strong> ${Math.round(
-              futureDataSize
-            ).toLocaleString()}件 (3-4倍増加)</p>
+          futureDataSize
+        ).toLocaleString()}件 (3-4倍増加)</p>
             <p><strong>推奨事項:</strong> 
-              ${
-                improvement > 0
-                  ? "✅ Aggregation Queriesの実装をお勧めします"
-                  : "⚠️ データ量増加に備えてCloud Functionsでのカウンター管理を検討してください"
-              }
+              ${improvement > 0
+            ? "✅ Aggregation Queriesの実装をお勧めします"
+            : "⚠️ データ量増加に備えてCloud Functionsでのカウンター管理を検討してください"
+          }
             </p>
           </div>
         `;
@@ -1984,8 +2102,7 @@ async function runPerformanceTestForMaker(userId) {
     console.log("❌ 従来方法: エラー -", legacyResult.error);
   } else {
     console.log(
-      `⏱️ 従来方法: ${legacyResult.time.toFixed(2)}ms (${
-        legacyResult.docCount
+      `⏱️ 従来方法: ${legacyResult.time.toFixed(2)}ms (${legacyResult.docCount
       }件読み取り)`
     );
   }
@@ -1994,8 +2111,7 @@ async function runPerformanceTestForMaker(userId) {
     console.log("❌ Aggregation方法: エラー -", aggregationResult.error);
   } else {
     console.log(
-      `⚡ Aggregation方法: ${aggregationResult.time.toFixed(2)}ms (${
-        aggregationResult.queryCount
+      `⚡ Aggregation方法: ${aggregationResult.time.toFixed(2)}ms (${aggregationResult.queryCount
       }クエリ)`
     );
   }
@@ -2004,8 +2120,7 @@ async function runPerformanceTestForMaker(userId) {
     const improvement =
       ((legacyResult.time - aggregationResult.time) / legacyResult.time) * 100;
     console.log(
-      `📈 パフォーマンス改善: ${
-        improvement > 0 ? "+" : ""
+      `📈 パフォーマンス改善: ${improvement > 0 ? "+" : ""
       }${improvement.toFixed(1)}%`
     );
 
@@ -2175,11 +2290,11 @@ async function showProfileModal() {
 
   // statusの表示を判定
   const statusDisplay =
-    adminSettings?.status === "production"
+    adminSettings?.status === "real"
       ? "本番モード"
       : adminSettings?.status === "test"
-      ? "テストモード"
-      : "未設定";
+        ? "テストモード"
+        : "未設定";
 
   // 統合レイアウトで表示と編集フィールドを生成
   profileContent.innerHTML = `
@@ -2187,38 +2302,33 @@ async function showProfileModal() {
     <div class="profile-column">
       <div class="profile-item">
         <label class="profile-label">管理者 ID:</label>
-        <input type="text" id="edit_admin_id" class="profile-input" value="${
-          currentAdmin.admin_id
-        }" disabled />
+        <input type="text" id="edit_admin_id" class="profile-input" value="${currentAdmin.admin_id
+    }" disabled />
         <small>変更不可</small>
       </div>
 
       <div class="profile-item">
         <label class="profile-label">管理者名:</label>
-        <input type="text" id="edit_admin_name" class="profile-input" value="${
-          currentAdmin.admin_name || ""
-        }" disabled />
+        <input type="text" id="edit_admin_name" class="profile-input" value="${currentAdmin.admin_name || ""
+    }" disabled />
       </div>
 
       <div class="profile-item">
         <label class="profile-label">会社名:</label>
-        <input type="text" id="edit_company_name" class="profile-input" value="${
-          currentAdmin.company_name || ""
-        }" disabled />
+        <input type="text" id="edit_company_name" class="profile-input" value="${currentAdmin.company_name || ""
+    }" disabled />
       </div>
 
       <div class="profile-item">
         <label class="profile-label">メールアドレス:</label>
-        <input type="email" id="edit_email" class="profile-input" value="${
-          currentAdmin.email || ""
-        }" disabled />
+        <input type="email" id="edit_email" class="profile-input" value="${currentAdmin.email || ""
+    }" disabled />
       </div>
 
       <div class="profile-item">
         <label class="profile-label">電話番号:</label>
-        <input type="text" id="edit_phone" class="profile-input" value="${
-          currentAdmin.phone || ""
-        }" disabled />
+        <input type="text" id="edit_phone" class="profile-input" value="${currentAdmin.phone || ""
+    }" disabled />
       </div>
     </div>
 
@@ -2227,9 +2337,8 @@ async function showProfileModal() {
       <div class="profile-item">
         <label class="profile-label">管理者パスワード:</label>
         <div class="password-container">
-          <input type="password" id="edit_password" class="profile-input password-input" value="${
-            adminSettings?.password || ""
-          }" disabled />
+          <input type="password" id="edit_password" class="profile-input password-input" value="${adminSettings?.password || ""
+    }" disabled />
           <button type="button" class="password-toggle" onclick="togglePasswordVisibility('edit_password', this)">
             👁️
           </button>
@@ -2240,37 +2349,32 @@ async function showProfileModal() {
       <div class="profile-item">
         <label class="profile-label">運用状況:</label>
         <select id="edit_status" class="profile-input" disabled>
-          <option value="test" ${
-            adminSettings?.status === "test" ? "selected" : ""
-          }>テストモード</option>
-          <option value="production" ${
-            adminSettings?.status === "production" ? "selected" : ""
-          }>本番モード</option>
+          <option value="test" ${adminSettings?.status === "test" ? "selected" : ""
+    }>テストモード</option>
+          <option value="real" ${adminSettings?.status === "real" ? "selected" : ""
+    }>本番モード</option>
         </select>
         <small>テストモードは３０日間のみになります</small>
       </div>
 
       <div class="profile-item">
         <label class="profile-label">プロジェクト名:</label>
-        <input type="text" id="edit_project_id" class="profile-input" value="${
-          adminSettings?.project_id || ""
-        }" disabled />
+        <input type="text" id="edit_project_id" class="profile-input" value="${adminSettings?.project_id || ""
+    }" disabled />
         <small>名札印刷に使用されます</small>
       </div>
 
       <div class="profile-item">
         <label class="profile-label">展示会日:</label>
-        <input type="date" id="edit_project_day" class="profile-input" value="${
-          adminSettings?.project_day || ""
-        }" disabled />
+        <input type="date" id="edit_project_day" class="profile-input" value="${adminSettings?.project_day || ""
+    }" disabled />
         <small>名札印刷に使用されます</small>
       </div>
 
       <div class="profile-item">
         <label class="profile-label">データパス:</label>
-        <input type="text" class="profile-input" value="admin_collections/${
-          currentAdmin.admin_id
-        }/" disabled 
+        <input type="text" class="profile-input" value="admin_collections/${currentAdmin.admin_id
+    }/" disabled 
                style="font-family: monospace; background-color: #f8f9fa;" />
         <small>Firestore保存パス</small>
       </div>
@@ -2353,7 +2457,7 @@ function toggleEditMode() {
 function togglePasswordVisibility(fieldId, toggleButton) {
   const passwordField = document.getElementById(fieldId);
   if (!passwordField) return;
-  
+
   if (passwordField.type === "password") {
     passwordField.type = "text";
     toggleButton.textContent = "🙈"; // 隠すアイコン
@@ -2407,9 +2511,8 @@ async function editProfile() {
         </div>
         <div>
           <strong>会社名:</strong><br>
-          <span style="color: #666;">${
-            currentAdmin.company_name || "未設定"
-          }</span>
+          <span style="color: #666;">${currentAdmin.company_name || "未設定"
+        }</span>
         </div>
         <div>
           <strong>権限:</strong><br>
@@ -2417,14 +2520,11 @@ async function editProfile() {
         </div>
       </div>
       <div style="margin-top: 10px; font-size: 14px;">
-        <strong>メール:</strong> <span style="color: #666;">${
-          currentAdmin.email || "未設定"
+        <strong>メール:</strong> <span style="color: #666;">${currentAdmin.email || "未設定"
         }</span><br>
-        <strong>電話番号:</strong> <span style="color: #666;">${
-          currentAdmin.phone || "未設定"
+        <strong>電話番号:</strong> <span style="color: #666;">${currentAdmin.phone || "未設定"
         }</span><br>
-        <strong>データパス:</strong> <span style="color: #666; font-family: monospace;">admin_collections/${
-          currentAdmin.admin_id
+        <strong>データパス:</strong> <span style="color: #666; font-family: monospace;">admin_collections/${currentAdmin.admin_id
         }/</span>
       </div>
     `;
@@ -2664,11 +2764,11 @@ function updateUrlPreview() {
       <h4 style="color: #28a745; margin: 0 0 8px 0; font-size: 14px;">🔒 暗号化URL（推奨）</h4>
       <div style="font-family: monospace; font-size: 11px; line-height: 1.6; color: #6c757d; background: #f8f9fa; padding: 10px; border-radius: 4px; border-left: 4px solid #28a745;">
         ${encryptedUrls
-          .map(
-            (url) =>
-              `<div style="margin-bottom: 5px; word-break: break-all;">${url}</div>`
-          )
-          .join("")}
+      .map(
+        (url) =>
+          `<div style="margin-bottom: 5px; word-break: break-all;">${url}</div>`
+      )
+      .join("")}
       </div>
       <div style="margin-top: 5px; font-size: 11px; color: #28a745;">
         ✅ パラメータが暗号化され、URLが短くなります
@@ -2679,11 +2779,11 @@ function updateUrlPreview() {
       <h4 style="color: #6c757d; margin: 0 0 8px 0; font-size: 14px;">� 通常URL（互換性）</h4>
       <div style="font-family: monospace; font-size: 11px; line-height: 1.6; color: #6c757d; background: white; padding: 10px; border-radius: 4px; border: 1px solid #e0e0e0;">
         ${normalUrls
-          .map(
-            (url) =>
-              `<div style="margin-bottom: 5px; word-break: break-all;">${url}</div>`
-          )
-          .join("")}
+      .map(
+        (url) =>
+          `<div style="margin-bottom: 5px; word-break: break-all;">${url}</div>`
+      )
+      .join("")}
       </div>
     </div>
 
@@ -2885,11 +2985,10 @@ ${encrypted}
 ${decrypted}
 
 ✅ 復号化${decrypted === jsonString ? "成功" : "失敗"}
-${
-  decrypted === jsonString
-    ? "✅ データが正常に復元されました"
-    : "❌ データ復元に失敗しました"
-}
+${decrypted === jsonString
+      ? "✅ データが正常に復元されました"
+      : "❌ データ復元に失敗しました"
+    }
   `;
 
   alert(result);
@@ -2940,16 +3039,16 @@ function generateNameCardPreview() {
         
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 20px;">
           ${sampleVisitors
-            .map((visitor, index) => {
-              const qrData = {
-                user_id: visitor.user_id,
-                admin_id: visitor.admin_id,
-              };
-              const encryptedUrl = `${baseUrl}/?d=${simpleEncrypt(
-                JSON.stringify(qrData)
-              )}`;
+      .map((visitor, index) => {
+        const qrData = {
+          user_id: visitor.user_id,
+          admin_id: visitor.admin_id,
+        };
+        const encryptedUrl = `${baseUrl}/?d=${simpleEncrypt(
+          JSON.stringify(qrData)
+        )}`;
 
-              return `
+        return `
               <div style="border: 2px solid #ddd; border-radius: 12px; padding: 20px; background: linear-gradient(135deg, #f8f9ff 0%, #fff 100%);">
                 <div style="text-align: center; margin-bottom: 15px;">
                   <div style="font-size: 18px; font-weight: bold; color: #333; margin-bottom: 5px;">${visitor.user_name}</div>
@@ -2968,8 +3067,8 @@ function generateNameCardPreview() {
                 </div>
               </div>
             `;
-            })
-            .join("")}
+      })
+      .join("")}
         </div>
         
         <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
@@ -3146,3 +3245,41 @@ window.generateTestQRCodes = generateTestQRCodes;
 window.testUrlDecryption = testUrlDecryption;
 window.generateNameCardPreview = generateNameCardPreview;
 window.generateNameCardPDF = generateNameCardPDF;
+
+// アップグレード機能 (将来の実装用)
+function showUpgradeModal() {
+  alert("アップグレード機能は現在開発中です。\n\n今後の実装予定:\n• クレジットカード決済連携\n• プラン選択機能\n• 自動課金管理\n• 使用量統計ダッシュボード");
+}
+
+// アカウントステータス更新機能 (管理者用)
+window.upgradeAccountToReal = async function (adminId) {
+  try {
+    const adminRef = doc(db, "admin_settings", adminId);
+    await setDoc(adminRef, {
+      account_status: "real",
+      plan_type: "real",
+      usage_limits: {
+        max_users: -1,
+        max_scans_per_month: -1,
+        max_data_export: -1
+      },
+      billing_info: {
+        ...currentAdmin.billing_info,
+        last_payment_date: new Date(),
+        next_billing_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      },
+      upgraded_at: new Date()
+    }, { merge: true });
+
+    console.log("アカウントを本番に更新しました");
+    alert("アカウントが本番環境にアップグレードされました！");
+    location.reload();
+  } catch (error) {
+    console.error("アップグレードエラー:", error);
+    alert("アップグレードに失敗しました");
+  }
+}
+
+// グローバル関数として公開
+window.showUpgradeModal = showUpgradeModal;
+window.checkDataLimits = checkDataLimits;
