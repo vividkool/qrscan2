@@ -82,87 +82,28 @@ function checkAdminAuthentication() {
 function displayAdminInfo() {
   if (!currentAdmin) return;
 
-  // アカウント状態の表示
-  const accountStatus = currentAdmin.account_status || "test";
-  const planType = currentAdmin.plan_type || "free";
-  const isActive = currentAdmin.is_active !== false;
-
-  // ステータス表示用のスタイルと文字列
-  const statusConfig = {
-    test: { color: "#ffc107", text: "テストアカウント", icon: "🧪" },
-    real: { color: "#28a745", text: "本番アカウント", icon: "✅" },
-    suspended: { color: "#dc3545", text: "停止中", icon: "⚠️" }
-  };
-
-  const planConfig = {
-    free: { color: "#6c757d", text: "フリー", icon: "🆓" },
-    basic: { color: "#17a2b8", text: "ベーシック", icon: "📊" },
-    real: { color: "#6f42c1", text: "プレミアム", icon: "⭐" }
-  };
-
-  const currentStatusConfig = statusConfig[accountStatus] || statusConfig.test;
-  const currentPlanConfig = planConfig[planType] || planConfig.free;
-
   const adminInfoContainer = document.getElementById("adminInfo");
   if (adminInfoContainer) {
     adminInfoContainer.innerHTML = `
-      <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">
-        <h4 style="margin: 0 0 15px 0; font-size: 18px;">👤 現在ログイン中のAdmin</h4>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
-          <div>
-            <p style="margin: 5px 0; opacity: 0.9;"><strong>Admin ID:</strong></p>
-            <p style="margin: 0; font-size: 18px; font-weight: bold;">${currentAdmin.admin_id}</p>
-          </div>
-          <div>
-            <p style="margin: 5px 0; opacity: 0.9;"><strong>管理者名:</strong></p>
-            <p style="margin: 0; font-size: 16px;">${currentAdmin.admin_name}</p>
-          </div>
-        </div>
-        
-        <!-- アカウント状態表示 -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
-          <div style="background: rgba(255,255,255,0.15); padding: 12px; border-radius: 8px;">
-            <p style="margin: 0 0 5px 0; opacity: 0.9; font-size: 12px;">アカウント種別</p>
-            <p style="margin: 0; font-size: 16px; font-weight: bold; color: ${currentStatusConfig.color};">
-              ${currentStatusConfig.icon} ${currentStatusConfig.text}
-            </p>
-          </div>
-          <div style="background: rgba(255,255,255,0.15); padding: 12px; border-radius: 8px;">
-            <p style="margin: 0 0 5px 0; opacity: 0.9; font-size: 12px;">プラン</p>
-            <p style="margin: 0; font-size: 16px; font-weight: bold; color: ${currentPlanConfig.color};">
-              ${currentPlanConfig.icon} ${currentPlanConfig.text}
-            </p>
-          </div>
-        </div>
-        
-        ${currentAdmin.usage_limits ? `
-        <!-- 使用制限表示 -->
-        <div style="background: rgba(255,255,255,0.1); padding: 12px; border-radius: 8px; margin-bottom: 10px;">
-          <p style="margin: 0 0 8px 0; opacity: 0.9; font-size: 12px;">使用制限</p>
-          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; font-size: 12px;">
-            <div>最大ユーザー: ${currentAdmin.usage_limits.max_users === -1 ? '無制限' : currentAdmin.usage_limits.max_users}</div>
-            <div>月間スキャン: ${currentAdmin.usage_limits.max_scans_per_month === -1 ? '無制限' : currentAdmin.usage_limits.max_scans_per_month}</div>
-            <div>データ出力: ${currentAdmin.usage_limits.max_data_export === -1 ? '無制限' : currentAdmin.usage_limits.max_data_export}</div>
-          </div>
-        </div>
-        ` : ''}
-        
-        ${accountStatus === 'test' ? `
-        <!-- アップグレードボタン -->
-        <div style="text-align: center; margin-top: 15px;">
-          <button onclick="showUpgradeModal()" style="background: #28a745; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 12px; cursor: pointer;">
-            💳 本番アカウントにアップグレード
-          </button>
-        </div>
-        ` : ''}
-        
-        <div style="margin-bottom: 15px;">
-          <p style="margin: 5px 0; opacity: 0.9;"><strong>データパス:</strong></p>
-          <p style="margin: 0; font-family: monospace; background: rgba(255,255,255,0.1); padding: 8px; border-radius: 4px;">admin_collections/${currentAdmin.admin_id}/</p>
-        </div>
-        <p style="margin: 0; font-size: 14px; opacity: 0.8;">このAdminが管理するデータのみが表示されます</p>
-      </div>
-    `;
+     <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">
+       <h4 style="margin: 0 0 15px 0; font-size: 18px;">👤 現在ログイン中のAdmin</h4>
+       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+         <div>
+           <p style="margin: 5px 0; opacity: 0.9;"><strong>Admin ID:</strong></p>
+           <p style="margin: 0; font-size: 18px; font-weight: bold;">${currentAdmin.admin_id}</p>
+         </div>
+         <div>
+           <p style="margin: 5px 0; opacity: 0.9;"><strong>管理者名:</strong></p>
+           <p style="margin: 0; font-size: 16px;">${currentAdmin.admin_name}</p>
+         </div>
+       </div>
+       <div style="margin-bottom: 15px;">
+         <p style="margin: 5px 0; opacity: 0.9;"><strong>データパス:</strong></p>
+         <p style="margin: 0; font-family: monospace; background: rgba(255,255,255,0.1); padding: 8px; border-radius: 4px;">admin_collections/${currentAdmin.admin_id}/</p>
+       </div>
+       <p style="margin: 0; font-size: 14px; opacity: 0.8;">このAdminが管理するデータのみが表示されます</p>
+     </div>
+   `;
   }
 }
 
@@ -203,52 +144,6 @@ function getAdminDoc(collectionName, docId) {
     collectionName,
     docId
   );
-}
-
-// テストアカウントの制限チェック関数
-async function checkDataLimits(collectionName, action = 'add') {
-  if (!currentAdmin) {
-    throw new Error("Admin認証が必要です");
-  }
-
-  // 本番アカウントまたはプレミアムプランは制限なし
-  const accountStatus = currentAdmin.account_status || "test";
-  const planType = currentAdmin.plan_type || "free";
-
-  if (accountStatus === "real" || planType === "real") {
-    return { allowed: true, message: "制限なし" };
-  }
-
-  // テストアカウントの制限をチェック
-  if (accountStatus === "test" && action === 'add') {
-    try {
-      const adminCollection = getAdminCollection(collectionName);
-      const snapshot = await getDocs(adminCollection);
-      const currentCount = snapshot.size;
-      const limit = 30; // テストアカウントの制限
-
-      if (currentCount >= limit) {
-        return {
-          allowed: false,
-          message: `テストアカウントでは${collectionName}は最大${limit}件までです。\n現在: ${currentCount}件\n\n本番アカウントにアップグレードすると制限が解除されます。`,
-          currentCount,
-          limit
-        };
-      }
-
-      return {
-        allowed: true,
-        message: `追加可能 (${currentCount}/${limit}件)`,
-        currentCount,
-        limit
-      };
-    } catch (error) {
-      console.error("制限チェックエラー:", error);
-      return { allowed: true, message: "制限チェック失敗" };
-    }
-  }
-
-  return { allowed: true, message: "制限チェックスキップ" };
 }
 
 // ページ読み込み時の処理
@@ -419,22 +314,7 @@ async function getAllItems() {
       `Admin ${currentAdmin.admin_id}: ${querySnapshot.size}件のアイテムデータを取得`
     );
 
-    // テストアカウントの制限状況を表示
-    let limitInfo = "";
-    const accountStatus = currentAdmin.account_status || "test";
-    console.log(`[DEBUG] Account status: ${accountStatus}`);
-    if (accountStatus === "test") {
-      const limit = 30;
-      const currentCount = querySnapshot.size;
-      const remaining = Math.max(0, limit - currentCount);
-      limitInfo = `<div style="background: ${currentCount >= limit ? '#fff3cd' : '#d1ecf1'}; padding: 10px; border-radius: 8px; margin-bottom: 10px; border: 1px solid ${currentCount >= limit ? '#ffeaa7' : '#bee5eb'};">
-        <strong>📊 テストアカウント制限:</strong> ${currentCount}/${limit}件 
-        ${remaining > 0 ? `(残り ${remaining}件追加可能)` : '<span style=\"color: #856404;\">⚠️ 上限到達</span>'}
-        ${currentCount >= limit ? '<br><small style=\"color: #856404;\">本番アカウントにアップグレードすると制限が解除されます</small>' : ''}
-      </div>`;
-    }
-
-    let html = limitInfo + "<table><thead><tr>";
+    let html = "<table><thead><tr>";
     html +=
       "<th>item_no</th><th>category_name</th><th>company_name</th><th>item_name</th><th>maker_code</th><th>操作</th>";
     html += "</tr></thead><tbody>";
@@ -443,16 +323,16 @@ async function getAllItems() {
       const docId = docSnap.id;
       const displayName = data.item_name || data.item_no || "無名アイテム";
       html += `<tr>
-                <td>${data.item_no || ""}</td>
-                <td>${data.category_name || ""}</td>
-                <td>${data.company_name || ""}</td>
-                <td>${data.item_name || ""}</td>
-                <td>${data.maker_code || ""}</td>
-                <td style="white-space: nowrap;">
-                  <button class="action-button" onclick="editDocument('items', '${docId}', '${displayName}')" style="background:#4285f4; color:white; padding:5px 10px; margin-right:5px; font-size:12px;">編集</button>
-                  <button class="delete-btn" onclick="deleteDocument('items', '${docId}', '${displayName}')">削除</button>
-                </td>
-              </tr>`;
+               <td>${data.item_no || ""}</td>
+               <td>${data.category_name || ""}</td>
+               <td>${data.company_name || ""}</td>
+               <td>${data.item_name || ""}</td>
+               <td>${data.maker_code || ""}</td>
+               <td style="white-space: nowrap;">
+                 <button class="action-button" onclick="editDocument('items', '${docId}', '${displayName}')" style="background:#4285f4; color:white; padding:5px 10px; margin-right:5px; font-size:12px;">編集</button>
+                 <button class="delete-btn" onclick="deleteDocument('items', '${docId}', '${displayName}')">削除</button>
+               </td>
+             </tr>`;
     });
     html += "</tbody></table>";
 
@@ -519,19 +399,19 @@ async function getAllUsers() {
       const docId = docSnap.id;
       const displayName = data.user_name || data.user_id || "無名ユーザー";
       html += `<tr>
-                <td>${data.user_id || ""}</td>
-                <td>${data.company_name || ""}</td>
-                <td>${data.user_name || ""}</td>
-                <td>${data.email || ""}</td>
-                <td>${data.phone || ""}</td>
-                <td>${data.status || ""}</td>
-                <td>${data.user_role || ""}</td>
-                <td>${data.print_status || ""}</td>
-                <td style="white-space: nowrap;">
-                  <button class="action-button" onclick="editDocument('users', '${docId}', '${displayName}')" style="background:#34a853; color:white; padding:5px 10px; margin-right:5px; font-size:12px;">編集</button>
-                  <button class="delete-btn" onclick="deleteDocument('users', '${docId}', '${displayName}')">削除</button>
-                </td>
-              </tr>`;
+               <td>${data.user_id || ""}</td>
+               <td>${data.company_name || ""}</td>
+               <td>${data.user_name || ""}</td>
+               <td>${data.email || ""}</td>
+               <td>${data.phone || ""}</td>
+               <td>${data.status || ""}</td>
+               <td>${data.user_role || ""}</td>
+               <td>${data.print_status || ""}</td>
+               <td style="white-space: nowrap;">
+                 <button class="action-button" onclick="editDocument('users', '${docId}', '${displayName}')" style="background:#34a853; color:white; padding:5px 10px; margin-right:5px; font-size:12px;">編集</button>
+                 <button class="delete-btn" onclick="deleteDocument('users', '${docId}', '${displayName}')">削除</button>
+               </td>
+             </tr>`;
     });
     html += "</tbody></table>";
 
@@ -597,20 +477,20 @@ async function getAllScanItems() {
       const scannerMode = data.scannerMode || "不明";
 
       html += `<tr>
-                <td>${userid}</td>
-                <td>${company}</td>
-                <td>${userName}</td>
-                <td>${content}</td>
-                <td>${itemname}</td>
-                <td>${role}</td>
-                <td>${scannerMode}</td>
-                <td style="white-space: nowrap;">
-                  <button class="delete-btn" onclick="deleteDocument('scanItems', '${docId}', '${content.substring(
+               <td>${userid}</td>
+               <td>${company}</td>
+               <td>${userName}</td>
+               <td>${content}</td>
+               <td>${itemname}</td>
+               <td>${role}</td>
+               <td>${scannerMode}</td>
+               <td style="white-space: nowrap;">
+                 <button class="delete-btn" onclick="deleteDocument('scanItems', '${docId}', '${content.substring(
         0,
         20
       )}...')">削除</button>
-                </td>
-              </tr>`;
+               </td>
+             </tr>`;
     });
     html += "</tbody></table>";
 
@@ -660,19 +540,19 @@ async function getAllStaff() {
       const docId = docSnap.id;
       const displayName = data.user_name || data.user_id || "無名スタッフ";
       html += `<tr>
-                <td>${data.user_id || ""}</td>
-                <td>${data.user_name || ""}</td>
-                <td>${data.email || ""}</td>
-                <td>${data.phone || ""}</td>
-                <td>${data.company_name || ""}</td>
-                <td>${data.status || ""}</td>
-                <td>${data.user_role || ""}</td>
-                <td>${data.print_status || ""}</td>
-                <td style="white-space: nowrap;">
-                  <button class="action-button" onclick="editDocument('users', '${docId}', '${displayName}')" style="background:#34a853; color:white; padding:5px 10px; margin-right:5px; font-size:12px;">編集</button>
-                  <button class="delete-btn" onclick="deleteDocument('users', '${docId}', '${displayName}')">削除</button>
-                </td>
-              </tr>`;
+               <td>${data.user_id || ""}</td>
+               <td>${data.user_name || ""}</td>
+               <td>${data.email || ""}</td>
+               <td>${data.phone || ""}</td>
+               <td>${data.company_name || ""}</td>
+               <td>${data.status || ""}</td>
+               <td>${data.user_role || ""}</td>
+               <td>${data.print_status || ""}</td>
+               <td style="white-space: nowrap;">
+                 <button class="action-button" onclick="editDocument('users', '${docId}', '${displayName}')" style="background:#34a853; color:white; padding:5px 10px; margin-right:5px; font-size:12px;">編集</button>
+                 <button class="delete-btn" onclick="deleteDocument('users', '${docId}', '${displayName}')">削除</button>
+               </td>
+             </tr>`;
     });
     html += "</tbody></table>";
 
@@ -730,19 +610,19 @@ async function getAllMaker() {
       const docId = docSnap.id;
       const displayName = data.user_name || data.user_id || "無名メーカー";
       html += `<tr>
-                <td>${data.user_id || ""}</td>
-                <td>${data.user_name || ""}</td>
-                <td>${data.email || ""}</td>
-                <td>${data.phone || ""}</td>
-                <td>${data.company_name || ""}</td>
-                <td>${data.status || ""}</td>
-                <td>${data.user_role || ""}</td>
-                <td>${data.print_status || ""}</td>
-                <td style="white-space: nowrap;">
-                  <button class="action-button" onclick="editDocument('users', '${docId}', '${displayName}')" style="background:#ff9800; color:white; padding:5px 10px; margin-right:5px; font-size:12px;">編集</button>
-                  <button class="delete-btn" onclick="deleteDocument('users', '${docId}', '${displayName}')">削除</button>
-                </td>
-              </tr>`;
+               <td>${data.user_id || ""}</td>
+               <td>${data.user_name || ""}</td>
+               <td>${data.email || ""}</td>
+               <td>${data.phone || ""}</td>
+               <td>${data.company_name || ""}</td>
+               <td>${data.status || ""}</td>
+               <td>${data.user_role || ""}</td>
+               <td>${data.print_status || ""}</td>
+               <td style="white-space: nowrap;">
+                 <button class="action-button" onclick="editDocument('users', '${docId}', '${displayName}')" style="background:#ff9800; color:white; padding:5px 10px; margin-right:5px; font-size:12px;">編集</button>
+                 <button class="delete-btn" onclick="deleteDocument('users', '${docId}', '${displayName}')">削除</button>
+               </td>
+             </tr>`;
     });
     html += "</tbody></table>";
 
@@ -775,13 +655,6 @@ async function addDocument() {
   }
 
   try {
-    // テストアカウントの制限チェック
-    const limitCheck = await checkDataLimits("test", "add");
-    if (!limitCheck.allowed) {
-      showResult("firestoreResult", limitCheck.message, "error");
-      return;
-    }
-
     showLoading("firestoreResult");
     let docRef;
 
@@ -792,13 +665,12 @@ async function addDocument() {
     };
 
     if (documentId) {
-      // IDを指定してドキュメントを作成 (Admin別コレクション)
-      docRef = getAdminDoc("test", documentId);
+      // IDを指定してドキュメントを作成
+      docRef = doc(db, "test", documentId);
       await setDoc(docRef, documentData);
     } else {
-      // 自動生成IDでドキュメントを作成 (Admin別コレクション)
-      const adminCollection = getAdminCollection("test");
-      docRef = await addDoc(adminCollection, documentData);
+      // 自動生成IDでドキュメントを作成
+      docRef = await addDoc(collection(db, "test"), documentData);
     }
 
     showResult(
@@ -934,172 +806,172 @@ function generateFormFields(collectionType) {
 
   if (collectionType === "items") {
     fields = `
-      <div style="margin-bottom:15px;">
-        <label style="display:block; margin-bottom:5px; font-weight:bold;">アイテム番号 <span style="color:red;">*</span></label>
-        <input type="text" id="modal_item_no" required style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-      </div>
-      <div style="margin-bottom:15px;">
-        <label style="display:block; margin-bottom:5px; font-weight:bold;">カテゴリ名</label>
-        <input type="text" id="modal_category_name" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-      </div>
-      <div style="margin-bottom:15px;">
-        <label style="display:block; margin-bottom:5px; font-weight:bold;">会社名</label>
-        <input type="text" id="modal_company_name" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-      </div>
-      <div style="margin-bottom:15px;">
-        <label style="display:block; margin-bottom:5px; font-weight:bold;">アイテム名 <span style="color:red;">*</span></label>
-        <input type="text" id="modal_item_name" required style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-      </div>
-      <div style="margin-bottom:15px;">
-        <label style="display:block; margin-bottom:5px; font-weight:bold;">メーカーコード</label>
-        <input type="text" id="modal_maker_code" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-      </div>
-    `;
+     <div style="margin-bottom:15px;">
+       <label style="display:block; margin-bottom:5px; font-weight:bold;">アイテム番号 <span style="color:red;">*</span></label>
+       <input type="text" id="modal_item_no" required style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+     </div>
+     <div style="margin-bottom:15px;">
+       <label style="display:block; margin-bottom:5px; font-weight:bold;">カテゴリ名</label>
+       <input type="text" id="modal_category_name" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+     </div>
+     <div style="margin-bottom:15px;">
+       <label style="display:block; margin-bottom:5px; font-weight:bold;">会社名</label>
+       <input type="text" id="modal_company_name" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+     </div>
+     <div style="margin-bottom:15px;">
+       <label style="display:block; margin-bottom:5px; font-weight:bold;">アイテム名 <span style="color:red;">*</span></label>
+       <input type="text" id="modal_item_name" required style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+     </div>
+     <div style="margin-bottom:15px;">
+       <label style="display:block; margin-bottom:5px; font-weight:bold;">メーカーコード</label>
+       <input type="text" id="modal_maker_code" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+     </div>
+   `;
   } else if (collectionType === "users") {
     fields = `
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-        <div style="margin-bottom:15px;">
-          <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザーID <span style="color:red;">*</span></label>
-          <input type="text" id="modal_user_id" required style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-        </div>
-        <div style="margin-bottom:15px;">
-          <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザー名 <span style="color:red;">*</span></label>
-          <input type="text" id="modal_user_name" required style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-        </div>
-        <div style="margin-bottom:15px;">
-          <label style="display:block; margin-bottom:5px; font-weight:bold;">メールアドレス</label>
-          <input type="email" id="modal_email" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-        </div>
-        <div style="margin-bottom:15px;">
-          <label style="display:block; margin-bottom:5px; font-weight:bold;">電話番号</label>
-          <input type="tel" id="modal_phone" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-        </div>
-        <div style="margin-bottom:15px;">
-          <label style="display:block; margin-bottom:5px; font-weight:bold;">会社名</label>
-          <input type="text" id="modal_company_name" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-        </div>
-        <div style="margin-bottom:15px;">
-          <label style="display:block; margin-bottom:5px; font-weight:bold;">ステータス</label>
-          <select id="modal_status" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-            <option value="-">-</option>
-            <option value="入場中">入場中</option>
-            <option value="退場済">退場済</option>
-          </select>
-        </div>
-        <div style="margin-bottom:15px;">
-          <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザー権限</label>
-          <select id="modal_user_role" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-            <option value="user">User</option>
-            <option value="admin">Admin</option>
-            <option value="staff">Staff</option>
-          </select>
-        </div>
-        <div style="margin-bottom:15px;">
-          <label style="display:block; margin-bottom:5px; font-weight:bold;">印刷ステータス</label>
-          <select id="modal_print_status" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-            <option value="not_printed">未印刷</option>
-            <option value="printed">印刷済み</option>
-          </select>
-        </div>
-      </div>
-    `;
+     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+       <div style="margin-bottom:15px;">
+         <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザーID <span style="color:red;">*</span></label>
+         <input type="text" id="modal_user_id" required style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+       </div>
+       <div style="margin-bottom:15px;">
+         <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザー名 <span style="color:red;">*</span></label>
+         <input type="text" id="modal_user_name" required style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+       </div>
+       <div style="margin-bottom:15px;">
+         <label style="display:block; margin-bottom:5px; font-weight:bold;">メールアドレス</label>
+         <input type="email" id="modal_email" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+       </div>
+       <div style="margin-bottom:15px;">
+         <label style="display:block; margin-bottom:5px; font-weight:bold;">電話番号</label>
+         <input type="tel" id="modal_phone" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+       </div>
+       <div style="margin-bottom:15px;">
+         <label style="display:block; margin-bottom:5px; font-weight:bold;">会社名</label>
+         <input type="text" id="modal_company_name" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+       </div>
+       <div style="margin-bottom:15px;">
+         <label style="display:block; margin-bottom:5px; font-weight:bold;">ステータス</label>
+         <select id="modal_status" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+           <option value="-">-</option>
+           <option value="入場中">入場中</option>
+           <option value="退場済">退場済</option>
+         </select>
+       </div>
+       <div style="margin-bottom:15px;">
+         <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザー権限</label>
+         <select id="modal_user_role" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+           <option value="user">User</option>
+           <option value="admin">Admin</option>
+           <option value="staff">Staff</option>
+         </select>
+       </div>
+       <div style="margin-bottom:15px;">
+         <label style="display:block; margin-bottom:5px; font-weight:bold;">印刷ステータス</label>
+         <select id="modal_print_status" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+           <option value="not_printed">未印刷</option>
+           <option value="printed">印刷済み</option>
+         </select>
+       </div>
+     </div>
+   `;
   } else if (collectionType === "staff") {
     fields = `
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-        <div style="margin-bottom:15px;">
-          <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザーID <span style="color:red;">*</span></label>
-          <input type="text" id="modal_user_id" required style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-        </div>
-        <div style="margin-bottom:15px;">
-          <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザー名 <span style="color:red;">*</span></label>
-          <input type="text" id="modal_user_name" required style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-        </div>
-        <div style="margin-bottom:15px;">
-          <label style="display:block; margin-bottom:5px; font-weight:bold;">メールアドレス</label>
-          <input type="email" id="modal_email" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-        </div>
-        <div style="margin-bottom:15px;">
-          <label style="display:block; margin-bottom:5px; font-weight:bold;">電話番号</label>
-          <input type="tel" id="modal_phone" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-        </div>
-        <div style="margin-bottom:15px;">
-          <label style="display:block; margin-bottom:5px; font-weight:bold;">会社名</label>
-          <input type="text" id="modal_company_name" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-        </div>
-        <div style="margin-bottom:15px;">
-          <label style="display:block; margin-bottom:5px; font-weight:bold;">ステータス</label>
-          <select id="modal_status" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-            <option value="-">-</option>
-            <option value="入場中">入場中</option>
-            <option value="退場済">退場済</option>
-          </select>
-        </div>
-        <div style="margin-bottom:15px;">
-          <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザー権限</label>
-          <select id="modal_user_role" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-            <option value="user">User</option>
-            <option value="admin">Admin</option>
-            <option value="staff" selected>Staff</option>
-          </select>
-        </div>
-        <div style="margin-bottom:15px;">
-          <label style="display:block; margin-bottom:5px; font-weight:bold;">印刷ステータス</label>
-          <select id="modal_print_status" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-            <option value="not_printed">未印刷</option>
-            <option value="printed">印刷済み</option>
-          </select>
-        </div>
-      </div>
-    `;
+     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+       <div style="margin-bottom:15px;">
+         <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザーID <span style="color:red;">*</span></label>
+         <input type="text" id="modal_user_id" required style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+       </div>
+       <div style="margin-bottom:15px;">
+         <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザー名 <span style="color:red;">*</span></label>
+         <input type="text" id="modal_user_name" required style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+       </div>
+       <div style="margin-bottom:15px;">
+         <label style="display:block; margin-bottom:5px; font-weight:bold;">メールアドレス</label>
+         <input type="email" id="modal_email" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+       </div>
+       <div style="margin-bottom:15px;">
+         <label style="display:block; margin-bottom:5px; font-weight:bold;">電話番号</label>
+         <input type="tel" id="modal_phone" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+       </div>
+       <div style="margin-bottom:15px;">
+         <label style="display:block; margin-bottom:5px; font-weight:bold;">会社名</label>
+         <input type="text" id="modal_company_name" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+       </div>
+       <div style="margin-bottom:15px;">
+         <label style="display:block; margin-bottom:5px; font-weight:bold;">ステータス</label>
+         <select id="modal_status" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+           <option value="-">-</option>
+           <option value="入場中">入場中</option>
+           <option value="退場済">退場済</option>
+         </select>
+       </div>
+       <div style="margin-bottom:15px;">
+         <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザー権限</label>
+         <select id="modal_user_role" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+           <option value="user">User</option>
+           <option value="admin">Admin</option>
+           <option value="staff" selected>Staff</option>
+         </select>
+       </div>
+       <div style="margin-bottom:15px;">
+         <label style="display:block; margin-bottom:5px; font-weight:bold;">印刷ステータス</label>
+         <select id="modal_print_status" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+           <option value="not_printed">未印刷</option>
+           <option value="printed">印刷済み</option>
+         </select>
+       </div>
+     </div>
+   `;
   } else if (collectionType === "maker") {
     fields = `
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-        <div style="margin-bottom:15px;">
-          <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザーID <span style="color:red;">*</span></label>
-          <input type="text" id="modal_user_id" required style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-        </div>
-        <div style="margin-bottom:15px;">
-          <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザー名 <span style="color:red;">*</span></label>
-          <input type="text" id="modal_user_name" required style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-        </div>
-        <div style="margin-bottom:15px;">
-          <label style="display:block; margin-bottom:5px; font-weight:bold;">メールアドレス</label>
-          <input type="email" id="modal_email" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-        </div>
-        <div style="margin-bottom:15px;">
-          <label style="display:block; margin-bottom:5px; font-weight:bold;">電話番号</label>
-          <input type="tel" id="modal_phone" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-        </div>
-        <div style="margin-bottom:15px;">
-          <label style="display:block; margin-bottom:5px; font-weight:bold;">会社名</label>
-          <input type="text" id="modal_company_name" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-        </div>
-        <div style="margin-bottom:15px;">
-          <label style="display:block; margin-bottom:5px; font-weight:bold;">ステータス</label>
-          <select id="modal_status" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-            <option value="-">-</option>
-            <option value="入場中">入場中</option>
-            <option value="退場済">退場済</option>
-          </select>
-        </div>
-        <div style="margin-bottom:15px;">
-          <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザー権限</label>
-          <select id="modal_user_role" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-            <option value="user">User</option>
-            <option value="admin">Admin</option>
-            <option value="staff">Staff</option>
-            <option value="maker" selected>Maker</option>
-          </select>
-        </div>
-        <div style="margin-bottom:15px;">
-          <label style="display:block; margin-bottom:5px; font-weight:bold;">印刷ステータス</label>
-          <select id="modal_print_status" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-            <option value="not_printed">未印刷</option>
-            <option value="printed">印刷済み</option>
-          </select>
-        </div>
-      </div>
-    `;
+     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+       <div style="margin-bottom:15px;">
+         <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザーID <span style="color:red;">*</span></label>
+         <input type="text" id="modal_user_id" required style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+       </div>
+       <div style="margin-bottom:15px;">
+         <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザー名 <span style="color:red;">*</span></label>
+         <input type="text" id="modal_user_name" required style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+       </div>
+       <div style="margin-bottom:15px;">
+         <label style="display:block; margin-bottom:5px; font-weight:bold;">メールアドレス</label>
+         <input type="email" id="modal_email" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+       </div>
+       <div style="margin-bottom:15px;">
+         <label style="display:block; margin-bottom:5px; font-weight:bold;">電話番号</label>
+         <input type="tel" id="modal_phone" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+       </div>
+       <div style="margin-bottom:15px;">
+         <label style="display:block; margin-bottom:5px; font-weight:bold;">会社名</label>
+         <input type="text" id="modal_company_name" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+       </div>
+       <div style="margin-bottom:15px;">
+         <label style="display:block; margin-bottom:5px; font-weight:bold;">ステータス</label>
+         <select id="modal_status" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+           <option value="-">-</option>
+           <option value="入場中">入場中</option>
+           <option value="退場済">退場済</option>
+         </select>
+       </div>
+       <div style="margin-bottom:15px;">
+         <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザー権限</label>
+         <select id="modal_user_role" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+           <option value="user">User</option>
+           <option value="admin">Admin</option>
+           <option value="staff">Staff</option>
+           <option value="maker" selected>Maker</option>
+         </select>
+       </div>
+       <div style="margin-bottom:15px;">
+         <label style="display:block; margin-bottom:5px; font-weight:bold;">印刷ステータス</label>
+         <select id="modal_print_status" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+           <option value="not_printed">未印刷</option>
+           <option value="printed">印刷済み</option>
+         </select>
+       </div>
+     </div>
+   `;
   }
 
   return fields;
@@ -1157,13 +1029,6 @@ async function submitAddData() {
         "コレクションが選択されていません",
         "error"
       );
-      return;
-    }
-
-    // テストアカウントの制限チェック
-    const limitCheck = await checkDataLimits(currentCollectionType, "add");
-    if (!limitCheck.allowed) {
-      showResult("firestoreResult", limitCheck.message, "error");
       return;
     }
 
@@ -1369,99 +1234,99 @@ function generateEditFormFields(collectionType, currentData) {
 
   if (collectionType === "items") {
     fields = `
-      <div style="margin-bottom:15px;">
-        <label style="display:block; margin-bottom:5px; font-weight:bold;">アイテム番号 <span style="color:red;">*</span></label>
-        <input type="text" id="modal_item_no" required value="${currentData.item_no || ""
+     <div style="margin-bottom:15px;">
+       <label style="display:block; margin-bottom:5px; font-weight:bold;">アイテム番号 <span style="color:red;">*</span></label>
+       <input type="text" id="modal_item_no" required value="${currentData.item_no || ""
       }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-      </div>
-      <div style="margin-bottom:15px;">
-        <label style="display:block; margin-bottom:5px; font-weight:bold;">カテゴリ名</label>
-        <input type="text" id="modal_category_name" value="${currentData.category_name || ""
+     </div>
+     <div style="margin-bottom:15px;">
+       <label style="display:block; margin-bottom:5px; font-weight:bold;">カテゴリ名</label>
+       <input type="text" id="modal_category_name" value="${currentData.category_name || ""
       }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-      </div>
-      <div style="margin-bottom:15px;">
-        <label style="display:block; margin-bottom:5px; font-weight:bold;">会社名</label>
-        <input type="text" id="modal_company_name" value="${currentData.company_name || ""
+     </div>
+     <div style="margin-bottom:15px;">
+       <label style="display:block; margin-bottom:5px; font-weight:bold;">会社名</label>
+       <input type="text" id="modal_company_name" value="${currentData.company_name || ""
       }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-      </div>
-      <div style="margin-bottom:15px;">
-        <label style="display:block; margin-bottom:5px; font-weight:bold;">アイテム名 <span style="color:red;">*</span></label>
-        <input type="text" id="modal_item_name" required value="${currentData.item_name || ""
+     </div>
+     <div style="margin-bottom:15px;">
+       <label style="display:block; margin-bottom:5px; font-weight:bold;">アイテム名 <span style="color:red;">*</span></label>
+       <input type="text" id="modal_item_name" required value="${currentData.item_name || ""
       }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-      </div>
-      <div style="margin-bottom:15px;">
-        <label style="display:block; margin-bottom:5px; font-weight:bold;">メーカーコード</label>
-        <input type="text" id="modal_maker_code" value="${currentData.maker_code || ""
+     </div>
+     <div style="margin-bottom:15px;">
+       <label style="display:block; margin-bottom:5px; font-weight:bold;">メーカーコード</label>
+       <input type="text" id="modal_maker_code" value="${currentData.maker_code || ""
       }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-      </div>
-    `;
+     </div>
+   `;
   } else if (
     collectionType === "users" ||
     collectionType === "staff" ||
     collectionType === "maker"
   ) {
     fields = `
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-        <div style="margin-bottom:15px;">
-          <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザーID <span style="color:red;">*</span></label>
-          <input type="text" id="modal_user_id" required value="${currentData.user_id || ""
+     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+       <div style="margin-bottom:15px;">
+         <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザーID <span style="color:red;">*</span></label>
+         <input type="text" id="modal_user_id" required value="${currentData.user_id || ""
       }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-        </div>
-        <div style="margin-bottom:15px;">
-          <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザー名 <span style="color:red;">*</span></label>
-          <input type="text" id="modal_user_name" required value="${currentData.user_name || ""
+       </div>
+       <div style="margin-bottom:15px;">
+         <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザー名 <span style="color:red;">*</span></label>
+         <input type="text" id="modal_user_name" required value="${currentData.user_name || ""
       }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-        </div>
-        <div style="margin-bottom:15px;">
-          <label style="display:block; margin-bottom:5px; font-weight:bold;">メールアドレス</label>
-          <input type="email" id="modal_email" value="${currentData.email || ""
+       </div>
+       <div style="margin-bottom:15px;">
+         <label style="display:block; margin-bottom:5px; font-weight:bold;">メールアドレス</label>
+         <input type="email" id="modal_email" value="${currentData.email || ""
       }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-        </div>
-        <div style="margin-bottom:15px;">
-          <label style="display:block; margin-bottom:5px; font-weight:bold;">電話番号</label>
-          <input type="tel" id="modal_phone" value="${currentData.phone || ""
+       </div>
+       <div style="margin-bottom:15px;">
+         <label style="display:block; margin-bottom:5px; font-weight:bold;">電話番号</label>
+         <input type="tel" id="modal_phone" value="${currentData.phone || ""
       }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-        </div>
-        <div style="margin-bottom:15px;">
-          <label style="display:block; margin-bottom:5px; font-weight:bold;">会社名</label>
-          <input type="text" id="modal_company_name" value="${currentData.company_name || ""
+       </div>
+       <div style="margin-bottom:15px;">
+         <label style="display:block; margin-bottom:5px; font-weight:bold;">会社名</label>
+         <input type="text" id="modal_company_name" value="${currentData.company_name || ""
       }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-        </div>
-        <div style="margin-bottom:15px;">
-          <label style="display:block; margin-bottom:5px; font-weight:bold;">ステータス</label>
-          <select id="modal_status" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-            <option value="-" ${currentData.status === "-" ? "selected" : ""
+       </div>
+       <div style="margin-bottom:15px;">
+         <label style="display:block; margin-bottom:5px; font-weight:bold;">ステータス</label>
+         <select id="modal_status" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+           <option value="-" ${currentData.status === "-" ? "selected" : ""
       }>-</option>
-            <option value="入場中" ${currentData.status === "入場中" ? "selected" : ""
+           <option value="入場中" ${currentData.status === "入場中" ? "selected" : ""
       }>入場中</option>
-            <option value="退場済" ${currentData.status === "退場済" ? "selected" : ""
+           <option value="退場済" ${currentData.status === "退場済" ? "selected" : ""
       }>退場済</option>
-          </select>
-        </div>
-        <div style="margin-bottom:15px;">
-          <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザー権限</label>
-          <select id="modal_user_role" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-            <option value="user" ${currentData.user_role === "user" ? "selected" : ""
+         </select>
+       </div>
+       <div style="margin-bottom:15px;">
+         <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザー権限</label>
+         <select id="modal_user_role" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+           <option value="user" ${currentData.user_role === "user" ? "selected" : ""
       }>User</option>
-            <option value="admin" ${currentData.user_role === "admin" ? "selected" : ""
+           <option value="admin" ${currentData.user_role === "admin" ? "selected" : ""
       }>Admin</option>
-            <option value="staff" ${currentData.user_role === "staff" ? "selected" : ""
+           <option value="staff" ${currentData.user_role === "staff" ? "selected" : ""
       }>Staff</option>
-            <option value="maker" ${currentData.user_role === "maker" ? "selected" : ""
+           <option value="maker" ${currentData.user_role === "maker" ? "selected" : ""
       }>Maker</option>
-          </select>
-        </div>
-        <div style="margin-bottom:15px;">
-          <label style="display:block; margin-bottom:5px; font-weight:bold;">印刷ステータス</label>
-          <select id="modal_print_status" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-            <option value="not_printed" ${currentData.print_status === "not_printed" ? "selected" : ""
+         </select>
+       </div>
+       <div style="margin-bottom:15px;">
+         <label style="display:block; margin-bottom:5px; font-weight:bold;">印刷ステータス</label>
+         <select id="modal_print_status" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+           <option value="not_printed" ${currentData.print_status === "not_printed" ? "selected" : ""
       }>未印刷</option>
-            <option value="printed" ${currentData.print_status === "printed" ? "selected" : ""
+           <option value="printed" ${currentData.print_status === "printed" ? "selected" : ""
       }>印刷済み</option>
-          </select>
-        </div>
-      </div>
-    `;
+         </select>
+       </div>
+     </div>
+   `;
   }
 
   return fields;
@@ -1693,18 +1558,9 @@ window.copyTemplateDataToNewAdmin = async function (targetAdminId = null) {
         collectionName
       );
 
-      // 既存件数取得
-      const targetSnapshot = await getDocs(targetCollection);
-      const currentCount = targetSnapshot.size;
-      const addCount = sourceSnapshot.size;
-      const accountStatus = currentAdmin?.account_status || "test";
-      if (accountStatus === "test" && currentCount + addCount > 30) {
-        alert(`テストアカウントは${collectionName}の合計件数が30件を超えるためコピーできません。\n現在: ${currentCount}件, コピー予定: ${addCount}件`);
-        continue;
-      }
-
       for (const docSnap of sourceSnapshot.docs) {
-        await addDoc(targetCollection, docSnap.data());
+        const data = docSnap.data();
+        await addDoc(targetCollection, data);
         totalCopied++;
         console.log(`✅ ${collectionName}/${docSnap.id} をコピー`);
       }
@@ -1961,13 +1817,13 @@ async function runMakerPerformanceTest() {
   const userId = user.user_id || user.uid;
 
   resultElement.innerHTML = `
-    <div style="text-align: center; padding: 20px;">
-      <div class="loading"></div>
-      <h3>🚀 Aggregation Queries パフォーマンステスト実行中...</h3>
-      <p>ユーザーID: ${userId}</p>
-      <p>コンソールで詳細な結果を確認できます</p>
-    </div>
-  `;
+   <div style="text-align: center; padding: 20px;">
+     <div class="loading"></div>
+     <h3>🚀 Aggregation Queries パフォーマンステスト実行中...</h3>
+     <p>ユーザーID: ${userId}</p>
+     <p>コンソールで詳細な結果を確認できます</p>
+   </div>
+ `;
   resultElement.className = "result";
 
   try {
@@ -1978,12 +1834,12 @@ async function runMakerPerformanceTest() {
 
     // 結果を画面に表示
     let html = `
-      <div style="background: #e8f5e8; padding: 20px; border-radius: 8px; margin-bottom: 15px;">
-        <h3>📊 Aggregation Queries パフォーマンステスト結果</h3>
-        <p><strong>テスト対象ユーザー:</strong> ${userId}</p>
-        <p><strong>実行時刻:</strong> ${new Date().toLocaleString()}</p>
-      </div>
-    `;
+     <div style="background: #e8f5e8; padding: 20px; border-radius: 8px; margin-bottom: 15px;">
+       <h3>📊 Aggregation Queries パフォーマンステスト結果</h3>
+       <p><strong>テスト対象ユーザー:</strong> ${userId}</p>
+       <p><strong>実行時刻:</strong> ${new Date().toLocaleString()}</p>
+     </div>
+   `;
 
     if (testResult.legacy && testResult.aggregation) {
       const legacy = testResult.legacy;
@@ -1995,59 +1851,59 @@ async function runMakerPerformanceTest() {
         const speedRatio = legacy.time / aggregation.time;
 
         html += `
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
-            <div style="background: #fff3cd; padding: 15px; border-radius: 6px;">
-              <h4>📊 従来方法</h4>
-              <p><strong>実行時間:</strong> ${legacy.time.toFixed(2)}ms</p>
-              <p><strong>読み取り件数:</strong> ${legacy.docCount.toLocaleString()}件</p>
-              <p><strong>方法:</strong> 全scanItems取得</p>
-            </div>
-            <div style="background: #d4edda; padding: 15px; border-radius: 6px;">
-              <h4>⚡ Aggregation Queries</h4>
-              <p><strong>実行時間:</strong> ${aggregation.time.toFixed(2)}ms</p>
-              <p><strong>対象アイテム:</strong> ${aggregation.itemCount}件</p>
-              <p><strong>クエリ数:</strong> ${aggregation.queryCount}</p>
-              <p><strong>平均クエリ時間:</strong> ${(
+         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+           <div style="background: #fff3cd; padding: 15px; border-radius: 6px;">
+             <h4>📊 従来方法</h4>
+             <p><strong>実行時間:</strong> ${legacy.time.toFixed(2)}ms</p>
+             <p><strong>読み取り件数:</strong> ${legacy.docCount.toLocaleString()}件</p>
+             <p><strong>方法:</strong> 全scanItems取得</p>
+           </div>
+           <div style="background: #d4edda; padding: 15px; border-radius: 6px;">
+             <h4>⚡ Aggregation Queries</h4>
+             <p><strong>実行時間:</strong> ${aggregation.time.toFixed(2)}ms</p>
+             <p><strong>対象アイテム:</strong> ${aggregation.itemCount}件</p>
+             <p><strong>クエリ数:</strong> ${aggregation.queryCount}</p>
+             <p><strong>平均クエリ時間:</strong> ${(
             aggregation.time / aggregation.queryCount
           ).toFixed(2)}ms</p>
-            </div>
-          </div>
-          
-          <div style="background: ${improvement > 0 ? "#d4edda" : "#f8d7da"
+           </div>
+         </div>
+         
+         <div style="background: ${improvement > 0 ? "#d4edda" : "#f8d7da"
           }; padding: 20px; border-radius: 8px; text-align: center;">
-            <h3>${improvement > 0 ? "🎉" : "⚠️"} パフォーマンス比較結果</h3>
-            <p style="font-size: 18px; margin: 10px 0;">
-              <strong>改善率: ${improvement > 0 ? "+" : ""
+           <h3>${improvement > 0 ? "🎉" : "⚠️"} パフォーマンス比較結果</h3>
+           <p style="font-size: 18px; margin: 10px 0;">
+             <strong>改善率: ${improvement > 0 ? "+" : ""
           }${improvement.toFixed(1)}%</strong>
-            </p>
-            ${improvement > 0
+           </p>
+           ${improvement > 0
             ? `<p style="font-size: 16px; color: #155724;">✅ Aggregation Queriesが <strong>${speedRatio.toFixed(
               1
             )}倍高速</strong>です！</p>`
             : `<p style="font-size: 16px; color: #721c24;">⚠️ 従来方法の方が高速でした</p>`
           }
-          </div>
-        `;
+         </div>
+       `;
 
         // データ量の予測と推奨事項
         const currentDataSize = legacy.docCount;
         const futureDataSize = currentDataSize * 3.5; // 3-4倍の中間値
 
         html += `
-          <div style="background: #e2e3e5; padding: 20px; border-radius: 8px; margin-top: 15px;">
-            <h4>📈 スケーラビリティ分析</h4>
-            <p><strong>現在のデータ量:</strong> ${currentDataSize.toLocaleString()}件</p>
-            <p><strong>予想データ量:</strong> ${Math.round(
+         <div style="background: #e2e3e5; padding: 20px; border-radius: 8px; margin-top: 15px;">
+           <h4>📈 スケーラビリティ分析</h4>
+           <p><strong>現在のデータ量:</strong> ${currentDataSize.toLocaleString()}件</p>
+           <p><strong>予想データ量:</strong> ${Math.round(
           futureDataSize
         ).toLocaleString()}件 (3-4倍増加)</p>
-            <p><strong>推奨事項:</strong> 
-              ${improvement > 0
+           <p><strong>推奨事項:</strong> 
+             ${improvement > 0
             ? "✅ Aggregation Queriesの実装をお勧めします"
             : "⚠️ データ量増加に備えてCloud Functionsでのカウンター管理を検討してください"
           }
-            </p>
-          </div>
-        `;
+           </p>
+         </div>
+       `;
       } else {
         html += `<div style="background: #f8d7da; padding: 15px; border-radius: 6px;">❌ テスト中にエラーが発生しました</div>`;
       }
@@ -2056,8 +1912,8 @@ async function runMakerPerformanceTest() {
     }
 
     html += `<div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 6px;">
-      <p><strong>💡 詳細:</strong> ブラウザのコンソール(F12)で詳細なログを確認できます</p>
-    </div>`;
+     <p><strong>💡 詳細:</strong> ブラウザのコンソール(F12)で詳細なログを確認できます</p>
+   </div>`;
 
     resultElement.innerHTML = html;
     resultElement.className = "result success";
@@ -2066,12 +1922,12 @@ async function runMakerPerformanceTest() {
   } catch (error) {
     console.error("パフォーマンステストエラー:", error);
     resultElement.innerHTML = `
-      <div style="background: #f8d7da; padding: 20px; border-radius: 8px;">
-        <h3>❌ テスト実行エラー</h3>
-        <p><strong>エラー:</strong> ${error.message}</p>
-        <p>ブラウザのコンソールで詳細を確認してください。</p>
-      </div>
-    `;
+     <div style="background: #f8d7da; padding: 20px; border-radius: 8px;">
+       <h3>❌ テスト実行エラー</h3>
+       <p><strong>エラー:</strong> ${error.message}</p>
+       <p>ブラウザのコンソールで詳細を確認してください。</p>
+     </div>
+   `;
     resultElement.className = "result error";
   }
 }
@@ -2270,6 +2126,7 @@ async function showProfileModal() {
     return;
   }
 
+  // displayAdminInfo()の情報をprofileContentに表示
   // admin_settingsから設定情報を取得
   let adminSettings = null;
   try {
@@ -2290,7 +2147,7 @@ async function showProfileModal() {
 
   // statusの表示を判定
   const statusDisplay =
-    adminSettings?.status === "real"
+    adminSettings?.status === "production"
       ? "本番モード"
       : adminSettings?.status === "test"
         ? "テストモード"
@@ -2298,6 +2155,30 @@ async function showProfileModal() {
 
   // 統合レイアウトで表示と編集フィールドを生成
   profileContent.innerHTML = `
+    <div class="profile-item">
+      <span class="profile-label">Admin ID:</span>
+      <span class="profile-value">${currentAdmin.admin_id}</span>
+    </div>
+    <div class="profile-item">
+      <span class="profile-label">管理者名:</span>
+      <span class="profile-value">${currentAdmin.admin_name}</span>
+    </div>
+    <div class="profile-item">
+      <span class="profile-label">権限:</span>
+      <span class="profile-value">${currentAdmin.role}</span>
+    </div>
+    <div class="profile-item">
+      <span class="profile-label">メール:</span>
+      <span class="profile-value">${currentAdmin.email || "未設定"}</span>
+    </div>
+    <div class="profile-item">
+      <span class="profile-label">電話番号:</span>
+      <span class="profile-value">${currentAdmin.phone || "未設定"}</span>
+    </div>
+    <div class="profile-item">
+      <span class="profile-label">会社名:</span>
+      <span class="profile-value">${currentAdmin.company_name || "未設定"
+    }</span>
     <!-- 左列: 基本情報 -->
     <div class="profile-column">
       <div class="profile-item">
@@ -2330,7 +2211,11 @@ async function showProfileModal() {
         <input type="text" id="edit_phone" class="profile-input" value="${currentAdmin.phone || ""
     }" disabled />
       </div>
-    </div>
+   </div>
+    <div class="profile-item">
+      <span class="profile-label">データパス:</span>
+      <span class="profile-value" style="font-family: monospace; background-color: #f8f9fa; padding: 4px 8px; border-radius: 4px;">admin_collections/${currentAdmin.admin_id
+    }/</span>
 
     <!-- 右列: 設定情報 -->
     <div class="profile-column">
@@ -2351,7 +2236,7 @@ async function showProfileModal() {
         <select id="edit_status" class="profile-input" disabled>
           <option value="test" ${adminSettings?.status === "test" ? "selected" : ""
     }>テストモード</option>
-          <option value="real" ${adminSettings?.status === "real" ? "selected" : ""
+          <option value="production" ${adminSettings?.status === "production" ? "selected" : ""
     }>本番モード</option>
         </select>
         <small>テストモードは３０日間のみになります</small>
@@ -2378,8 +2263,8 @@ async function showProfileModal() {
                style="font-family: monospace; background-color: #f8f9fa;" />
         <small>Firestore保存パス</small>
       </div>
-    </div>
-  `;
+   </div>
+ `;
 
   // 編集モードのフラグを設定
   window.isEditMode = false;
@@ -2500,34 +2385,34 @@ async function editProfile() {
     if (currentUserDetails) {
       console.log("プロフィール編集モーダル用Admin情報:", currentAdmin);
       currentUserDetails.innerHTML = `
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 14px;">
-        <div>
-          <strong>Admin ID:</strong><br>
-          <span style="color: #666;">${currentAdmin.admin_id}</span>
-        </div>
-        <div>
-          <strong>管理者名:</strong><br>
-          <span style="color: #666;">${currentAdmin.admin_name}</span>
-        </div>
-        <div>
-          <strong>会社名:</strong><br>
-          <span style="color: #666;">${currentAdmin.company_name || "未設定"
+     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 14px;">
+       <div>
+         <strong>Admin ID:</strong><br>
+         <span style="color: #666;">${currentAdmin.admin_id}</span>
+       </div>
+       <div>
+         <strong>管理者名:</strong><br>
+         <span style="color: #666;">${currentAdmin.admin_name}</span>
+       </div>
+       <div>
+         <strong>会社名:</strong><br>
+         <span style="color: #666;">${currentAdmin.company_name || "未設定"
         }</span>
-        </div>
-        <div>
-          <strong>権限:</strong><br>
-          <span style="color: #666;">${currentAdmin.role}</span>
-        </div>
-      </div>
-      <div style="margin-top: 10px; font-size: 14px;">
-        <strong>メール:</strong> <span style="color: #666;">${currentAdmin.email || "未設定"
+       </div>
+       <div>
+         <strong>権限:</strong><br>
+         <span style="color: #666;">${currentAdmin.role}</span>
+       </div>
+     </div>
+     <div style="margin-top: 10px; font-size: 14px;">
+       <strong>メール:</strong> <span style="color: #666;">${currentAdmin.email || "未設定"
         }</span><br>
-        <strong>電話番号:</strong> <span style="color: #666;">${currentAdmin.phone || "未設定"
+       <strong>電話番号:</strong> <span style="color: #666;">${currentAdmin.phone || "未設定"
         }</span><br>
-        <strong>データパス:</strong> <span style="color: #666; font-family: monospace;">admin_collections/${currentAdmin.admin_id
+       <strong>データパス:</strong> <span style="color: #666; font-family: monospace;">admin_collections/${currentAdmin.admin_id
         }/</span>
-      </div>
-    `;
+     </div>
+   `;
     } else {
       console.log("currentUserDetails要素が見つかりません");
     }
@@ -2549,6 +2434,7 @@ async function editProfile() {
     Object.entries(elements).forEach(([elementId, value]) => {
       const element = document.getElementById(elementId);
       if (element) {
+        element.value = value;
         if (element.type === "select-one") {
           element.value = value;
         } else {
@@ -2593,6 +2479,7 @@ async function saveProfile() {
 
     // 新しいフィールドIDから値を取得
     const updatedData = {
+      admin_name: document.getElementById("edit_user_name").value,
       admin_name: document.getElementById("edit_admin_name").value,
       company_name: document.getElementById("edit_company_name").value,
       email: document.getElementById("edit_email").value,
@@ -2656,6 +2543,7 @@ async function saveProfile() {
     toggleEditMode();
 
     alert("管理者プロフィールを更新しました");
+    closeProfileEditModal();
 
     // Admin情報表示を更新
     //displayAdminInfo();
@@ -2756,55 +2644,55 @@ function updateUrlPreview() {
   });
 
   urlPreviewElement.innerHTML = `
-    <div style="color: #495057; margin-bottom: 8px;">
-      <strong>� QRコードで生成されるURL例:</strong>
-    </div>
-    
-    <div style="margin-bottom: 15px;">
-      <h4 style="color: #28a745; margin: 0 0 8px 0; font-size: 14px;">🔒 暗号化URL（推奨）</h4>
-      <div style="font-family: monospace; font-size: 11px; line-height: 1.6; color: #6c757d; background: #f8f9fa; padding: 10px; border-radius: 4px; border-left: 4px solid #28a745;">
-        ${encryptedUrls
+   <div style="color: #495057; margin-bottom: 8px;">
+     <strong>� QRコードで生成されるURL例:</strong>
+   </div>
+   
+   <div style="margin-bottom: 15px;">
+     <h4 style="color: #28a745; margin: 0 0 8px 0; font-size: 14px;">🔒 暗号化URL（推奨）</h4>
+     <div style="font-family: monospace; font-size: 11px; line-height: 1.6; color: #6c757d; background: #f8f9fa; padding: 10px; border-radius: 4px; border-left: 4px solid #28a745;">
+       ${encryptedUrls
       .map(
         (url) =>
           `<div style="margin-bottom: 5px; word-break: break-all;">${url}</div>`
       )
       .join("")}
-      </div>
-      <div style="margin-top: 5px; font-size: 11px; color: #28a745;">
-        ✅ パラメータが暗号化され、URLが短くなります
-      </div>
-    </div>
+     </div>
+     <div style="margin-top: 5px; font-size: 11px; color: #28a745;">
+       ✅ パラメータが暗号化され、URLが短くなります
+     </div>
+   </div>
 
-    <div style="margin-bottom: 15px;">
-      <h4 style="color: #6c757d; margin: 0 0 8px 0; font-size: 14px;">� 通常URL（互換性）</h4>
-      <div style="font-family: monospace; font-size: 11px; line-height: 1.6; color: #6c757d; background: white; padding: 10px; border-radius: 4px; border: 1px solid #e0e0e0;">
-        ${normalUrls
+   <div style="margin-bottom: 15px;">
+     <h4 style="color: #6c757d; margin: 0 0 8px 0; font-size: 14px;">� 通常URL（互換性）</h4>
+     <div style="font-family: monospace; font-size: 11px; line-height: 1.6; color: #6c757d; background: white; padding: 10px; border-radius: 4px; border: 1px solid #e0e0e0;">
+       ${normalUrls
       .map(
         (url) =>
           `<div style="margin-bottom: 5px; word-break: break-all;">${url}</div>`
       )
       .join("")}
-      </div>
-    </div>
+     </div>
+   </div>
 
-    <div style="margin-top: 8px; font-size: 11px; color: #6c757d;">
-      <strong>パラメータ説明:</strong><br>
-      • <code>d</code>: 暗号化されたデータ（user_id + admin_id）<br>
-      • <code>user_id</code>: 来場者のユーザーID（通常URL用）<br>
-      • <code>admin_id</code>: 管理者ID (${adminId}) - Admin別データ管理用
-    </div>
+   <div style="margin-top: 8px; font-size: 11px; color: #6c757d;">
+     <strong>パラメータ説明:</strong><br>
+     • <code>d</code>: 暗号化されたデータ（user_id + admin_id）<br>
+     • <code>user_id</code>: 来場者のユーザーID（通常URL用）<br>
+     • <code>admin_id</code>: 管理者ID (${adminId}) - Admin別データ管理用
+   </div>
 
-    <div style="margin-top: 15px; text-align: center;">
-      <button onclick="generateTestQRCodes()" 
-        style="background: #4285f4; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; margin: 0 5px;">
-        🔍 テスト用QRコード生成
-      </button>
-      <button onclick="testUrlDecryption()" 
-        style="background: #34a853; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; margin: 0 5px;">
-        🧪 暗号化テスト
-      </button>
-    </div>
-  `;
+   <div style="margin-top: 15px; text-align: center;">
+     <button onclick="generateTestQRCodes()" 
+       style="background: #4285f4; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; margin: 0 5px;">
+       🔍 テスト用QRコード生成
+     </button>
+     <button onclick="testUrlDecryption()" 
+       style="background: #34a853; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; margin: 0 5px;">
+       🧪 暗号化テスト
+     </button>
+   </div>
+ `;
 }
 
 // QRコード生成テスト
@@ -2834,65 +2722,65 @@ function generateTestQRCodes() {
 
   // モーダルで表示
   const modalHtml = `
-    <div id="qrTestModal" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 2000; display: flex; justify-content: center; align-items: center;">
-      <div style="background: white; padding: 30px; border-radius: 12px; max-width: 700px; max-height: 90vh; overflow-y: auto;">
-        <h3 style="margin: 0 0 20px 0; text-align: center;">📱 QRコード読み取りテスト</h3>
-        
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
-          <div style="text-align: center;">
-            <h4 style="color: #6c757d; margin-bottom: 15px;">🔓 通常URL</h4>
-            <div style="border: 2px solid #ddd; border-radius: 8px; padding: 15px; background: white;">
-              <canvas id="normalQR" width="200" height="200" style="border-radius: 4px;"></canvas>
-            </div>
-            <div style="font-size: 10px; margin-top: 10px; word-break: break-all; font-family: monospace; background: #f8f9fa; padding: 8px; border-radius: 4px; max-height: 60px; overflow-y: auto;">
-              ${normalUrl}
-            </div>
-          </div>
-          
-          <div style="text-align: center;">
-            <h4 style="color: #28a745; margin-bottom: 15px;">🔒 暗号化URL</h4>
-            <div style="border: 2px solid #28a745; border-radius: 8px; padding: 15px; background: #f8fff8;">
-              <canvas id="encryptedQR" width="200" height="200" style="border-radius: 4px;"></canvas>
-            </div>
-            <div style="font-size: 10px; margin-top: 10px; word-break: break-all; font-family: monospace; background: #f8f9fa; padding: 8px; border-radius: 4px; max-height: 60px; overflow-y: auto;">
-              ${encryptedUrl}
-            </div>
-          </div>
-        </div>
-        
-        <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-          <p style="margin: 0 0 10px 0; font-size: 14px;"><strong>📋 テスト手順:</strong></p>
-          <ol style="margin: 0 0 0 20px; font-size: 13px;">
-            <li>スマートフォンのカメラでQRコードを読み取り</li>
-            <li>ブラウザでURLが開くことを確認</li>
-            <li>自動ログイン処理が正常に動作することを確認</li>
-            <li>両方のQRコードで同じ結果になることを確認</li>
-          </ol>
-        </div>
-        
-        <div style="background: #fff3e0; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-          <p style="margin: 0 0 10px 0; font-size: 14px;"><strong>🏷️ 名札印刷用途:</strong></p>
-          <ul style="margin: 0 0 0 20px; font-size: 13px;">
-            <li>来場者ごとに個別のQRコードを生成</li>
-            <li>名札テンプレートにQRコードを組み込み</li>
-            <li>PDF生成で一括印刷対応</li>
-            <li>暗号化URLでセキュリティ確保</li>
-          </ul>
-        </div>
-        
-        <div style="text-align: center;">
-          <button onclick="generateNameCardPreview()" 
-            style="background: #ff9800; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; margin: 0 10px;">
-            🏷️ 名札プレビュー
-          </button>
-          <button onclick="document.getElementById('qrTestModal').remove()" 
-            style="background: #666; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; margin: 0 10px;">
-            閉じる
-          </button>
-        </div>
-      </div>
-    </div>
-  `;
+   <div id="qrTestModal" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 2000; display: flex; justify-content: center; align-items: center;">
+     <div style="background: white; padding: 30px; border-radius: 12px; max-width: 700px; max-height: 90vh; overflow-y: auto;">
+       <h3 style="margin: 0 0 20px 0; text-align: center;">📱 QRコード読み取りテスト</h3>
+       
+       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+         <div style="text-align: center;">
+           <h4 style="color: #6c757d; margin-bottom: 15px;">🔓 通常URL</h4>
+           <div style="border: 2px solid #ddd; border-radius: 8px; padding: 15px; background: white;">
+             <canvas id="normalQR" width="200" height="200" style="border-radius: 4px;"></canvas>
+           </div>
+           <div style="font-size: 10px; margin-top: 10px; word-break: break-all; font-family: monospace; background: #f8f9fa; padding: 8px; border-radius: 4px; max-height: 60px; overflow-y: auto;">
+             ${normalUrl}
+           </div>
+         </div>
+         
+         <div style="text-align: center;">
+           <h4 style="color: #28a745; margin-bottom: 15px;">🔒 暗号化URL</h4>
+           <div style="border: 2px solid #28a745; border-radius: 8px; padding: 15px; background: #f8fff8;">
+             <canvas id="encryptedQR" width="200" height="200" style="border-radius: 4px;"></canvas>
+           </div>
+           <div style="font-size: 10px; margin-top: 10px; word-break: break-all; font-family: monospace; background: #f8f9fa; padding: 8px; border-radius: 4px; max-height: 60px; overflow-y: auto;">
+             ${encryptedUrl}
+           </div>
+         </div>
+       </div>
+       
+       <div style="background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+         <p style="margin: 0 0 10px 0; font-size: 14px;"><strong>📋 テスト手順:</strong></p>
+         <ol style="margin: 0 0 0 20px; font-size: 13px;">
+           <li>スマートフォンのカメラでQRコードを読み取り</li>
+           <li>ブラウザでURLが開くことを確認</li>
+           <li>自動ログイン処理が正常に動作することを確認</li>
+           <li>両方のQRコードで同じ結果になることを確認</li>
+         </ol>
+       </div>
+       
+       <div style="background: #fff3e0; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+         <p style="margin: 0 0 10px 0; font-size: 14px;"><strong>🏷️ 名札印刷用途:</strong></p>
+         <ul style="margin: 0 0 0 20px; font-size: 13px;">
+           <li>来場者ごとに個別のQRコードを生成</li>
+           <li>名札テンプレートにQRコードを組み込み</li>
+           <li>PDF生成で一括印刷対応</li>
+           <li>暗号化URLでセキュリティ確保</li>
+         </ul>
+       </div>
+       
+       <div style="text-align: center;">
+         <button onclick="generateNameCardPreview()" 
+           style="background: #ff9800; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; margin: 0 10px;">
+           🏷️ 名札プレビュー
+         </button>
+         <button onclick="document.getElementById('qrTestModal').remove()" 
+           style="background: #666; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; margin: 0 10px;">
+           閉じる
+         </button>
+       </div>
+     </div>
+   </div>
+ `;
 
   document.body.insertAdjacentHTML("beforeend", modalHtml);
 
@@ -2989,7 +2877,7 @@ ${decrypted === jsonString
       ? "✅ データが正常に復元されました"
       : "❌ データ復元に失敗しました"
     }
-  `;
+ `;
 
   alert(result);
 }
@@ -3033,12 +2921,12 @@ function generateNameCardPreview() {
   }
 
   const modalHtml = `
-    <div id="nameCardModal" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 2500; display: flex; justify-content: center; align-items: center;">
-      <div style="background: white; padding: 30px; border-radius: 12px; max-width: 900px; max-height: 90vh; overflow-y: auto;">
-        <h3 style="margin: 0 0 20px 0; text-align: center;">🏷️ 来場者名札プレビュー</h3>
-        
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 20px;">
-          ${sampleVisitors
+   <div id="nameCardModal" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 2500; display: flex; justify-content: center; align-items: center;">
+     <div style="background: white; padding: 30px; border-radius: 12px; max-width: 900px; max-height: 90vh; overflow-y: auto;">
+       <h3 style="margin: 0 0 20px 0; text-align: center;">🏷️ 来場者名札プレビュー</h3>
+       
+       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 20px;">
+         ${sampleVisitors
       .map((visitor, index) => {
         const qrData = {
           user_id: visitor.user_id,
@@ -3049,51 +2937,51 @@ function generateNameCardPreview() {
         )}`;
 
         return `
-              <div style="border: 2px solid #ddd; border-radius: 12px; padding: 20px; background: linear-gradient(135deg, #f8f9ff 0%, #fff 100%);">
-                <div style="text-align: center; margin-bottom: 15px;">
-                  <div style="font-size: 18px; font-weight: bold; color: #333; margin-bottom: 5px;">${visitor.user_name}</div>
-                  <div style="font-size: 14px; color: #666; margin-bottom: 10px;">${visitor.company_name}</div>
-                  <div style="font-size: 12px; color: #999;">ID: ${visitor.user_id}</div>
-                </div>
-                
-                <div style="text-align: center; margin-bottom: 15px;">
-                  <div style="display: inline-block; border: 2px solid #4285f4; border-radius: 8px; padding: 10px; background: white;">
-                    <canvas id="nameCardQR${index}" width="120" height="120"></canvas>
-                  </div>
-                </div>
-                
-                <div style="text-align: center; font-size: 10px; color: #888; font-family: monospace;">
-                  QRコードでかんたんログイン
-                </div>
-              </div>
-            `;
+             <div style="border: 2px solid #ddd; border-radius: 12px; padding: 20px; background: linear-gradient(135deg, #f8f9ff 0%, #fff 100%);">
+               <div style="text-align: center; margin-bottom: 15px;">
+                 <div style="font-size: 18px; font-weight: bold; color: #333; margin-bottom: 5px;">${visitor.user_name}</div>
+                 <div style="font-size: 14px; color: #666; margin-bottom: 10px;">${visitor.company_name}</div>
+                 <div style="font-size: 12px; color: #999;">ID: ${visitor.user_id}</div>
+               </div>
+               
+               <div style="text-align: center; margin-bottom: 15px;">
+                 <div style="display: inline-block; border: 2px solid #4285f4; border-radius: 8px; padding: 10px; background: white;">
+                   <canvas id="nameCardQR${index}" width="120" height="120"></canvas>
+                 </div>
+               </div>
+               
+               <div style="text-align: center; font-size: 10px; color: #888; font-family: monospace;">
+                 QRコードでかんたんログイン
+               </div>
+             </div>
+           `;
       })
       .join("")}
-        </div>
-        
-        <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-          <h4 style="margin: 0 0 10px 0; color: #2e7d2e;">📋 印刷機能の実装予定</h4>
-          <ul style="margin: 0 0 0 20px; font-size: 13px;">
-            <li>Excel/CSVファイルから来場者データを一括読み込み</li>
-            <li>PDF形式で名札を一括生成（A4用紙に複数枚配置）</li>
-            <li>QRコード付き名札テンプレートのカスタマイズ</li>
-            <li>プリンターで直接印刷可能</li>
-          </ul>
-        </div>
-        
-        <div style="text-align: center;">
-          <button onclick="generateNameCardPDF()" 
-            style="background: #4CAF50; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; margin: 0 10px;">
-            📄 PDF出力（準備中）
-          </button>
-          <button onclick="document.getElementById('nameCardModal').remove()" 
-            style="background: #666; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; margin: 0 10px;">
-            閉じる
-          </button>
-        </div>
-      </div>
-    </div>
-  `;
+       </div>
+       
+       <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+         <h4 style="margin: 0 0 10px 0; color: #2e7d2e;">📋 印刷機能の実装予定</h4>
+         <ul style="margin: 0 0 0 20px; font-size: 13px;">
+           <li>Excel/CSVファイルから来場者データを一括読み込み</li>
+           <li>PDF形式で名札を一括生成（A4用紙に複数枚配置）</li>
+           <li>QRコード付き名札テンプレートのカスタマイズ</li>
+           <li>プリンターで直接印刷可能</li>
+         </ul>
+       </div>
+       
+       <div style="text-align: center;">
+         <button onclick="generateNameCardPDF()" 
+           style="background: #4CAF50; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; margin: 0 10px;">
+           📄 PDF出力（準備中）
+         </button>
+         <button onclick="document.getElementById('nameCardModal').remove()" 
+           style="background: #666; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; margin: 0 10px;">
+           閉じる
+         </button>
+       </div>
+     </div>
+   </div>
+ `;
 
   document.body.insertAdjacentHTML("beforeend", modalHtml);
 
@@ -3169,7 +3057,12 @@ async function showSettingsModal() {
       });
     }
 
-    document.getElementById("setting_password").value = password;
+    const passwordInput = document.getElementById("setting_password");
+    if (passwordInput) {
+      passwordInput.value = password;
+    } else {
+      console.warn("setting_password要素が見つかりません");
+    }
 
     // URLプレビューを更新
     updateUrlPreview();
@@ -3245,41 +3138,3 @@ window.generateTestQRCodes = generateTestQRCodes;
 window.testUrlDecryption = testUrlDecryption;
 window.generateNameCardPreview = generateNameCardPreview;
 window.generateNameCardPDF = generateNameCardPDF;
-
-// アップグレード機能 (将来の実装用)
-function showUpgradeModal() {
-  alert("アップグレード機能は現在開発中です。\n\n今後の実装予定:\n• クレジットカード決済連携\n• プラン選択機能\n• 自動課金管理\n• 使用量統計ダッシュボード");
-}
-
-// アカウントステータス更新機能 (管理者用)
-window.upgradeAccountToReal = async function (adminId) {
-  try {
-    const adminRef = doc(db, "admin_settings", adminId);
-    await setDoc(adminRef, {
-      account_status: "real",
-      plan_type: "real",
-      usage_limits: {
-        max_users: -1,
-        max_scans_per_month: -1,
-        max_data_export: -1
-      },
-      billing_info: {
-        ...currentAdmin.billing_info,
-        last_payment_date: new Date(),
-        next_billing_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-      },
-      upgraded_at: new Date()
-    }, { merge: true });
-
-    console.log("アカウントを本番に更新しました");
-    alert("アカウントが本番環境にアップグレードされました！");
-    location.reload();
-  } catch (error) {
-    console.error("アップグレードエラー:", error);
-    alert("アップグレードに失敗しました");
-  }
-}
-
-// グローバル関数として公開
-window.showUpgradeModal = showUpgradeModal;
-window.checkDataLimits = checkDataLimits;
