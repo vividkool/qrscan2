@@ -557,6 +557,30 @@ class UserSession {
   } // セッション取得
   // セッション取得（Firebase + レガシー対応）
   static async getSession() {
+    // currentAdminが存在する場合は最優先で返す
+    const currentAdmin = localStorage.getItem("currentAdmin");
+    if (currentAdmin) {
+      try {
+        const adminObj = JSON.parse(currentAdmin);
+        // セッション互換用に必要フィールドを補完
+        return {
+          user_id: adminObj.admin_id || "",
+          user_name: adminObj.admin_name || "",
+          email: adminObj.email || "",
+          company_name: adminObj.company_name || "",
+          role: adminObj.role || "admin",
+          department: adminObj.department || "",
+          is_active: adminObj.is_active ?? true,
+          timestamp: adminObj.timestamp || Date.now(),
+          authType: "ADMIN",
+          // 元データも保持
+          ...adminObj,
+        };
+      } catch {
+        return null;
+      }
+    }
+
     // ログイン画面では簡易セッションチェックのみ
     const currentPage =
       window.location.pathname.split("/").pop() || "admin.html";
@@ -756,7 +780,6 @@ class UserSession {
       case USER_ROLES.GUEST:
         return "user.html";
       default:
-
         return "login.html";
     }
   }
@@ -772,7 +795,9 @@ class UserSession {
 
     // Admin認証システム優先チェック
     if (localStorage.getItem("currentAdmin")) {
-      console.log("🔐 Admin認証システム検出 - ページアクセスチェックをスキップ");
+      console.log(
+        "🔐 Admin認証システム検出 - ページアクセスチェックをスキップ"
+      );
       return true;
     }
 
@@ -844,7 +869,8 @@ class UserSession {
     if (allowedRoles.length > 0 && !allowedRoles.includes(session.role)) {
       const redirectUrl = this.getRedirectUrl(session.role);
       console.log(
-        `権限不足 - 現在のロール: ${session.role
+        `権限不足 - 現在のロール: ${
+          session.role
         }, 必要なロール: [${allowedRoles.join(", ")}]`
       );
       console.log(`${redirectUrl}へリダイレクト`);
@@ -1128,12 +1154,8 @@ if (
 
 // ページロード時の認証チェック
 document.addEventListener("DOMContentLoaded", function () {
-  // リダイレクトフラグをリセット
   window.isRedirecting = false;
-
   console.log("DOMContentLoaded: ページロード時の認証チェック開始");
-
-  // 公開ページ以外では認証チェック
   const currentPage = window.location.pathname.split("/").pop() || "admin.html";
   console.log("現在のページ:", currentPage);
 
@@ -1143,14 +1165,29 @@ document.addEventListener("DOMContentLoaded", function () {
     return;
   }
 
-  // 保護されたページでのみ認証チェックを実行
-  if (currentPage !== "login.html" && currentPage !== "index.html") {
-    // より長い遅延で初期化完了を確実に待つ
-    setTimeout(async () => {
-      console.log("DOMContentLoadedからのページアクセスチェック実行");
-      await UserSession.checkPageAccess(); // await追加
-    }, 2000); // 2秒遅延で確実に初期化完了を待つ
-  }
+  // superuserならperformance.htmlにリダイレクト
+  setTimeout(async () => {
+    try {
+      // Firestoreからadmin_settingsを取得
+      const session = await UserSession.getSession();
+      if (session && session.admin_id) {
+        const adminRef = doc(db, "admin_settings", session.admin_id);
+        const adminSnap = await getDoc(adminRef);
+        if (adminSnap.exists()) {
+          const adminData = adminSnap.data();
+          if (adminData.role === "superuser") {
+            window.isRedirecting = true;
+            window.location.href = "performance.html";
+            return;
+          }
+        }
+      }
+    } catch (e) {
+      console.error("superuser判定・リダイレクトエラー", e);
+    }
+    // 通常のアクセスチェック
+    await UserSession.checkPageAccess();
+  }, 2000);
 });
 
 // グローバル関数として公開

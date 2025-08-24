@@ -599,11 +599,11 @@
             <h1 style="margin: 0;">QR Scan 管理画面</h1>
             <div style="display: flex; align-items: center; gap: 10px;">
                 <span id="userInfo" style="color: rgba(255,255,255,0.9); font-size: 14px;"></span>
-                <button onclick="showProfileModal()"
+                <button id="profileBtn"
                     style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
                     👤 管理者情報
                 </button>
-                <button onclick="showSettingsModal()"
+                <button id="settingsBtn"
                     style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
                     ⚙️ プロジェクト設定
                 </button>
@@ -918,6 +918,8 @@
     <script type="module" src="js/auth.js"></script>
     <script type="module" src="js/template-utils.js"></script>
     <script type="module" src="js/admin.js"></script>
+    <!-- 他のJSより後、</body>直前でprofile.jsを読み込む -->
+    <script src="js/profile.js"></script>
 </body>
 
 </html>
