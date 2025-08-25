@@ -12,6 +12,20 @@ import {
     where,
     getDocs
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+// testtemplateから新adminへコレクションごとコピー
+
+async function copyTemplateCollectionsToAdmin(newAdminId) {
+    const collections = ["users", "staff", "maker", "items"];
+    for (const col of collections) {
+        const srcRef = collection(db, "admin_collections", "testtemplate", col);
+        const dstRef = (id) => collection(db, "admin_collections", id, col);
+        const snapshot = await getDocs(srcRef);
+        for (const docSnap of snapshot.docs) {
+            await setDoc(doc(dstRef(newAdminId), docSnap.id), docSnap.data());
+        }
+    }
+}
+import { uploadExcelFile } from "./template-utils.js";
 
 // Firebase設定
 const firebaseConfig = {
@@ -116,14 +130,18 @@ async function handleQRCodeAutoLogin() {
 // Admin新規登録処理
 async function registerAdmin(formData) {
     try {
-        const { adminId, adminName, email, password } = formData;
+        // formDataがFormDataか通常オブジェクトか両方対応
+        const adminId = formData.get ? formData.get("adminId") : formData.adminId;
+        const adminName = formData.get ? formData.get("adminName") : formData.adminName;
+        const email = formData.get ? formData.get("email") : formData.email;
+        const password = formData.get ? formData.get("password") : formData.password;
 
         // 既存のadmin_id確認
         const adminRef = doc(db, "admin_settings", adminId);
         const adminDoc = await getDoc(adminRef);
 
         if (adminDoc.exists()) {
-            throw new Error("このAdmin IDは既に使用されています");
+            throw new Error("この管理者 IDは既に使用されています");
         }
 
         // Emailの重複確認
@@ -134,6 +152,7 @@ async function registerAdmin(formData) {
         if (!emailDocs.empty) {
             throw new Error("このメールアドレスは既に使用されています");
         }
+
 
         // admin_settingsコレクションに登録
         await setDoc(adminRef, {
@@ -168,72 +187,22 @@ async function registerAdmin(formData) {
         });
 
         console.log("Admin登録成功:", adminId);
+
+
+
         return { success: true, message: "管理者登録が完了しました" };
 
     } catch (error) {
-        console.error("Admin登録エラー:", error);
-        return { success: false, error: error.message };
+        // エラー内容を詳細に出力
+        console.error("Admin登録エラー:", error && error.stack ? error.stack : error);
+        return { success: false, error: error && (error.message || error.toString()) };
     }
 }
 
-// デモ用Admin作成関数
-async function createDemoAdmin() {
-    try {
-        const demoAdminId = "ADMIN001";
-        const adminRef = doc(db, "admin_settings", demoAdminId);
-        const adminDoc = await getDoc(adminRef);
 
-        // 既に存在する場合は、パスワードのみ更新
-        if (adminDoc.exists()) {
-            console.log("デモAdmin ADMIN001は既に存在します。パスワードを更新します。");
-            await setDoc(adminRef, {
-                ...adminDoc.data(),
-                password: "DemoAdmin2024!", // パスワードのみ更新
-                updatedAt: serverTimestamp()
-            });
-            console.log("デモAdminのパスワードを更新しました (New Pass: DemoAdmin2024!)");
-            return;
-        }
 
-        // デモAdminを作成
-        await setDoc(adminRef, {
-            admin_id: demoAdminId,
-            admin_name: "デモ管理者",
-            email: "demo@admin.com",
-            password: "DemoAdmin2024!", // より安全なデモ用パスワード
-            permissions: ["user_manage", "data_export", "system_config"],
-
-            // 新しいステータス管理システム
-            account_status: "real", // デモAdminは本番扱い
-            plan_type: "premium",   // フル機能利用可能
-            is_active: true,
-
-            // 課金情報
-            billing_info: {
-                trial_end_date: null,
-                last_payment_date: serverTimestamp(),
-                next_billing_date: null, // 無期限
-                payment_method: "demo"
-            },
-
-            // 使用制限なし
-            usage_limits: {
-                max_users: -1,           // 無制限
-                max_scans_per_month: -1, // 無制限
-                max_data_export: -1      // 無制限
-            },
-
-            created_at: serverTimestamp(),
-            last_login: null
-        });
-
-        console.log("デモAdmin ADMIN001を作成しました (ID: ADMIN001, Pass: DemoAdmin2024!)");
-    } catch (error) {
-        console.error("デモAdmin作成エラー:", error);
-    }
-}
-
-// Legacy AdminユーザーをAdmin認証システムに移行する関数
+// Legacy AdminユーザーをAdmin認証システムに移行する関数（コメントアウト）
+/*
 async function migrateLegacyAdminUser(userId, userName, password = "LegacyAdmin2024!") {
     try {
         const adminRef = doc(db, "admin_settings", userId);
@@ -315,6 +284,7 @@ async function migrateLegacyAdminUser(userId, userName, password = "LegacyAdmin2
         console.error("Legacy Admin移行エラー:", error);
     }
 }
+*/
 
 // Adminログイン処理
 async function loginAdmin(adminId, password) {
@@ -407,7 +377,9 @@ function showAdminLoginForm() {
 // フォーム送信処理
 async function handleAdminRegister(event) {
     event.preventDefault();
-    const formData = new FormData(event.target);
+    // event.targetが未定義の場合はフォームIDから取得
+    const form = event.target || document.getElementById('adminRegisterFormForm');
+    const formData = new FormData(form);
     const adminData = {
         adminId: formData.get("adminId"),
         adminName: formData.get("adminName"),
@@ -417,14 +389,24 @@ async function handleAdminRegister(event) {
     };
     // パスワードバリデーション
     if (!/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/.test(adminData.password)) {
+        console.log("入力パスワード:", adminData.password);
+        console.log("バリデーション結果:", /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/.test(adminData.password));
         alert("パスワードは8文字以上の英数字を組み合わせてください");
         return;
     }
-    const registerBtn = document.getElementById("registerBtn");
-    registerBtn.textContent = "登録中...";
-    registerBtn.disabled = true;
+    // 登録ボタン取得（activeElement優先、なければIDで取得）
+    let registerBtn = document.activeElement;
+    if (!registerBtn || !registerBtn.classList.contains('btn-primary')) {
+        // fallback: テスト/本番ボタンどちらか取得
+        registerBtn = document.getElementById("registerTestBtn") || document.getElementById("registerRealBtn");
+    }
+    if (registerBtn) {
+        registerBtn.textContent = "登録中...";
+        registerBtn.disabled = true;
+    }
     const result = await registerAdmin(adminData);
     if (result.success) {
+        handleTestModeRegister(formData)
         alert("管理者登録が完了しました。ログイン画面に移動します。");
         showAdminLoginForm();
         const form = document.getElementById("adminRegisterFormForm");
@@ -432,8 +414,10 @@ async function handleAdminRegister(event) {
     } else {
         alert("登録に失敗しました: " + result.error);
     }
-    registerBtn.textContent = "新規登録";
-    registerBtn.disabled = false;
+    if (registerBtn) {
+        registerBtn.textContent = "新規登録";
+        registerBtn.disabled = false;
+    }
 }
 
 async function handleAdminLogin(event) {
@@ -472,16 +456,114 @@ async function handleAdminLogin(event) {
     loginBtn.disabled = false;
 }
 
+// SheetJS (xlsx) CDNを利用してExcelをパース
+// <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+async function uploadTemplateToFirestore(collectionName, templateUrl) {
+    try {
+        console.log(`[テスト] admin_collectionsにadmin_idドキュメントのみ作成します`);
+        // テスト用: admin_idを直接指定してaddDocで作成
+        const testAdminId = window.currentAdmin?.admin_id || "TEST_ADMIN";
+        if (testAdminId && typeof testAdminId === "string" && testAdminId.length > 0) {
+            // admin_idが有効な場合はsetDocでID指定
+            await setDoc(doc(db, "admin_collections", testAdminId), {
+                admin_id: testAdminId,
+                created_at: serverTimestamp(),
+                test: true
+            });
+            console.log(`[テスト] admin_collectionsにID指定で作成:`, testAdminId);
+        } else {
+            // admin_idが無効な場合はaddDocで自動ID
+            const docRef = await addDoc(collection(db, "admin_collections"), {
+                admin_id: "UNKNOWN",
+                created_at: serverTimestamp(),
+                test: true
+            });
+            console.log(`[テスト] admin_collectionsに自動IDで作成:`, docRef.id);
+        }
+    } catch (error) {
+        console.error(`[テストアップロードエラー] ${collectionName}:`, error);
+    }
+}
+
+async function handleTestModeRegister(formData) {
+    // 1. Firestoreにadmin_settings作成
+    await registerAdmin(formData);
+
+    // adminIdをformDataから取得
+    const adminId = formData.get ? formData.get("adminId") : formData.adminId;
+
+    // testtemplateから各コレクション(users, staff, maker, items)をコピー
+    await copyTemplateCollectionsToAdmin(adminId);
+
+    // サブコレクション作成
+    const subCollections = ["items", "users", "scanItems"];
+    for (const sub of subCollections) {
+        const subRef = doc(db, `admin_collections/${adminId}/${sub}`, "initDoc");
+        await setDoc(subRef, {
+            created_at: serverTimestamp(),
+            initialized: true
+        });
+        console.log(`サブコレクション作成: admin_collections/${adminId}/${sub}/initDoc`);
+    }
+
+    // 2. window.currentAdminとgetAdminCollectionをセット
+    window.currentAdmin = {
+        admin_id: formData.get ? formData.get("adminId") : formData.adminId,
+        account_status: formData.get ? formData.get("accountMode") : formData.account_status || "test"
+    };
+    window.getAdminCollection = (type) => {
+        return collection(db, `admin_collections/${window.currentAdmin.admin_id}/${type}`);
+    };
+
+    // 3. テンプレートファイルをfetchしてアップロード（template-utils.jsのuploadExcelFileを利用）
+    // ファイルパス配列
+    const templates = [
+        { type: "items", path: "/templates/items.xlsx" },
+        { type: "maker", path: "/templates/maker.xlsx" },
+        { type: "staff", path: "/templates/staff.xlsx" },
+        { type: "users", path: "/templates/users.xlsx" }
+    ];
+    for (const tpl of templates) {
+        try {
+            const response = await fetch(tpl.path);
+            if (!response.ok) throw new Error(`ファイル取得失敗: ${tpl.path}`);
+            const blob = await response.blob();
+            // ここでadminIdとgetAdminCollectionの参照先を出力
+            console.log(`[UPLOAD DEBUG] adminId:`, adminId);
+            alert("stop");
+            if (window.getAdminCollection) {
+                const ref = window.getAdminCollection(tpl.type);
+                console.log(`[UPLOAD DEBUG] getAdminCollection(${tpl.type}):`, ref);
+                alert("stop");
+            } else {
+                console.warn("[UPLOAD DEBUG] window.getAdminCollection未定義");
+                alert("stop");
+            }
+            // importしたuploadExcelFile関数を直接呼び出す
+            const file = new File([blob], tpl.path.split("/").pop());
+            await uploadExcelFile(file, "add");
+        } catch (err) {
+            console.error(`[テンプレートアップロード失敗] ${tpl.type}:`, err);
+        }
+    }
+
+    // 4. ログイン状態セット（admin_name, email, roleなども保存）
+    localStorage.setItem("currentAdmin", JSON.stringify({
+        admin_id: window.currentAdmin.admin_id,
+        admin_name: formData.get ? formData.get("adminName") : formData.adminName,
+        email: formData.get ? formData.get("email") : formData.email,
+        role: "admin",
+        account_status: window.currentAdmin.account_status
+    }));
+
+    // 5. admin.htmlに遷移
+    window.location.href = "admin.html";
+}
+
 // ページロード時の処理
 document.addEventListener("DOMContentLoaded", async function () {
-    // デモAdmin作成（初回のみ）
-    await createDemoAdmin();
 
-    // Legacy Adminユーザーの自動移行（修復も含む）
-    // await migrateLegacyAdminUser("32030428", "船切", "Legacy2024!");
-
-    // 緊急修復：32030428アカウントの強制修復
-    // await emergencyFixAdmin("32030428");
 
     // QRコード自動ログインチェック
     const isQRLogin = await handleQRCodeAutoLogin();

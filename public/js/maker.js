@@ -59,11 +59,10 @@ function generateErrorHTML(title, message, showRetryButton = false) {
       </div>
       <div class="user-details">
         <p>${message}</p>
-        ${
-          showRetryButton
-            ? '<button onclick="displayUserInfo()" style="background-color: #9c27b0; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer;">再試行</button>'
-            : '<button onclick="handleLogout()" class="logout-btn">ログアウト</button>'
-        }
+        ${showRetryButton
+      ? '<button onclick="displayUserInfo()" style="background-color: #9c27b0; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer;">再試行</button>'
+      : '<button onclick="handleLogout()" class="logout-btn">ログアウト</button>'
+    }
       </div>
     </div>
   `;
@@ -92,6 +91,18 @@ async function handleQRCodeRedirect() {
 
 // ページロード時の初期化
 document.addEventListener("DOMContentLoaded", async function () {
+  const urlParams = new URLSearchParams(window.location.search);
+  const userId = urlParams.get("user_id");
+  const adminId = urlParams.get("admin_id");
+
+  // admin_idがない場合はレガシーアクセス不可
+  if (!userId || !adminId) {
+    alert("admin_idパラメータが必要です。");
+    window.location.href = "/index.html";
+    return;
+  }
+
+  // ここから従来firestoreアクセス処理
   // ページ読み込み時のデバッグ情報
   console.log("=== maker.htmlページ読み込み ===");
   console.log("現在のURL:", window.location.href);
@@ -824,8 +835,7 @@ async function runPerformanceComparison() {
     console.log("❌ 従来方法: エラー -", legacyResult.error);
   } else {
     console.log(
-      `⏱️ 従来方法: ${legacyResult.time.toFixed(2)}ms (${
-        legacyResult.docCount
+      `⏱️ 従来方法: ${legacyResult.time.toFixed(2)}ms (${legacyResult.docCount
       }件読み取り)`
     );
   }
@@ -834,8 +844,7 @@ async function runPerformanceComparison() {
     console.log("❌ Aggregation方法: エラー -", aggregationResult.error);
   } else {
     console.log(
-      `⚡ Aggregation方法: ${aggregationResult.time.toFixed(2)}ms (${
-        aggregationResult.queryCount
+      `⚡ Aggregation方法: ${aggregationResult.time.toFixed(2)}ms (${aggregationResult.queryCount
       }クエリ)`
     );
   }
@@ -844,8 +853,7 @@ async function runPerformanceComparison() {
     const improvement =
       ((legacyResult.time - aggregationResult.time) / legacyResult.time) * 100;
     console.log(
-      `📈 パフォーマンス改善: ${
-        improvement > 0 ? "+" : ""
+      `📈 パフォーマンス改善: ${improvement > 0 ? "+" : ""
       }${improvement.toFixed(1)}%`
     );
 

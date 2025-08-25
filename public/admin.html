@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QR Scan App</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
         /* Excelファイルアップロード用のスタイル */
         .upload-option-btn:hover {
@@ -669,26 +670,9 @@
 
         </div>
 
-        <!-- 4行目: パフォーマンステスト -->
-        <div class="action-buttons-row">
-            <button onclick="runMakerPerformanceTest()" class="action-button"
-                style="border-color: #ff5722; color: #ff5722; display: none;">
-                🚀 Aggregation Queries テスト
-            </button>
 
-        </div>
 
-        <!-- 5行目: Admin管理機能 -->
-        <div class="action-buttons-row">
-            <button onclick="compareCollections()" class="action-button"
-                style="border-color: #9c27b0; color: #9c27b0;">
-                🔍 コレクション比較 (コンソール)
-            </button>
-            <button onclick="copyTemplateDataToNewAdmin()" class="action-button"
-                style="border-color: #ff9800; color: #ff9800;">
-                📋 テンプレートデータコピー
-            </button>
-        </div>
+
     </div>
 
     <!-- ファイルアップロードモーダル -->
@@ -833,16 +817,17 @@
         <div class="modal-content">
             <span class="close" onclick="closeProfileModal()">&times;</span>
             <h2>👤 管理者プロフィール情報</h2>
-            <div id="profileContent" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start;">
+            <div id="profileContent"
+                style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start;">
                 <!-- プロフィール情報と入力フィールドがここに表示されます -->
             </div>
-            
+
             <div style="margin-top: 20px; text-align: right;">
                 <button id="editToggleBtn" onclick="toggleEditMode()"
                     style="background-color: #4285f4; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin-right: 10px;">
                     ✏️ 編集
                 </button>
-                <button id="saveProfileBtn" onclick="saveProfile()" 
+                <button id="saveProfileBtn" onclick="saveProfile()"
                     style="background-color: #4CAF50; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin-right: 10px; display: none;">
                     💾 保存
                 </button>
@@ -918,8 +903,7 @@
     <script type="module" src="js/auth.js"></script>
     <script type="module" src="js/template-utils.js"></script>
     <script type="module" src="js/admin.js"></script>
-    <!-- 他のJSより後、</body>直前でprofile.jsを読み込む -->
-    <script src="js/profile.js"></script>
+    <script type="module" src="profile.js"></script>
 </body>
 
 </html>

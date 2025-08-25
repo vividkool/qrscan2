@@ -1,237 +1,247 @@
 <!DOCTYPE html>
 <html lang="ja">
-  <head>
-    <meta charset="UTF-8" />
-    <title>Firestoreパフォーマンス計測</title>
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <style>
-      body {
-        font-family: "Segoe UI", "Meiryo", sans-serif;
-        background: #f8f9fa;
-        margin: 0;
-        padding: 0;
-      }
-      .container {
-        max-width: 800px;
-        margin: 40px auto;
-        background: #fff;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        padding: 32px;
-      }
-      h1 {
-        font-size: 2rem;
-        margin-bottom: 24px;
-      }
-      .result {
-        margin-top: 24px;
-      }
-      .success {
-        color: #28a745;
-      }
-      .error {
-        color: #dc3545;
-      }
-      button {
-        background: #007bff;
-        color: #fff;
-        border: none;
-        padding: 10px 24px;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 1rem;
-        margin: 8px 0;
-      }
-      button:disabled {
-        background: #aaa;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <h1>Firestoreパフォーマンス計測</h1>
-      <button onclick="runMakerPerformanceTest()">
-        パフォーマンステスト実行
-      </button>
-      <div id="firestoreResult" class="result"></div>
-    </div>
-    <script type="module">
-      // Aggregation Queriesパフォーマンステスト関数
 
-      // Maker専用のパフォーマンステスト実行（maker.jsの機能を再実装）
-      async function runPerformanceTestForMaker(userId) {
-        // Firebase imports (ローカルで使用)
-        const { getCountFromServer } = await import(
-          "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"
+<head>
+  <meta charset="UTF-8" />
+  <title>Firestoreパフォーマンス計測</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    body {
+      font-family: "Segoe UI", "Meiryo", sans-serif;
+      background: #f8f9fa;
+      margin: 0;
+      padding: 0;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 40px auto;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      padding: 32px;
+    }
+
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 24px;
+    }
+
+    .result {
+      margin-top: 24px;
+    }
+
+    .success {
+      color: #28a745;
+    }
+
+    .error {
+      color: #dc3545;
+    }
+
+    button {
+      background: #007bff;
+      color: #fff;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 1rem;
+      margin: 8px 0;
+    }
+
+    button:disabled {
+      background: #aaa;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>Firestoreパフォーマンス計測</h1>
+    <button onclick="runMakerPerformanceTest()">
+      パフォーマンステスト実行
+    </button>
+    <button onclick="compareCollections()" class="action-button" style="border-color: #9c27b0; color: #9c27b0;">
+      🔍 コレクション比較 (コンソール)
+    </button>
+    <div id="firestoreResult" class="result"></div>
+  </div>
+  <script type="module">
+    // Aggregation Queriesパフォーマンステスト関数
+
+    // Maker専用のパフォーマンステスト実行（maker.jsの機能を再実装）
+    async function runPerformanceTestForMaker(userId) {
+      // Firebase imports (ローカルで使用)
+      const { getCountFromServer } = await import(
+        "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"
+      );
+
+      console.log("🚀 パフォーマンス比較テスト開始 🚀");
+      console.log(`テスト対象ユーザー: ${userId}`);
+
+      // 従来方法のテスト
+      const legacyResult = await testLegacyMethodLocal(userId);
+      await new Promise((resolve) => setTimeout(resolve, 1000)); // 1秒待機
+      const aggregationResult = await testAggregationMethodLocal(
+        userId,
+        getCountFromServer
+      );
+
+      // 比較結果をログ出力
+      console.log("\n📊 パフォーマンス比較結果 📊");
+      console.log("=====================================");
+
+      if (legacyResult.error) {
+        console.log("❌ 従来方法: エラー -", legacyResult.error);
+      } else {
+        console.log(
+          `⏱️ 従来方法: ${legacyResult.time.toFixed(2)}ms (${legacyResult.docCount
+          }件読み取り)`
+        );
+      }
+
+      if (aggregationResult.error) {
+        console.log("❌ Aggregation方法: エラー -", aggregationResult.error);
+      } else {
+        console.log(
+          `⚡ Aggregation方法: ${aggregationResult.time.toFixed(2)}ms (${aggregationResult.queryCount
+          }クエリ)`
+        );
+      }
+
+      if (!legacyResult.error && !aggregationResult.error) {
+        const improvement =
+          ((legacyResult.time - aggregationResult.time) / legacyResult.time) *
+          100;
+        console.log(
+          `📈 パフォーマンス改善: ${improvement > 0 ? "+" : ""
+          }${improvement.toFixed(1)}%`
         );
 
-        console.log("🚀 パフォーマンス比較テスト開始 🚀");
-        console.log(`テスト対象ユーザー: ${userId}`);
-
-        // 従来方法のテスト
-        const legacyResult = await testLegacyMethodLocal(userId);
-        await new Promise((resolve) => setTimeout(resolve, 1000)); // 1秒待機
-        const aggregationResult = await testAggregationMethodLocal(
-          userId,
-          getCountFromServer
-        );
-
-        // 比較結果をログ出力
-        console.log("\n📊 パフォーマンス比較結果 📊");
-        console.log("=====================================");
-
-        if (legacyResult.error) {
-          console.log("❌ 従来方法: エラー -", legacyResult.error);
+        if (improvement > 0) {
+          console.log(
+            `🎉 Aggregation Queriesが ${(
+              legacyResult.time / aggregationResult.time
+            ).toFixed(1)}倍高速！`
+          );
         } else {
           console.log(
-            `⏱️ 従来方法: ${legacyResult.time.toFixed(2)}ms (${
-              legacyResult.docCount
-            }件読み取り)`
+            `⚠️ 従来方法が ${(
+              aggregationResult.time / legacyResult.time
+            ).toFixed(1)}倍高速`
           );
         }
+      }
 
-        if (aggregationResult.error) {
-          console.log("❌ Aggregation方法: エラー -", aggregationResult.error);
-        } else {
-          console.log(
-            `⚡ Aggregation方法: ${aggregationResult.time.toFixed(2)}ms (${
-              aggregationResult.queryCount
-            }クエリ)`
-          );
-        }
+      console.log("=====================================\n");
+      return { legacy: legacyResult, aggregation: aggregationResult };
+    }
 
-        if (!legacyResult.error && !aggregationResult.error) {
-          const improvement =
-            ((legacyResult.time - aggregationResult.time) / legacyResult.time) *
-            100;
-          console.log(
-            `📈 パフォーマンス改善: ${
-              improvement > 0 ? "+" : ""
-            }${improvement.toFixed(1)}%`
-          );
+    // 従来方法テスト（ローカル実装）
+    async function testLegacyMethodLocal(userId) {
+      console.log("=== 従来方法 パフォーマンステスト開始 ===");
+      const startTime = performance.now();
 
-          if (improvement > 0) {
-            console.log(
-              `🎉 Aggregation Queriesが ${(
-                legacyResult.time / aggregationResult.time
-              ).toFixed(1)}倍高速！`
-            );
-          } else {
-            console.log(
-              `⚠️ 従来方法が ${(
-                aggregationResult.time / legacyResult.time
-              ).toFixed(1)}倍高速`
-            );
+      try {
+        const scanItemsSnapshot = await getDocs(collection(db, "scanItems"));
+        console.log("取得したスキャンアイテム数:", scanItemsSnapshot.size);
+
+        const scanCounts = {};
+        scanItemsSnapshot.forEach((doc) => {
+          const data = doc.data();
+          if (data.item_no) {
+            scanCounts[data.item_no] = (scanCounts[data.item_no] || 0) + 1;
           }
-        }
+        });
 
-        console.log("=====================================\n");
-        return { legacy: legacyResult, aggregation: aggregationResult };
+        const endTime = performance.now();
+        const executionTime = endTime - startTime;
+
+        console.log("=== 従来方法 パフォーマンス結果 ===");
+        console.log(`実行時間: ${executionTime.toFixed(2)}ms`);
+        console.log(`読み取りドキュメント数: ${scanItemsSnapshot.size}`);
+        console.log("=========================================");
+
+        return {
+          method: "legacy",
+          time: executionTime,
+          docCount: scanItemsSnapshot.size,
+          results: scanCounts,
+        };
+      } catch (error) {
+        console.error("従来方法テストエラー:", error);
+        return { method: "legacy", error: error.message };
       }
+    }
 
-      // 従来方法テスト（ローカル実装）
-      async function testLegacyMethodLocal(userId) {
-        console.log("=== 従来方法 パフォーマンステスト開始 ===");
-        const startTime = performance.now();
+    // Aggregation方法テスト（ローカル実装）
+    async function testAggregationMethodLocal(userId, getCountFromServer) {
+      console.log("=== Aggregation Queries パフォーマンステスト開始 ===");
+      const startTime = performance.now();
 
-        try {
-          const scanItemsSnapshot = await getDocs(collection(db, "scanItems"));
-          console.log("取得したスキャンアイテム数:", scanItemsSnapshot.size);
+      try {
+        // まずメーカー関連アイテムを取得
+        const itemsQuery = query(
+          collection(db, "items"),
+          where("maker_code", "==", userId),
+          orderBy("item_no", "asc")
+        );
 
-          const scanCounts = {};
-          scanItemsSnapshot.forEach((doc) => {
-            const data = doc.data();
-            if (data.item_no) {
-              scanCounts[data.item_no] = (scanCounts[data.item_no] || 0) + 1;
-            }
-          });
+        const itemsSnapshot = await getDocs(itemsQuery);
+        const scanCounts = {};
+        let totalQueries = 0;
 
-          const endTime = performance.now();
-          const executionTime = endTime - startTime;
+        // 各アイテムごとに個別にカウントを取得（並列処理）
+        const countPromises = [];
+        const itemNumbers = [];
 
-          console.log("=== 従来方法 パフォーマンス結果 ===");
-          console.log(`実行時間: ${executionTime.toFixed(2)}ms`);
-          console.log(`読み取りドキュメント数: ${scanItemsSnapshot.size}`);
-          console.log("=========================================");
+        itemsSnapshot.forEach((doc) => {
+          const data = doc.data();
+          if (data.item_no) {
+            itemNumbers.push(data.item_no);
+            const countQuery = query(
+              collection(db, "scanItems"),
+              where("item_no", "==", data.item_no)
+            );
+            countPromises.push(getCountFromServer(countQuery));
+            totalQueries++;
+          }
+        });
 
-          return {
-            method: "legacy",
-            time: executionTime,
-            docCount: scanItemsSnapshot.size,
-            results: scanCounts,
-          };
-        } catch (error) {
-          console.error("従来方法テストエラー:", error);
-          return { method: "legacy", error: error.message };
-        }
+        // 全てのカウントクエリを並列実行
+        const countResults = await Promise.all(countPromises);
+
+        // 結果をマッピング
+        itemNumbers.forEach((itemNo, index) => {
+          scanCounts[itemNo] = countResults[index].data().count;
+        });
+
+        const endTime = performance.now();
+        const executionTime = endTime - startTime;
+
+        console.log("=== Aggregation Queries パフォーマンス結果 ===");
+        console.log(`実行時間: ${executionTime.toFixed(2)}ms`);
+        console.log(`アイテム数: ${itemNumbers.length}`);
+        console.log(`クエリ数: ${totalQueries}`);
+        console.log(
+          `平均クエリ時間: ${(executionTime / totalQueries).toFixed(2)}ms`
+        );
+        console.log("=============================================");
+
+        return {
+          method: "aggregation",
+          time: executionTime,
+          itemCount: itemNumbers.length,
+          queryCount: totalQueries,
+          results: scanCounts,
+        };
+      } catch (error) {
+        console.error("Aggregation Queriesテストエラー:", error);
+        return { method: "aggregation", error: error.message };
       }
+    }
+  </script>
+</body>
 
-      // Aggregation方法テスト（ローカル実装）
-      async function testAggregationMethodLocal(userId, getCountFromServer) {
-        console.log("=== Aggregation Queries パフォーマンステスト開始 ===");
-        const startTime = performance.now();
-
-        try {
-          // まずメーカー関連アイテムを取得
-          const itemsQuery = query(
-            collection(db, "items"),
-            where("maker_code", "==", userId),
-            orderBy("item_no", "asc")
-          );
-
-          const itemsSnapshot = await getDocs(itemsQuery);
-          const scanCounts = {};
-          let totalQueries = 0;
-
-          // 各アイテムごとに個別にカウントを取得（並列処理）
-          const countPromises = [];
-          const itemNumbers = [];
-
-          itemsSnapshot.forEach((doc) => {
-            const data = doc.data();
-            if (data.item_no) {
-              itemNumbers.push(data.item_no);
-              const countQuery = query(
-                collection(db, "scanItems"),
-                where("item_no", "==", data.item_no)
-              );
-              countPromises.push(getCountFromServer(countQuery));
-              totalQueries++;
-            }
-          });
-
-          // 全てのカウントクエリを並列実行
-          const countResults = await Promise.all(countPromises);
-
-          // 結果をマッピング
-          itemNumbers.forEach((itemNo, index) => {
-            scanCounts[itemNo] = countResults[index].data().count;
-          });
-
-          const endTime = performance.now();
-          const executionTime = endTime - startTime;
-
-          console.log("=== Aggregation Queries パフォーマンス結果 ===");
-          console.log(`実行時間: ${executionTime.toFixed(2)}ms`);
-          console.log(`アイテム数: ${itemNumbers.length}`);
-          console.log(`クエリ数: ${totalQueries}`);
-          console.log(
-            `平均クエリ時間: ${(executionTime / totalQueries).toFixed(2)}ms`
-          );
-          console.log("=============================================");
-
-          return {
-            method: "aggregation",
-            time: executionTime,
-            itemCount: itemNumbers.length,
-            queryCount: totalQueries,
-            results: scanCounts,
-          };
-        } catch (error) {
-          console.error("Aggregation Queriesテストエラー:", error);
-          return { method: "aggregation", error: error.message };
-        }
-      }
-    </script>
-  </body>
 </html>

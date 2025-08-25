@@ -727,23 +727,17 @@ async function uploadExcelFile(file, mode = "add") {
   }
 
   // テストアカウントの制限チェック (admin.jsから参照)
-  if (window.currentAdmin) {
+  if (window.currentAdmin && window.getAdminCollection) {
     const accountStatus = window.currentAdmin.account_status || "test";
     if (accountStatus === "test") {
       const collectionType = window.currentCollectionType || 'users';
       // 既存件数取得
-      const adminId = window.currentAdmin.admin_id;
-      const db = window.db;
-      const targetCollection = db ? db.collection("admin_collections").doc(adminId).collection(collectionType) : null;
+      const targetCollection = window.getAdminCollection(collectionType);
       let currentCount = 0;
       if (targetCollection) {
         const snapshot = await getDocs(targetCollection);
         currentCount = snapshot.size;
       }
-      // ファイル内の件数取得（SheetJSで後ほど）
-      // ここでは仮に最大件数とする
-      // → 実際の件数取得はSheetJS処理後に再度判定
-      // ここでは先に既存件数を取得しておく
       window.__excelUploadCurrentCount = currentCount;
     }
   }

@@ -2,9 +2,15 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 開発用の緩いルール - 本番環境では認証を追加してください
+    // testtemplateコレクションはrole:adminのみアクセス可
+    match /admin_collections/testtemplate/{subCollection}/{docId} {
+      allow read, write: if
+        request.auth != null &&
+        get(/databases/$(database)/documents/admin_settings/$(request.auth.uid)).data.role == "admin";
+    }
+    // その他は認証必須
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if request.auth != null;
     }
   }
 }
