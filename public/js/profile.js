@@ -1,5 +1,23 @@
 // DOMContentLoaded時にイベントバインド（type="module"でも通常scriptでも動作）
 document.addEventListener("DOMContentLoaded", function () {
+  // 保存ボタンのイベントバインド
+  const saveProfileBtn = document.getElementById("saveProfileBtn");
+  if (saveProfileBtn) saveProfileBtn.addEventListener("click", saveProfile);
+  // 編集ボタンのイベントバインド
+  const editToggleBtn = document.getElementById("editToggleBtn");
+  if (editToggleBtn) editToggleBtn.addEventListener("click", toggleEditMode);
+
+  // プロフィールモーダル閉じるボタンのイベントバインド
+  const closeProfileModalBtn = document.getElementById("closeProfileModalBtn");
+  if (closeProfileModalBtn)
+    closeProfileModalBtn.addEventListener("click", closeProfileModal);
+  // パスワード表示切替ボタンのイベントバインド
+  const passwordToggleBtn = document.querySelector(".password-toggle");
+  if (passwordToggleBtn) {
+    passwordToggleBtn.addEventListener("click", function () {
+      togglePasswordVisibility("edit_password", this);
+    });
+  }
   const profileBtn = document.getElementById("profileBtn");
   if (profileBtn) profileBtn.addEventListener("click", showProfileModal);
   const settingsBtn = document.getElementById("settingsBtn");
@@ -37,11 +55,16 @@ let currentAdmin = window.currentAdmin;
 async function showProfileModal() {
   console.log("=== プロフィールモーダル開始 ===");
 
+  const currentAdmin = window.currentAdmin;
   if (!currentAdmin) {
     console.error("Admin認証情報がありません");
     alert("Admin認証情報を取得できませんでした。再ログインしてください。");
     return;
   }
+
+  const db =
+    window.db ||
+    getFirestore(window.firebaseApp || initializeApp(firebaseConfig));
 
   const profileContent = document.getElementById("profileContent");
   if (!profileContent) {
@@ -380,6 +403,7 @@ function closeProfileEditModal() {
 // プロフィールを保存
 async function saveProfile() {
   try {
+    const currentAdmin = window.currentAdmin;
     if (!currentAdmin) {
       alert("Admin認証情報を取得できませんでした");
       return;
@@ -441,7 +465,6 @@ async function saveProfile() {
     localStorage.setItem("currentAdmin", JSON.stringify(newAdminData));
 
     // グローバル変数も更新
-    currentAdmin = newAdminData;
     window.currentAdmin = newAdminData;
 
     console.log("Admin情報を更新しました:", newAdminData);
@@ -463,7 +486,10 @@ async function saveProfile() {
 
 // 設定モーダルを閉じる
 function closeSettingsModal() {
-  document.getElementById("settingsModal").style.display = "none";
+  const modal = document.getElementById("settingsModal");
+  if (modal) {
+    modal.style.display = "none";
+  }
 }
 
 // 設定を保存
@@ -523,12 +549,18 @@ function generateDefaultProjectName() {
 // 設定モーダルを開く
 async function showSettingsModal() {
   try {
+    // Firestoreインスタンスを毎回初期化
+    const db =
+      window.db ||
+      getFirestore(window.firebaseApp || initializeApp(firebaseConfig));
     // Firestoreから設定を読み込み
     const settingsRef = doc(db, "admin_settings", "config");
     const settingsDoc = await getDoc(settingsRef);
 
-    // URLプレビューを更新
-    updateUrlPreview();
+    // URLプレビューを更新（関数が存在する場合のみ）
+    if (typeof updateUrlPreview === "function") {
+      updateUrlPreview();
+    }
 
     // モーダルを表示
     document.getElementById("settingsModal").style.display = "block";
