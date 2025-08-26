@@ -651,6 +651,16 @@ function showAdminAuthInterface() {
             <input type="password" id="regPassword" name="password" required minlength="8" pattern="^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$" title="8文字以上の英数字を組み合わせてください">
             <small>8文字以上の英数字を組み合わせてください</small>
           </div>
+          <div class="form-group">
+            <label for="eventid">イベント名</label>
+            <input type="text" id="eventid" name="eventid" required placeholder="展示会20250827" value="">
+            <small>名札印刷時等に使います</small>
+          </div>
+          <div class="form-group">
+            <label for="exporday">展示会開催日</label>
+            <input type="text" id="exporday" name="exporday" required placeholder="月/日" value="">
+            <small>展示会開催日を記入してください</small>
+          </div>
           <!-- 課金方法欄（後で追加予定） -->
           <div class="form-group" id="paymentMethodGroup" style="display:none;"></div>
           <div class="form-group" style="display: flex; gap: 16px; justify-content: space-between; margin-top: 30px;">
