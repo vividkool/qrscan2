@@ -1,5 +1,8 @@
 // 認証・権限管理システム (Firebase Auth対応版)
-import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import {
+  initializeApp,
+  getApps,
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
   getAuth,
   signInWithEmailAndPassword,
@@ -67,11 +70,7 @@ const PAGE_PERMISSIONS = {
   "staff.html": [USER_ROLES.STAFF],
   "maker.html": [USER_ROLES.MAKER],
   "superuser.html": [USER_ROLES.SUPERUSER],
-  "user.html": [
-    USER_ROLES.USER,
-    USER_ROLES.STAFF,
-    USER_ROLES.MAKER,
-  ],
+  "user.html": [USER_ROLES.USER, USER_ROLES.STAFF, USER_ROLES.MAKER],
   "index.html": [], // 公開ページ
   "login.html": [], // 公開ページ
   "/": [USER_ROLES.ADMIN],
@@ -155,13 +154,13 @@ class FirebaseAuthManager {
       );
       const user = result.user;
 
-      // 初期ユーザーデータを作成
+      // 初期ユーザーデータは必ずadmin権限
       const userData = await this.syncUserWithFirestore(
         user,
         AUTH_TYPES.EMAIL,
         {
           user_name: displayName,
-          user_role: USER_ROLES.USER, // デフォルト権限
+          user_role: USER_ROLES.ADMIN,
         }
       );
       return { success: true, user: userData };
@@ -562,19 +561,28 @@ class UserSession {
       try {
         const adminObj = JSON.parse(currentAdmin);
         // セッション互換用に必要フィールドを補完
-        return {
-          user_id: adminObj.admin_id || "",
-          user_name: adminObj.admin_name || "",
-          email: adminObj.email || "",
-          company_name: adminObj.company_name || "",
-          role: adminObj.role || "admin",
-          department: adminObj.department || "",
+        // 必要フィールドを厳密に補完
+        const sessionObj = {
+          user_id: adminObj.admin_id ?? "",
+          user_name: adminObj.admin_name ?? adminObj.admin_id ?? "",
+          email: adminObj.email ?? "",
+          company_name: adminObj.company_name ?? "",
+          role: adminObj.role ?? "admin",
+          department: adminObj.department ?? "",
           is_active: adminObj.is_active ?? true,
-          timestamp: adminObj.timestamp || Date.now(),
+          timestamp: adminObj.timestamp ?? Date.now(),
           authType: "ADMIN",
+          status: adminObj.status ?? "active",
           // 元データも保持
           ...adminObj,
         };
+        //alert("[getSession] currentAdmin返却: " + JSON.stringify(sessionObj));
+        console.log(
+          "[getSession] currentAdmin返却:",
+          JSON.stringify(sessionObj)
+        );
+        //alert("stop");
+        return sessionObj;
       } catch {
         return null;
       }
@@ -822,7 +830,7 @@ class UserSession {
     if (!session) {
       console.log("認証セッションなし - ログインページへリダイレクト");
       if (currentPage !== "login.html" && currentPage !== "index.html") {
-        alert("stop");
+        //alert("stop");
         this.redirectTo("login.html");
       }
       return false;
@@ -867,7 +875,8 @@ class UserSession {
     if (allowedRoles.length > 0 && !allowedRoles.includes(session.role)) {
       const redirectUrl = this.getRedirectUrl(session.role);
       console.log(
-        `権限不足 - 現在のロール: ${session.role
+        `権限不足 - 現在のロール: ${
+          session.role
         }, 必要なロール: [${allowedRoles.join(", ")}]`
       );
       console.log(`${redirectUrl}へリダイレクト`);
@@ -1168,25 +1177,50 @@ document.addEventListener("DOMContentLoaded", function () {
       // Firestoreからadmin_settingsを取得
       const session = await UserSession.getSession();
       if (session && session.admin_id) {
+        //alert("[superuser判定] session: " + JSON.stringify(session));
+        console.log("[superuser判定] session: " + JSON.stringify(session));
+        //alert("stop");
         const adminRef = doc(db, "admin_settings", session.admin_id);
         console.log("Admin設定を確認中:", session.admin_id);
-        alert("stop");
         const adminSnap = await getDoc(adminRef);
 
         if (adminSnap.exists()) {
           const adminData = adminSnap.data();
-          if (session.admin_id === "superuser" || adminData.role === "superuser") {
+          //alert("[superuser判定] adminData: " + JSON.stringify(adminData));
+          //alert("stop");
+          console.log("[superuser判定] adminData:", JSON.stringify(adminData));
+          const roleValue = adminData.role ?? "admin";
+          if (session.admin_id === "superuser" || roleValue === "superuser") {
+            alert("[superuser判定] superuserリダイレクト条件成立");
             // すでにsuperuser.htmlならリダイレクトしない
             if (!window.location.pathname.endsWith("superuser.html")) {
+              alert("[superuser判定] superuser.htmlへリダイレクト");
               window.isRedirecting = true;
               window.location.href = "superuser.html";
             }
             return;
           } else {
+            alert(
+              "[superuser判定] admin.htmlへリダイレクト（role: " +
+                roleValue +
+                "）"
+            );
+            // roleがadminならリダイレクト不要
+            if (
+              roleValue === "admin" &&
+              window.location.pathname.endsWith("admin.html")
+            ) {
+              alert(
+                "[superuser判定] 既にadmin.htmlにいるためリダイレクトしません"
+              );
+              return;
+            }
             window.isRedirecting = true;
             window.location.href = "admin.html";
             return;
           }
+        } else {
+          alert("[superuser判定] adminSnap.exists() == false");
         }
       }
     } catch (e) {
