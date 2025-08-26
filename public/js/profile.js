@@ -477,8 +477,7 @@ function closeSettingsModal() {
   }
 }
 
-// グローバル関数として公開
-window.closeSettingsModal = closeSettingsModal;
+
 
 
 // 設定を保存
@@ -611,6 +610,8 @@ try {
   window.togglePasswordVisibility = togglePasswordVisibility;
   window.editProfile = editProfile;
   window.showSettingsModal = showSettingsModal;
+  // グローバル関数として公開
+  window.closeSettingsModal = closeSettingsModal;
 } catch (e) {
   console.error("window公開エラー", e);
 }

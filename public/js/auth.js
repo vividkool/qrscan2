@@ -66,12 +66,11 @@ const PAGE_PERMISSIONS = {
   "admin.html": [USER_ROLES.ADMIN],
   "staff.html": [USER_ROLES.STAFF],
   "maker.html": [USER_ROLES.MAKER],
+  "superuser.html": [USER_ROLES.SUPERUSER],
   "user.html": [
     USER_ROLES.USER,
     USER_ROLES.STAFF,
     USER_ROLES.MAKER,
-    USER_ROLES.SCANNER,
-    USER_ROLES.GUEST,
   ],
   "index.html": [], // 公開ページ
   "login.html": [], // 公開ページ
@@ -776,9 +775,8 @@ class UserSession {
         return "staff.html";
       case USER_ROLES.MAKER:
         return "maker.html";
-      case USER_ROLES.SCANNER:
-      case USER_ROLES.GUEST:
-        return "user.html";
+      case USER_ROLES.SUPERUSER:
+        return "superuser.html";
       default:
         return "login.html";
     }
@@ -1177,9 +1175,16 @@ document.addEventListener("DOMContentLoaded", function () {
 
         if (adminSnap.exists()) {
           const adminData = adminSnap.data();
-          if (adminData.role === "superuser") {
+          if (session.admin_id === "superuser" || adminData.role === "superuser") {
+            // すでにsuperuser.htmlならリダイレクトしない
+            if (!window.location.pathname.endsWith("superuser.html")) {
+              window.isRedirecting = true;
+              window.location.href = "superuser.html";
+            }
+            return;
+          } else {
             window.isRedirecting = true;
-            window.location.href = "superuser.html";
+            window.location.href = "admin.html";
             return;
           }
         }

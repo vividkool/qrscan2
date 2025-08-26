@@ -170,12 +170,7 @@ document.addEventListener("DOMContentLoaded", function () {
     };
   }
 
-  // ヘッダーのユーザー情報を更新（Admin情報を使用）
-  setTimeout(() => {
-    console.log("Admin情報でヘッダーを更新中...");
-    // updateHeaderUserInfo(); // 無効化
-    console.log("🔐 Admin専用画面のためupdateHeaderUserInfoをスキップ");
-  }, 500);
+
 });
 
 // 現在表示中のコレクション状態を管理
