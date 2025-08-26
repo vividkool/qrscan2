@@ -25,7 +25,7 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 // ===== プロフィール機能 =====
 // Firebase初期化・Firestore参照（admin.jsと同じ設定を利用）
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
   getFirestore,
   doc,
@@ -47,7 +47,7 @@ const firebaseConfig = window.firebaseConfig || {
   messagingSenderId: "...",
   appId: "...",
 };
-const app = window.firebaseApp || initializeApp(firebaseConfig);
+const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 const db = window.db || getFirestore(app);
 let currentAdmin = window.currentAdmin;
 

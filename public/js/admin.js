@@ -1,5 +1,5 @@
 ﻿// Firebase Index Page Functions (Admin別データ管理版)
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
   getFirestore,
   collection,
@@ -29,7 +29,7 @@ const firebaseConfig = {
 };
 
 // Firebase初期化
-const app = initializeApp(firebaseConfig);
+const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 // 現在のAdmin情報を管理

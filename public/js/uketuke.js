@@ -2,7 +2,7 @@
 import "./auth.js";
 
 // Firebase imports
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
   getFirestore,
   collection,
@@ -26,7 +26,7 @@ const firebaseConfig = {
 };
 
 // Firebase初期化
-const app = initializeApp(firebaseConfig);
+const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 // グローバル変数
@@ -195,36 +195,32 @@ function displayUsersTable() {
         <td>
           <button 
             class="action-btn btn-success" 
-            onclick="changeStatus('${userData.docId}', '${
-      userData.user_name
-    }', '入場中')"
+            onclick="changeStatus('${userData.docId}', '${userData.user_name
+      }', '入場中')"
             ${status === "入場中" ? "disabled" : ""}
           >
             入場
           </button>
           <button 
             class="action-btn btn-danger" 
-            onclick="changeStatus('${userData.docId}', '${
-      userData.user_name
-    }', '退場済')"
+            onclick="changeStatus('${userData.docId}', '${userData.user_name
+      }', '退場済')"
             ${status === "退場済" ? "disabled" : ""}
           >
             退場
           </button>
           <button 
             class="action-btn btn-warning" 
-            onclick="changePrintStatus('${userData.docId}', '${
-      userData.user_name
-    }', '済')"
+            onclick="changePrintStatus('${userData.docId}', '${userData.user_name
+      }', '済')"
             ${printStatus === "済" ? "disabled" : ""}
           >
             印刷済
           </button>
           <button 
             class="action-btn btn-secondary" 
-            onclick="changePrintStatus('${userData.docId}', '${
-      userData.user_name
-    }', '未')"
+            onclick="changePrintStatus('${userData.docId}', '${userData.user_name
+      }', '未')"
             ${printStatus === "未" ? "disabled" : ""}
           >
             印刷取消

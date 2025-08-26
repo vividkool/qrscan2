@@ -1,5 +1,5 @@
 // 認証・権限管理システム (Firebase Auth対応版)
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
   getAuth,
   signInWithEmailAndPassword,
@@ -36,7 +36,7 @@ const firebaseConfig = {
 };
 
 // Firebase初期化
-const app = initializeApp(firebaseConfig);
+const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const googleProvider = new GoogleAuthProvider();
@@ -869,8 +869,7 @@ class UserSession {
     if (allowedRoles.length > 0 && !allowedRoles.includes(session.role)) {
       const redirectUrl = this.getRedirectUrl(session.role);
       console.log(
-        `権限不足 - 現在のロール: ${
-          session.role
+        `権限不足 - 現在のロール: ${session.role
         }, 必要なロール: [${allowedRoles.join(", ")}]`
       );
       console.log(`${redirectUrl}へリダイレクト`);
@@ -1165,19 +1164,22 @@ document.addEventListener("DOMContentLoaded", function () {
     return;
   }
 
-  // superuserならperformance.htmlにリダイレクト
+  // superuserならsuperuser.htmlにリダイレクト
   setTimeout(async () => {
     try {
       // Firestoreからadmin_settingsを取得
       const session = await UserSession.getSession();
       if (session && session.admin_id) {
         const adminRef = doc(db, "admin_settings", session.admin_id);
+        console.log("Admin設定を確認中:", session.admin_id);
+        alert("stop");
         const adminSnap = await getDoc(adminRef);
+
         if (adminSnap.exists()) {
           const adminData = adminSnap.data();
           if (adminData.role === "superuser") {
             window.isRedirecting = true;
-            window.location.href = "performance.html";
+            window.location.href = "superuser.html";
             return;
           }
         }

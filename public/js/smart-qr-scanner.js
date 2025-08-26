@@ -1,5 +1,5 @@
 // 高性能QRスキャナー（ZXing第1候補 + HTML5-QRCode フォールバック）
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
   getFirestore,
   collection,
@@ -25,7 +25,7 @@ const firebaseConfig = {
 };
 
 // Firebase初期化
-const app = initializeApp(firebaseConfig);
+const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 // スキャナー管理クラス
@@ -763,9 +763,8 @@ class SmartQRScanner {
       }
 
       if (querySnapshot.empty) {
-        historyElement.innerHTML = `<div class="no-data">📝 ${
-          currentUser.user_name || "あなた"
-        }のスキャン履歴がありません</div>`;
+        historyElement.innerHTML = `<div class="no-data">📝 ${currentUser.user_name || "あなた"
+          }のスキャン履歴がありません</div>`;
         this.debugLog("該当ユーザーのスキャン履歴なし", currentUserId);
         return;
       }
@@ -850,9 +849,8 @@ class SmartQRScanner {
       html += "</div>";
 
       if (scanData.length > 20) {
-        html += `<div class="history-footer">他 ${
-          scanData.length - 20
-        } 件</div>`;
+        html += `<div class="history-footer">他 ${scanData.length - 20
+          } 件</div>`;
       }
 
       // 総件数表示
@@ -996,9 +994,8 @@ class SmartQRScanner {
       html += "</div>";
 
       if (scanData.length > 50) {
-        html += `<div class="history-footer">他 ${
-          scanData.length - 50
-        } 件</div>`;
+        html += `<div class="history-footer">他 ${scanData.length - 50
+          } 件</div>`;
       }
 
       // 総件数表示
