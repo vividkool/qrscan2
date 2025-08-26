@@ -875,8 +875,7 @@ class UserSession {
     if (allowedRoles.length > 0 && !allowedRoles.includes(session.role)) {
       const redirectUrl = this.getRedirectUrl(session.role);
       console.log(
-        `権限不足 - 現在のロール: ${
-          session.role
+        `権限不足 - 現在のロール: ${session.role
         }, 必要なロール: [${allowedRoles.join(", ")}]`
       );
       console.log(`${redirectUrl}へリダイレクト`);
@@ -1177,7 +1176,7 @@ document.addEventListener("DOMContentLoaded", function () {
       // Firestoreからadmin_settingsを取得
       const session = await UserSession.getSession();
       if (session && session.admin_id) {
-        //alert("[superuser判定] session: " + JSON.stringify(session));
+
         console.log("[superuser判定] session: " + JSON.stringify(session));
         //alert("stop");
         const adminRef = doc(db, "admin_settings", session.admin_id);
@@ -1186,99 +1185,82 @@ document.addEventListener("DOMContentLoaded", function () {
 
         if (adminSnap.exists()) {
           const adminData = adminSnap.data();
-          //alert("[superuser判定] adminData: " + JSON.stringify(adminData));
-          //alert("stop");
-          console.log("[superuser判定] adminData:", JSON.stringify(adminData));
           const roleValue = adminData.role ?? "admin";
+          // superuserなら必ずsuperuser.htmlへ遷移
           if (session.admin_id === "superuser" || roleValue === "superuser") {
-            alert("[superuser判定] superuserリダイレクト条件成立");
-            // すでにsuperuser.htmlならリダイレクトしない
             if (!window.location.pathname.endsWith("superuser.html")) {
-              alert("[superuser判定] superuser.htmlへリダイレクト");
               window.isRedirecting = true;
               window.location.href = "superuser.html";
-            }
-            return;
-          } else {
-            alert(
-              "[superuser判定] admin.htmlへリダイレクト（role: " +
-                roleValue +
-                "）"
-            );
-            // roleがadminならリダイレクト不要
-            if (
-              roleValue === "admin" &&
-              window.location.pathname.endsWith("admin.html")
-            ) {
-              alert(
-                "[superuser判定] 既にadmin.htmlにいるためリダイレクトしません"
-              );
               return;
             }
-            window.isRedirecting = true;
-            window.location.href = "admin.html";
-            return;
+          } else if (roleValue === "admin") {
+            // adminならadmin.htmlへ（ただし今admin.htmlでなければ）
+            if (!window.location.pathname.endsWith("admin.html")) {
+              window.isRedirecting = true;
+              window.location.href = "admin.html";
+              return;
+            }
           }
-        } else {
-          alert("[superuser判定] adminSnap.exists() == false");
+          // それ以外はリダイレクトしない
         }
       }
-    } catch (e) {
+    }
+    catch (e) {
       console.error("superuser判定・リダイレクトエラー", e);
     }
     // 通常のアクセスチェック
     await UserSession.checkPageAccess();
   }, 2000);
+
+  // グローバル関数として公開
+  window.FirebaseAuthManager = FirebaseAuthManager;
+  window.UserSession = UserSession;
+  window.AUTH_TYPES = AUTH_TYPES;
+  window.USER_ROLES = USER_ROLES;
+  window.db = db; // Firestoreインスタンスをグローバルに公開
+
+  console.log("認証システムが初期化されました");
+
+  // ログイン画面では初期化時のセッション確認をスキップ
+  const currentPageForInit =
+    window.location.pathname.split("/").pop() || "admin.html";
+
+  if (
+    currentPageForInit !== "login.html" &&
+    currentPageForInit !== "index.html"
+  ) {
+    console.log("保護されたページのため、セッション状態を確認します");
+
+    // 初期化時のセッション状態確認（非同期処理）
+    setTimeout(async () => {
+      try {
+        const currentSession = await UserSession.getSession();
+        const firebaseSessionData = localStorage.getItem("firebaseSessionData");
+        const legacySessionData = localStorage.getItem(SESSION_KEY);
+
+        console.log("=== セッション状態確認 ===");
+        console.log(
+          "現在のセッション:",
+          currentSession ? currentSession.user_name : "なし"
+        );
+        console.log(
+          "Firebaseセッションデータ:",
+          firebaseSessionData ? "あり" : "なし"
+        );
+        console.log(
+          "レガシーセッションデータ:",
+          legacySessionData ? "あり" : "なし"
+        );
+        console.log(
+          "currentFirebaseUser:",
+          currentFirebaseUser ? currentFirebaseUser.uid : "なし"
+        );
+        console.log("========================");
+      } catch (error) {
+        console.error("セッション状態確認エラー:", error);
+      }
+    }, 100); // 短い遅延で実行
+  } else {
+    console.log("ログイン画面のため、初期化時のセッション確認をスキップします");
+  }
 });
-
-// グローバル関数として公開
-window.FirebaseAuthManager = FirebaseAuthManager;
-window.UserSession = UserSession;
-window.AUTH_TYPES = AUTH_TYPES;
-window.USER_ROLES = USER_ROLES;
-window.db = db; // Firestoreインスタンスをグローバルに公開
-
-console.log("認証システムが初期化されました");
-
-// ログイン画面では初期化時のセッション確認をスキップ
-const currentPageForInit =
-  window.location.pathname.split("/").pop() || "admin.html";
-
-if (
-  currentPageForInit !== "login.html" &&
-  currentPageForInit !== "index.html"
-) {
-  console.log("保護されたページのため、セッション状態を確認します");
-
-  // 初期化時のセッション状態確認（非同期処理）
-  setTimeout(async () => {
-    try {
-      const currentSession = await UserSession.getSession();
-      const firebaseSessionData = localStorage.getItem("firebaseSessionData");
-      const legacySessionData = localStorage.getItem(SESSION_KEY);
-
-      console.log("=== セッション状態確認 ===");
-      console.log(
-        "現在のセッション:",
-        currentSession ? currentSession.user_name : "なし"
-      );
-      console.log(
-        "Firebaseセッションデータ:",
-        firebaseSessionData ? "あり" : "なし"
-      );
-      console.log(
-        "レガシーセッションデータ:",
-        legacySessionData ? "あり" : "なし"
-      );
-      console.log(
-        "currentFirebaseUser:",
-        currentFirebaseUser ? currentFirebaseUser.uid : "なし"
-      );
-      console.log("========================");
-    } catch (error) {
-      console.error("セッション状態確認エラー:", error);
-    }
-  }, 100); // 短い遅延で実行
-} else {
-  console.log("ログイン画面のため、初期化時のセッション確認をスキップします");
-}
