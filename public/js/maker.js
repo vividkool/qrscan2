@@ -95,6 +95,8 @@ document.addEventListener("DOMContentLoaded", async function () {
   const userId = urlParams.get("user_id");
   const adminId = urlParams.get("admin_id");
 
+  console.log("user_id:", userId);
+  console.log("admin_id:", adminId);
   // admin_idがない場合はレガシーアクセス不可
   if (!userId || !adminId) {
     alert("admin_idパラメータが必要です。");

@@ -95,8 +95,8 @@ async function showProfileModal() {
     adminSettings?.status === "production"
       ? "本番モード"
       : adminSettings?.status === "test"
-      ? "テストモード"
-      : "未設定";
+        ? "テストモード"
+        : "未設定";
 
   // 統合レイアウトで表示と編集フィールドを生成
   profileContent.innerHTML = `
@@ -104,38 +104,33 @@ async function showProfileModal() {
     <div class="profile-column">
       <div class="profile-item">
         <label class="profile-label">管理者 ID:</label>
-        <input type="text" id="edit_admin_id" class="profile-input" value="${
-          currentAdmin.admin_id
-        }" disabled />
+        <input type="text" id="edit_admin_id" class="profile-input" value="${currentAdmin.admin_id
+    }" disabled />
         <small>変更不可</small>
       </div>
 
       <div class="profile-item">
         <label class="profile-label">管理者名:</label>
-        <input type="text" id="edit_admin_name" class="profile-input" value="${
-          currentAdmin.admin_name || ""
-        }" disabled />
+        <input type="text" id="edit_admin_name" class="profile-input" value="${currentAdmin.admin_name || ""
+    }" disabled />
       </div>
 
       <div class="profile-item">
         <label class="profile-label">会社名:</label>
-        <input type="text" id="edit_company_name" class="profile-input" value="${
-          currentAdmin.company_name || ""
-        }" disabled />
+        <input type="text" id="edit_company_name" class="profile-input" value="${currentAdmin.company_name || ""
+    }" disabled />
       </div>
 
       <div class="profile-item">
         <label class="profile-label">メールアドレス:</label>
-        <input type="email" id="edit_email" class="profile-input" value="${
-          currentAdmin.email || ""
-        }" disabled />
+        <input type="email" id="edit_email" class="profile-input" value="${currentAdmin.email || ""
+    }" disabled />
       </div>
 
       <div class="profile-item">
         <label class="profile-label">電話番号:</label>
-        <input type="text" id="edit_phone" class="profile-input" value="${
-          currentAdmin.phone || ""
-        }" disabled />
+        <input type="text" id="edit_phone" class="profile-input" value="${currentAdmin.phone || ""
+    }" disabled />
       </div>
     </div>
 
@@ -144,9 +139,8 @@ async function showProfileModal() {
       <div class="profile-item">
         <label class="profile-label">管理者パスワード:</label>
         <div class="password-container">
-          <input type="password" id="edit_password" class="profile-input password-input" value="${
-            adminSettings?.password || ""
-          }" disabled />
+          <input type="password" id="edit_password" class="profile-input password-input" value="${adminSettings?.password || ""
+    }" disabled />
           <button type="button" class="password-toggle" onclick="togglePasswordVisibility('edit_password', this)">
             👁️
           </button>
@@ -157,37 +151,32 @@ async function showProfileModal() {
       <div class="profile-item">
         <label class="profile-label">運用状況:</label>
         <select id="edit_status" class="profile-input" disabled>
-          <option value="test" ${
-            adminSettings?.status === "test" ? "selected" : ""
-          }>テストモード</option>
-          <option value="production" ${
-            adminSettings?.status === "production" ? "selected" : ""
-          }>本番モード</option>
+          <option value="test" ${adminSettings?.status === "test" ? "selected" : ""
+    }>テストモード</option>
+          <option value="production" ${adminSettings?.status === "production" ? "selected" : ""
+    }>本番モード</option>
         </select>
         <small>テストモードは３０日間のみになります</small>
       </div>
 
       <div class="profile-item">
         <label class="profile-label">プロジェクト名:</label>
-        <input type="text" id="edit_project_id" class="profile-input" value="${
-          adminSettings?.project_id || ""
-        }" disabled />
+        <input type="text" id="edit_project_id" class="profile-input" value="${adminSettings?.project_id || ""
+    }" disabled />
         <small>名札印刷に使用されます</small>
       </div>
 
       <div class="profile-item">
         <label class="profile-label">展示会日:</label>
-        <input type="date" id="edit_project_day" class="profile-input" value="${
-          adminSettings?.project_day || ""
-        }" disabled />
+        <input type="date" id="edit_project_day" class="profile-input" value="${adminSettings?.project_day || ""
+    }" disabled />
         <small>名札印刷に使用されます</small>
       </div>
 
       <div class="profile-item">
         <label class="profile-label">データパス:</label>
-        <input type="text" class="profile-input" value="admin_collections/${
-          currentAdmin.admin_id
-        }/" disabled 
+        <input type="text" class="profile-input" value="admin_collections/${currentAdmin.admin_id
+    }/" disabled 
                style="font-family: monospace; background-color: #f8f9fa;" />
         <small>Firestore保存パス</small>
       </div>
@@ -324,9 +313,8 @@ async function editProfile() {
         </div>
         <div>
           <strong>会社名:</strong><br>
-          <span style="color: #666;">${
-            currentAdmin.company_name || "未設定"
-          }</span>
+          <span style="color: #666;">${currentAdmin.company_name || "未設定"
+        }</span>
         </div>
         <div>
           <strong>権限:</strong><br>
@@ -334,14 +322,11 @@ async function editProfile() {
         </div>
       </div>
       <div style="margin-top: 10px; font-size: 14px;">
-        <strong>メール:</strong> <span style="color: #666;">${
-          currentAdmin.email || "未設定"
+        <strong>メール:</strong> <span style="color: #666;">${currentAdmin.email || "未設定"
         }</span><br>
-        <strong>電話番号:</strong> <span style="color: #666;">${
-          currentAdmin.phone || "未設定"
+        <strong>電話番号:</strong> <span style="color: #666;">${currentAdmin.phone || "未設定"
         }</span><br>
-        <strong>データパス:</strong> <span style="color: #666; font-family: monospace;">admin_collections/${
-          currentAdmin.admin_id
+        <strong>データパス:</strong> <span style="color: #666; font-family: monospace;">admin_collections/${currentAdmin.admin_id
         }/</span>
       </div>
     `;
@@ -491,6 +476,10 @@ function closeSettingsModal() {
     modal.style.display = "none";
   }
 }
+
+// グローバル関数として公開
+window.closeSettingsModal = closeSettingsModal;
+
 
 // 設定を保存
 async function saveSettings() {

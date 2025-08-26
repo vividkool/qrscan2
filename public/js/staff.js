@@ -115,6 +115,9 @@ async function displayUserInfo() {
       if (user) {
         // company_nameが未定義の場合のフォールバック処理
         const companyName = user.company_name || user.companyName || "未設定";
+        // admin_collectionsパス表示用
+        const adminId = user.admin_context && user.admin_context.admin_id ? user.admin_context.admin_id : "未設定";
+        const adminCollectionPath = `admin_collections/${adminId}/`;
 
         userInfoElement.innerHTML = `
           <div class="user-card">
@@ -125,6 +128,10 @@ async function displayUserInfo() {
               </div>
               <h3>👨‍💼 ${user.user_name || user.name || "ユーザー"}</h3>
               <span class="user-id">ID: ${user.user_id || user.uid}</span>
+              <div class="detail-item">
+                <span class="label">📂 Adminコレクションパス:</span>
+                <span class="value">${adminCollectionPath}</span>
+              </div>
             </div>
             <div class="user-details">
               
