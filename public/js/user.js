@@ -3,24 +3,8 @@ import "./auth.js";
 import "./smart-qr-scanner.js";
 
 // QRコードからの直接アクセス処理（index.htmlにリダイレクト）
-async function handleQRCodeRedirect() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const userId = urlParams.get("user_id");
-
-  if (!userId) {
-    return false; // user_idパラメータがない場合は通常処理
-  }
-
-  console.log(
-    "User page - QRコード直接アクセス検出 - index.htmlにリダイレクト - user_id:",
-    userId
-  );
-
-  // QRコードからの直接アクセスはindex.htmlにリダイレクト
-  window.location.href = `/?user_id=${userId}`;
-  return true;
-}
-
+// QRコードによる直接アクセスはuser.htmlでそのまま処理（リダイレクトなし）
+// 追加の初期化やエラー処理が必要な場合はこの場所で記述
 // 役割に応じたリダイレクトURL取得は LoginAuth.getRedirectUrl を使用
 
 // ページロード時の初期化
@@ -32,14 +16,26 @@ document.addEventListener("DOMContentLoaded", async function () {
   console.log("セッションデータ:", localStorage.getItem("currentUser"));
   console.log("================================");
 
-  // QRコードからの直接アクセス処理
-  const qrRedirectHandled = await handleQRCodeRedirect();
-
-  if (qrRedirectHandled) {
-    // QRコード直接アクセスの場合はindex.htmlにリダイレクト済み
-    return;
+  // ロールチェック: currentAdminが存在し、roleがuser以外ならlogin.htmlに強制リダイレクト
+  const adminData = localStorage.getItem("currentAdmin");
+  if (adminData) {
+    try {
+      const currentAdmin = JSON.parse(adminData);
+      if (currentAdmin.role !== "user") {
+        alert("ユーザー権限がありません。ログイン画面に戻ります。");
+        localStorage.removeItem("currentAdmin");
+        window.location.href = "./login.html";
+        return;
+      }
+    } catch (e) {
+      localStorage.removeItem("currentAdmin");
+      console.error("currentAdminデータのパースエラー:", e);
+      alert("stop");
+      window.location.href = "./login.html";
+      return;
+    }
   }
-
+  // QRコードアクセス時もuser.htmlでそのまま処理（リダイレクトなし）
   // ユーザー情報表示
   await displayUserInfo(); // await追加
 

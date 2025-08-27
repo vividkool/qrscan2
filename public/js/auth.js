@@ -42,17 +42,6 @@ const firebaseConfig = {
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const googleProvider = new GoogleAuthProvider();
-
-// Google認証プロバイダの設定を修正
-googleProvider.setCustomParameters({
-  prompt: "select_account",
-  hd: null, // 特定ドメイン制限を解除
-});
-
-// Google認証スコープ設定
-googleProvider.addScope("email");
-googleProvider.addScope("profile");
 
 // ユーザーロール定義
 const USER_ROLES = {
@@ -80,11 +69,9 @@ const PAGE_PERMISSIONS = {
 let currentUser = null;
 let currentFirebaseUser = null;
 
-// 認証タイプ
+// 認証タイプ（LEGACY認証のみ）
 const AUTH_TYPES = {
-  LEGACY: "legacy", // 従来の認証
-  EMAIL: "email", // メール認証
-  GOOGLE: "google", // Google認証
+  LEGACY: "legacy", // 従来の認証のみ
 };
 
 // ローカルストレージキー
@@ -92,83 +79,7 @@ const SESSION_KEY = "currentUser";
 
 // Firebase Authentication管理
 class FirebaseAuthManager {
-  // Google認証
-  static async signInWithGoogle() {
-    try {
-      console.log("Google認証を開始...");
 
-      // ポップアップでGoogle認証
-      const result = await signInWithPopup(auth, googleProvider);
-      const user = result.user;
-
-      console.log("Google認証成功:", user.uid, user.email);
-
-      // Firestoreでユーザー情報を確認・作成
-      const userData = await this.syncUserWithFirestore(
-        user,
-        AUTH_TYPES.GOOGLE
-      );
-      return { success: true, user: userData };
-    } catch (error) {
-      console.error("Google認証エラー:", error);
-
-      // 具体的なエラーメッセージを提供
-      let errorMessage = "Google認証に失敗しました";
-      if (error.code === "auth/operation-not-allowed") {
-        errorMessage =
-          "Google認証が有効化されていません。管理者にお問い合わせください。";
-      } else if (error.code === "auth/popup-closed-by-user") {
-        errorMessage = "認証ポップアップが閉じられました。再度お試しください。";
-      } else if (error.code === "auth/popup-blocked") {
-        errorMessage =
-          "ポップアップがブロックされています。ブラウザ設定を確認してください。";
-      } else if (error.code === "auth/cancelled-popup-request") {
-        errorMessage = "認証がキャンセルされました。";
-      }
-
-      return { success: false, error: errorMessage, code: error.code };
-    }
-  }
-
-  // メール認証（ログイン）
-  static async signInWithEmail(email, password) {
-    try {
-      const result = await signInWithEmailAndPassword(auth, email, password);
-      const user = result.user;
-
-      const userData = await this.syncUserWithFirestore(user, AUTH_TYPES.EMAIL);
-      return { success: true, user: userData };
-    } catch (error) {
-      console.error("メール認証エラー:", error);
-      return { success: false, error: error.message };
-    }
-  }
-
-  // メール認証（新規登録）
-  static async createUserWithEmail(email, password, displayName) {
-    try {
-      const result = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-      const user = result.user;
-
-      // 初期ユーザーデータは必ずadmin権限
-      const userData = await this.syncUserWithFirestore(
-        user,
-        AUTH_TYPES.EMAIL,
-        {
-          user_name: displayName,
-          user_role: USER_ROLES.ADMIN,
-        }
-      );
-      return { success: true, user: userData };
-    } catch (error) {
-      console.error("ユーザー作成エラー:", error);
-      return { success: false, error: error.message };
-    }
-  }
 
   // ログアウト
   static async signOut() {
@@ -182,253 +93,7 @@ class FirebaseAuthManager {
     }
   }
 
-  // Firebase UserとFirestoreの同期
-  static async syncUserWithFirestore(
-    firebaseUser,
-    authType,
-    additionalData = {}
-  ) {
-    try {
-      const userRef = doc(db, "users", firebaseUser.uid);
-      const userSnap = await getDoc(userRef);
 
-      let userData;
-      if (userSnap.exists()) {
-        // 既存ユーザーの更新
-        userData = userSnap.data();
-        await updateDoc(userRef, {
-          lastLoginAt: serverTimestamp(),
-          authType: authType,
-          email: firebaseUser.email || userData.email,
-          photoURL: firebaseUser.photoURL || userData.photoURL,
-        });
-      } else {
-        // 新規ユーザーの作成（招待コードベース承認）
-        const isFirstUser = await this.isFirstUser();
-        const inviteCode = this.getInviteCodeFromURL();
-        const autoApprove = isFirstUser || this.isValidInviteCode(inviteCode);
-
-        userData = {
-          user_id: firebaseUser.uid,
-          user_name:
-            additionalData.user_name ||
-            firebaseUser.displayName ||
-            firebaseUser.email?.split("@")[0] ||
-            "登録ユーザー",
-          email: firebaseUser.email || "",
-          photoURL: firebaseUser.photoURL || "",
-          user_role: isFirstUser
-            ? USER_ROLES.ADMIN
-            : additionalData.user_role || USER_ROLES.USER,
-          status: autoApprove ? "active" : "pending",
-          authType: authType,
-          department: additionalData.department || "",
-          inviteCode: inviteCode || null,
-          createdAt: serverTimestamp(),
-          lastLoginAt: serverTimestamp(),
-          approvedBy: autoApprove
-            ? isFirstUser
-              ? "system"
-              : "invite_code"
-            : null,
-          approvedAt: autoApprove ? serverTimestamp() : null,
-          ...additionalData,
-        };
-        await setDoc(userRef, userData);
-
-        if (autoApprove) {
-          console.log(
-            isFirstUser ? "初回管理者ユーザー作成:" : "招待コードで自動承認:",
-            userData.user_name
-          );
-        } else {
-          console.log("新規ユーザー登録 - 管理者承認待ち:", userData.user_name);
-          await this.notifyAdminOfNewUser(userData);
-        }
-      }
-      return {
-        ...userData,
-        uid: firebaseUser.uid,
-        firebaseUser: firebaseUser,
-      };
-    } catch (error) {
-      console.error("Firestoreユーザー同期エラー:", error);
-      throw error;
-    }
-  }
-
-  // 初回ユーザーかどうか確認
-  static async isFirstUser() {
-    try {
-      const usersQuery = query(collection(db, "users"), limit(1));
-      const snapshot = await getDocs(usersQuery);
-      return snapshot.empty;
-    } catch (error) {
-      console.error("ユーザー確認エラー:", error);
-      return false;
-    }
-  }
-
-  // 管理者に新規ユーザー通知
-  static async notifyAdminOfNewUser(userData) {
-    try {
-      const notificationRef = collection(db, "notifications");
-      await addDoc(notificationRef, {
-        type: "new_user_registration",
-        message: `新規ユーザー「${userData.user_name}」が登録申請しました`,
-        userData: {
-          uid: userData.user_id,
-          user_name: userData.user_name,
-          email: userData.email,
-          department: userData.department,
-        },
-        status: "unread",
-        createdAt: serverTimestamp(),
-      });
-      console.log("管理者通知を送信しました");
-    } catch (error) {
-      console.error("通知送信エラー:", error);
-    }
-  }
-
-  // URLから招待コード取得
-  static getInviteCodeFromURL() {
-    const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get("invite") || urlParams.get("code") || null;
-  }
-
-  // 招待コード有効性確認
-  static isValidInviteCode(inviteCode) {
-    if (!inviteCode) return false;
-
-    // 簡単な招待コード検証（実際の運用に応じて調整）
-    const validCodes = [
-      "STAFF2024", // スタッフ用
-      "MAKER2024", // メーカー用
-      "GUEST2024", // ゲスト用
-      "ADMIN_INVITE", // 管理者招待用
-    ];
-
-    // 時限付きコード（年月ベース）
-    const currentMonth = new Date().toISOString().slice(0, 7).replace("-", "");
-    const timeBasedCodes = [
-      `INVITE_${currentMonth}`, // 月次招待コード
-      `QR_${currentMonth}`, // QRコード用
-    ];
-
-    return (
-      validCodes.includes(inviteCode) || timeBasedCodes.includes(inviteCode)
-    );
-  }
-
-  // 招待コードに基づく初期ロール決定
-  static getDefaultRoleFromInviteCode(inviteCode) {
-    if (!inviteCode) return USER_ROLES.USER;
-
-    const roleMap = {
-      STAFF2024: USER_ROLES.STAFF,
-      MAKER2024: USER_ROLES.MAKER,
-      GUEST2024: USER_ROLES.GUEST,
-      ADMIN_INVITE: USER_ROLES.ADMIN,
-    };
-
-    return roleMap[inviteCode] || USER_ROLES.USER;
-  }
-
-  // 招待コード付きGoogle認証（ログインページ用）
-  static async registerWithGoogleAndInvite(department = "") {
-    try {
-      const inviteCode = this.getInviteCodeFromURL();
-      const defaultRole = this.getDefaultRoleFromInviteCode(inviteCode);
-
-      const result = await signInWithPopup(auth, googleProvider);
-      const user = result.user;
-
-      const userData = await this.syncUserWithFirestore(
-        user,
-        AUTH_TYPES.GOOGLE,
-        {
-          department: department,
-          user_role: defaultRole,
-        }
-      );
-
-      return {
-        success: true,
-        user: userData,
-        isNewUser: userData.status === "pending",
-        autoApproved:
-          userData.status === "active" && userData.approvedBy === "invite_code",
-      };
-    } catch (error) {
-      console.error("Google招待登録エラー:", error);
-      return { success: false, error: error.message };
-    }
-  }
-
-  // Google認証での新規登録（部署情報付き）
-  static async registerWithGoogle(department = "") {
-    try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const user = result.user;
-
-      // 部署情報を含めて同期
-      const userData = await this.syncUserWithFirestore(
-        user,
-        AUTH_TYPES.GOOGLE,
-        { department: department }
-      );
-
-      return {
-        success: true,
-        user: userData,
-        isNewUser: userData.status === "pending",
-      };
-    } catch (error) {
-      console.error("Google新規登録エラー:", error);
-      return { success: false, error: error.message };
-    }
-  }
-
-  // 追加情報の更新（パスワードレス登録用）
-  static async updateUserAdditionalInfo(
-    displayName,
-    department = "",
-    inviteCode = null
-  ) {
-    try {
-      const firebaseUser = auth.currentUser;
-      if (!firebaseUser) {
-        throw new Error("認証されたユーザーがいません");
-      }
-
-      // Firebase Authのプロフィールを更新
-      await updateProfile(firebaseUser, {
-        displayName: displayName,
-      });
-
-      // Firestoreのユーザー情報を更新
-      const userData = await this.syncUserWithFirestore(
-        firebaseUser,
-        AUTH_TYPES.GOOGLE,
-        {
-          user_name: displayName,
-          department: department,
-        }
-      );
-
-      return {
-        success: true,
-        user: userData,
-        isNewUser: userData.status === "pending",
-        autoApproved:
-          userData.status === "active" && userData.approvedBy === "invite_code",
-      };
-    } catch (error) {
-      console.error("追加情報更新エラー:", error);
-      return { success: false, error: error.message };
-    }
-  }
 
   // 認証状態監視
   static onAuthStateChanged(callback) {
@@ -453,17 +118,7 @@ class FirebaseAuthManager {
               firebaseUser: firebaseUser,
             };
 
-            // 承認待ちユーザーの処理
-            if (userData.status === "pending") {
-              console.log("承認待ちユーザー:", userData.user_name);
-              callback({
-                ...userData,
-                isPending: true,
-                message:
-                  "アカウントは管理者の承認待ちです。承認後にご利用いただけます。",
-              });
-              return;
-            }
+
 
             // 退場済みユーザーの処理
             if (userData.status === "退場済") {
@@ -476,12 +131,6 @@ class FirebaseAuthManager {
               return;
             }
 
-            console.log(
-              "Firebase認証ユーザー詳細取得:",
-              userData.user_name,
-              userData.user_role
-            );
-            currentUser = userData;
 
             // Firebase専用のセッションデータを保存
             localStorage.setItem(
@@ -836,15 +485,7 @@ class UserSession {
       return false;
     }
 
-    // 承認待ちユーザーの処理
-    if (session.status === "pending") {
-      console.log("承認待ちユーザー:", session.user_name);
-      if (currentPage !== "login.html") {
-        alert("アカウントは管理者の承認待ちです。承認後にご利用いただけます。");
-        this.redirectTo("login.html");
-      }
-      return false;
-    }
+
 
     // セッションのタイプを判定してログ出力
     if (session.uid) {
@@ -939,160 +580,6 @@ class UserSession {
     return await this.getSession();
   }
 
-  // 管理者用：ユーザー承認
-  static async approveUser(userId, approvedRole = USER_ROLES.USER) {
-    try {
-      const userRef = doc(db, "users", userId);
-      const userSnap = await getDoc(userRef);
-
-      if (!userSnap.exists()) {
-        throw new Error("ユーザーが見つかりません");
-      }
-
-      const currentSession = this.getSession();
-      if (!currentSession || currentSession.role !== USER_ROLES.ADMIN) {
-        throw new Error("管理者権限が必要です");
-      }
-
-      await updateDoc(userRef, {
-        status: "active",
-        user_role: approvedRole,
-        approvedBy: currentSession.user_id,
-        approvedAt: serverTimestamp(),
-      });
-
-      console.log("ユーザー承認完了:", userId);
-      return { success: true };
-    } catch (error) {
-      console.error("ユーザー承認エラー:", error);
-      return { success: false, error: error.message };
-    }
-  }
-
-  // 管理者用：ユーザー拒否
-  static async rejectUser(userId) {
-    try {
-      const userRef = doc(db, "users", userId);
-      await updateDoc(userRef, {
-        status: "rejected",
-        rejectedBy: this.getSession()?.user_id,
-        rejectedAt: serverTimestamp(),
-      });
-
-      console.log("ユーザー拒否完了:", userId);
-      return { success: true };
-    } catch (error) {
-      console.error("ユーザー拒否エラー:", error);
-      return { success: false, error: error.message };
-    }
-  }
-
-  // 承認待ちユーザー一覧取得
-  static async getPendingUsers() {
-    try {
-      const pendingQuery = query(
-        collection(db, "users"),
-        where("status", "==", "pending")
-      );
-      const snapshot = await getDocs(pendingQuery);
-
-      return snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-    } catch (error) {
-      console.error("承認待ちユーザー取得エラー:", error);
-      return [];
-    }
-  }
-
-  // 一括承認機能（効率的な管理）
-  static async bulkApproveUsers(userIds, defaultRole = USER_ROLES.USER) {
-    try {
-      const currentSession = this.getSession();
-      if (!currentSession || currentSession.role !== USER_ROLES.ADMIN) {
-        throw new Error("管理者権限が必要です");
-      }
-
-      const results = [];
-      for (const userId of userIds) {
-        try {
-          const userRef = doc(db, "users", userId);
-          await updateDoc(userRef, {
-            status: "active",
-            user_role: defaultRole,
-            approvedBy: currentSession.user_id,
-            approvedAt: serverTimestamp(),
-          });
-          results.push({ userId, success: true });
-        } catch (error) {
-          results.push({ userId, success: false, error: error.message });
-        }
-      }
-
-      console.log("一括承認完了:", results);
-      return { success: true, results };
-    } catch (error) {
-      console.error("一括承認エラー:", error);
-      return { success: false, error: error.message };
-    }
-  }
-
-  // 招待コード別一括承認（同じ招待コードのユーザーを一括承認）
-  static async approveByInviteCode(inviteCode, targetRole = null) {
-    try {
-      const pendingQuery = query(
-        collection(db, "users"),
-        where("status", "==", "pending"),
-        where("inviteCode", "==", inviteCode)
-      );
-      const snapshot = await getDocs(pendingQuery);
-
-      if (snapshot.empty) {
-        return {
-          success: true,
-          message: "該当する承認待ちユーザーがありません",
-        };
-      }
-
-      const userIds = snapshot.docs.map((doc) => doc.id);
-      const defaultRole =
-        targetRole || this.getDefaultRoleFromInviteCode(inviteCode);
-
-      const result = await this.bulkApproveUsers(userIds, defaultRole);
-
-      console.log(`招待コード「${inviteCode}」での一括承認完了:`, result);
-      return result;
-    } catch (error) {
-      console.error("招待コード別一括承認エラー:", error);
-      return { success: false, error: error.message };
-    }
-  }
-
-  // 自動承認設定（特定の条件で自動承認を有効化）
-  static async enableAutoApprovalForInviteCode(
-    inviteCode,
-    targetRole,
-    expiryHours = 24
-  ) {
-    try {
-      const autoApprovalRef = collection(db, "auto_approvals");
-      await addDoc(autoApprovalRef, {
-        inviteCode: inviteCode,
-        targetRole: targetRole,
-        enabled: true,
-        createdAt: serverTimestamp(),
-        expiresAt: new Date(Date.now() + expiryHours * 60 * 60 * 1000),
-        createdBy: this.getSession()?.user_id,
-      });
-
-      console.log(`招待コード「${inviteCode}」の自動承認を有効化しました`);
-      return { success: true };
-    } catch (error) {
-      console.error("自動承認設定エラー:", error);
-      return { success: false, error: error.message };
-    }
-  }
 }
 
 // 認証状態監視の開始（ログイン画面以外でのみ有効）

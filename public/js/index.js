@@ -45,83 +45,60 @@ const db = getFirestore(app);
 // QRコード自動ログイン処理
 async function handleQRCodeAutoLogin() {
     const urlParams = new URLSearchParams(window.location.search);
-    let adminId = urlParams.get("admin_id");
-    let userId = urlParams.get("user_id");
-
-    // localStorageからも取得（URLにない場合のフォールバック）
-    if (!adminId || !userId) {
-        const currentAdmin = JSON.parse(localStorage.getItem("currentAdmin") || "{}");
-        adminId = adminId || currentAdmin.admin_id;
-        userId = userId || currentAdmin.user_id;
+    const adminId = urlParams.get("admin_id");
+    const docId = urlParams.get("id");
+    if (!adminId || !docId) {
+        return false; // パラメータがなければ通常表示
     }
-    console.log("Firestoreアクセス前 adminId:", adminId, "userId:", userId);
-
-    if (!adminId || !userId) {
-        return false; // 必要なパラメータがない場合は通常表示
-    }
-
-    console.log("Index page - QRコードからのアクセス検出 - admin_id:", adminId, "user_id:", userId);
-
-    // ローディング表示
     document.body.innerHTML = `
-    <div class="landing-container" style="text-align: center;">
-      <div class="logo">📱</div>
-      <h1 class="title">自動ログイン中...</h1>
-      <p class="subtitle">QRコードからのログインを処理しています</p>
-      <div class="loading-spinner"></div>
-      <p style="color: #666; font-size: 14px;">Admin ID: ${adminId} / ユーザーID: ${userId}</p>
-    </div>
-  `;
-
+      <div class="landing-container" style="text-align: center;">
+        <div class="logo">📱</div>
+        <h1 class="title">自動ログイン中...</h1>
+        <p class="subtitle">QRコードからのログインを処理しています</p>
+        <div class="loading-spinner"></div>
+        <p style="color: #666; font-size: 14px;">ID: ${docId}<br>Admin: ${adminId}</p>
+      </div>
+    `;
     try {
-        // Firestoreからユーザー情報取得
-        const userRef = doc(db, `admin_collections/${adminId}/users/${userId}`);
+        // admin_idとdocIdが指定されている場合のみ直接参照
+        const userRef = doc(db, `admin_collections/${adminId}/users/${docId}`);
         const userSnap = await getDoc(userRef);
-        console.log("Firestore userSnap:", userSnap);
-        alert("stop");
         if (!userSnap.exists()) {
             throw new Error("ユーザーが見つかりません");
         }
-
         const userData = userSnap.data();
-
         // 成功メッセージを表示
         document.body.innerHTML = `
             <div class="landing-container" style="text-align: center;">
                 <div class="logo">✅</div>
                 <h1 class="title" style="color: #28a745;">ログイン成功！</h1>
                 <p class="subtitle">
-                    ${userData.user_name || userId}さん、こんにちは！<br>
+                    ${userData.user_name || docId}さん、こんにちは！<br>
                     ユーザーページにリダイレクトしています...
                 </p>
             </div>
         `;
-
         // currentAdmin情報をlocalStorageへ保存
         localStorage.setItem("currentAdmin", JSON.stringify({
             admin_id: adminId,
-            user_id: userId,
-            user_name: userData.user_name || userId,
+            user_id: docId,
+            user_name: userData.user_name || docId,
             role: userData.role || "user"
         }));
-
-        // 1.5秒後にリダイレクト（admin_idとuser_idをURLパラメータとして付与）
+        // 1.5秒後にリダイレクト
         setTimeout(() => {
-            window.location.href = `./user.html?admin_id=${adminId}&user_id=${userId}`;
+            window.location.href = `./user.html?admin_id=${adminId}&user_id=${docId}`;
         }, 1500);
-
         return true;
     } catch (error) {
-        // デバッグ強化: errorオブジェクト全体とmessage/code/stackを詳細に出力
         console.error("QR自動ログインエラー:", error, error?.message, error?.code, error?.stack);
         alert("stop");
-        // エラー表示
         document.body.innerHTML = `
             <div class="landing-container" style="text-align: center;">
                 <div class="logo">❌</div>
                 <h1 class="title" style="color: #dc3545;">ログイン失敗</h1>
                 <p class="subtitle">
-                    Admin ID「${adminId}」/ ユーザーID「${userId}」でのログインに失敗しました<br>
+                    ID「${docId}」でのログインに失敗しました<br>
                     ログイン画面にリダイレクトしています...
                 </p>
                 <p style="color: #666; font-size: 12px; margin-top: 10px;">
@@ -129,11 +106,9 @@ async function handleQRCodeAutoLogin() {
                 </p>
             </div>
         `;
-        // 3秒後にログイン画面にリダイレクト
         setTimeout(() => {
-            window.location.href = `./login.html?user_id=${userId}`;
+            window.location.href = `./login.html?user_id=${docId}`;
         }, 3000);
-
         return true;
     }
 }
@@ -167,7 +142,7 @@ async function registerAdmin(formData) {
         if (!emailDocs.empty) {
             throw new Error("このメールアドレスは既に使用されています");
         }
-
+        console.log("フォームデータ:", formData);
         // admin_settingsコレクションに登録
         await setDoc(adminRef, {
             admin_id: adminId,
@@ -195,6 +170,11 @@ async function registerAdmin(formData) {
                 max_scans_per_month: 1000,
                 max_data_export: 10,
             },
+
+            // 追加: プロジェクト名・展示会日
+
+            projectName: (formData.get ? formData.get("eventid") : formData.eventid) || "",
+            eventDate: (formData.get ? formData.get("exporday") : formData.exporday) || "",
 
             created_at: serverTimestamp(),
             last_login: null,
@@ -325,6 +305,8 @@ async function handleAdminRegister(event) {
         email: formData.get("email"),
         password: formData.get("password"),
         account_status: formData.get("accountMode") || "test",
+        projectName: formData.get("eventid"),
+        eventDate: formData.get("exporday"),
     };
     // パスワードバリデーション
     if (!/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/.test(adminData.password)) {
@@ -437,8 +419,7 @@ async function uploadTemplateToFirestore(collectionName, templateUrl) {
 }
 
 async function handleTestModeRegister(formData) {
-    // 1. Firestoreにadmin_settings作成
-    await registerAdmin(formData);
+
 
     // adminIdをformDataから取得
     const adminId = formData.get ? formData.get("adminId") : formData.adminId;
@@ -472,6 +453,8 @@ async function handleTestModeRegister(formData) {
             `admin_collections/${window.currentAdmin.admin_id}/${type}`
         );
     };
+    const projectName = formData.get ? formData.get("eventid") : formData.eventid;
+    const eventDate = formData.get ? formData.get("exporday") : formData.exporday;
 
     // 3. テンプレートファイルをfetchしてアップロード（template-utils.jsのuploadExcelFileを利用）
     // ファイルパス配列
@@ -481,29 +464,6 @@ async function handleTestModeRegister(formData) {
         { type: "staff", path: "/templates/staff.xlsx" },
         { type: "users", path: "/templates/users.xlsx" },
     ];
-    for (const tpl of templates) {
-        try {
-            const response = await fetch(tpl.path);
-            if (!response.ok) throw new Error(`ファイル取得失敗: ${tpl.path}`);
-            const blob = await response.blob();
-            // ここでadminIdとgetAdminCollectionの参照先を出力
-            console.log(`[UPLOAD DEBUG] adminId:`, adminId);
-            alert("stop");
-            if (window.getAdminCollection) {
-                const ref = window.getAdminCollection(tpl.type);
-                console.log(`[UPLOAD DEBUG] getAdminCollection(${tpl.type}):`, ref);
-                alert("stop");
-            } else {
-                console.warn("[UPLOAD DEBUG] window.getAdminCollection未定義");
-                alert("stop");
-            }
-            // importしたuploadExcelFile関数を直接呼び出す
-            const file = new File([blob], tpl.path.split("/").pop());
-            await uploadExcelFile(file, "add");
-        } catch (err) {
-            console.error(`[テンプレートアップロード失敗] ${tpl.type}:`, err);
-        }
-    }
 
     // 4. ログイン状態セット（admin_name, email, roleなども保存）
     localStorage.setItem(
@@ -628,52 +588,57 @@ function showAdminAuthInterface() {
         </div>
       </div>
 
-      <!-- 新規登録フォーム -->
-      <div id="adminRegisterForm" class="auth-form" style="display: none;">
-        <div class="logo">👤</div>
-        <h1 class="title">管理者　新規登録</h1>
-        <form id="adminRegisterFormForm">
-          <div class="form-group">
-            <label for="regAdminId">管理者 ID</label>
-            <input type="text" id="regAdminId" name="adminId" required placeholder="例: ADMIN001" value="" pattern="[A-Za-z0-9_]+" title="英数字とアンダースコアのみ使用可能">
-            <small>英数字とアンダースコアのみ使用可能</small>
-          </div>
-          <div class="form-group">
-            <label for="adminName">管理者名</label>
-            <input type="text" id="adminName" name="adminName" required placeholder="例: 管理者太郎" value="">
-          </div>
-          <div class="form-group">
-            <label for="email">メールアドレス</label>
-            <input type="email" id="email" name="email" required placeholder="admin@company.com" value="">
-          </div>
-          <div class="form-group">
-            <label for="regPassword">パスワード</label>
-            <input type="password" id="regPassword" name="password" required minlength="8" pattern="^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$" title="8文字以上の英数字を組み合わせてください">
-            <small>8文字以上の英数字を組み合わせてください</small>
-          </div>
-          <div class="form-group">
-            <label for="eventid">イベント名</label>
-            <input type="text" id="eventid" name="eventid" required placeholder="展示会20250827" value="">
-            <small>名札印刷時等に使います</small>
-          </div>
-          <div class="form-group">
-            <label for="exporday">展示会開催日</label>
-            <input type="text" id="exporday" name="exporday" required placeholder="月/日" value="">
-            <small>展示会開催日を記入してください</small>
-          </div>
-          <!-- 課金方法欄（後で追加予定） -->
-          <div class="form-group" id="paymentMethodGroup" style="display:none;"></div>
-          <div class="form-group" style="display: flex; gap: 16px; justify-content: space-between; margin-top: 30px;">
-            <button type="button" id="registerTestBtn" class="btn-primary" style="width:48%;">新規登録テストモード</button>
-            <button type="button" id="registerRealBtn" class="btn-danger" style="width:48%;background-color:#dc3545;color:#fff;">新規登録本番モード</button>
-          </div>
-        </form>
-        
-        <div class="form-footer">
-          <p>既にアカウントをお持ちの場合</p>
-          <button onclick="showAdminLoginForm()" class="btn-link">ログイン画面に戻る</button>
-        </div>
-      </div>
+            <!-- 新規登録フォーム（2列レイアウト） -->
+            <div id="adminRegisterForm" class="auth-form" style="display: none;">
+                <div class="logo">👤</div>
+                <h1 class="title">管理者　新規登録</h1>
+                <form id="adminRegisterFormForm">
+                    <div style="display: flex; gap: 32px; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 260px;">
+                            <div class="form-group">
+                                <label for="regAdminId">管理者 ID</label>
+                                <input type="text" id="regAdminId" name="adminId" required placeholder="例: ADMIN001" value="" pattern="[A-Za-z0-9_]+" title="英数字とアンダースコアのみ使用可能">
+                                <small>英数字とアンダースコアのみ使用可能</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="adminName">管理者名</label>
+                                <input type="text" id="adminName" name="adminName" required placeholder="例: 管理者太郎" value="">
+                            </div>
+                            <div class="form-group">
+                                <label for="email">メールアドレス</label>
+                                <input type="email" id="email" name="email" required placeholder="admin@company.com" value="">
+                            </div>
+                            <div class="form-group">
+                                <label for="regPassword">パスワード</label>
+                                <input type="password" id="regPassword" name="password" required minlength="8" pattern="^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$" title="8文字以上の英数字を組み合わせてください">
+                                <small>8文字以上の英数字を組み合わせてください</small>
+                            </div>
+                        </div>
+                        <div style="flex: 1; min-width: 260px;">
+                            <div class="form-group">
+                                <label for="eventid">プロジェクト名</label>
+                                <input type="text" id="eventid" name="eventid" required placeholder="展示会20250827" value="">
+                                <small>名札印刷時等に使います</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="exporday">展示会開催日</label>
+                                <input type="date" id="exporday" name="exporday" required value="">
+                                <small>展示会開催日をカレンダーから選択してください</small>
+                            </div>
+                            <!-- 課金方法欄（後で追加予定） -->
+                            <div class="form-group" id="paymentMethodGroup" style="display:none;"></div>
+                        </div>
+                    </div>
+                    <div class="form-group" style="display: flex; gap: 16px; justify-content: space-between; margin-top: 30px;">
+                        <button type="button" id="registerTestBtn" class="btn-primary" style="width:48%;">新規登録テストモード</button>
+                        <button type="button" id="registerRealBtn" class="btn-danger" style="width:48%;background-color:#dc3545;color:#fff;">新規登録本番モード</button>
+                    </div>
+                </form>
+                <div class="form-footer">
+                    <p>既にアカウントをお持ちの場合</p>
+                    <button onclick="showAdminLoginForm()" class="btn-link">ログイン画面に戻る</button>
+                </div>
+            </div>
     </div>
   `;
 

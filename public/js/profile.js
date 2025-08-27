@@ -160,17 +160,17 @@ async function showProfileModal() {
       </div>
 
       <div class="profile-item">
-        <label class="profile-label">プロジェクト名:</label>
-        <input type="text" id="edit_project_id" class="profile-input" value="${adminSettings?.project_id || ""
-    }" disabled />
-        <small>名札印刷に使用されます</small>
+    <label class="profile-label">プロジェクト名:</label>
+    <input type="text" id="edit_project_name" class="profile-input" value="${adminSettings?.projectName || ""}"
+  disabled />
+    <small>名札印刷に使用されます</small>
       </div>
 
       <div class="profile-item">
-        <label class="profile-label">展示会日:</label>
-        <input type="date" id="edit_project_day" class="profile-input" value="${adminSettings?.project_day || ""
-    }" disabled />
-        <small>名札印刷に使用されます</small>
+    <label class="profile-label">展示会日:</label>
+    <input type="date" id="edit_event_date" class="profile-input" value="${adminSettings?.eventDate || ""}"
+  disabled />
+    <small>名札印刷に使用されます</small>
       </div>
 
       <div class="profile-item">
