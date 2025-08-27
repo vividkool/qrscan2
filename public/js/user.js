@@ -2,11 +2,6 @@
 import "./auth.js";
 import "./smart-qr-scanner.js";
 
-// QRコードからの直接アクセス処理（index.htmlにリダイレクト）
-// QRコードによる直接アクセスはuser.htmlでそのまま処理（リダイレクトなし）
-// 追加の初期化やエラー処理が必要な場合はこの場所で記述
-// 役割に応じたリダイレクトURL取得は LoginAuth.getRedirectUrl を使用
-
 // ページロード時の初期化
 document.addEventListener("DOMContentLoaded", async function () {
   // ページ読み込み時のデバッグ情報
@@ -18,19 +13,20 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   // ロールチェック: currentAdminが存在し、roleがuser以外ならlogin.htmlに強制リダイレクト
   const adminData = localStorage.getItem("currentAdmin");
+
   if (adminData) {
     try {
       const currentAdmin = JSON.parse(adminData);
       if (currentAdmin.role !== "user") {
         alert("ユーザー権限がありません。ログイン画面に戻ります。");
         localStorage.removeItem("currentAdmin");
+
         window.location.href = "./login.html";
         return;
       }
     } catch (e) {
       localStorage.removeItem("currentAdmin");
-      console.error("currentAdminデータのパースエラー:", e);
-      alert("stop");
+
       window.location.href = "./login.html";
       return;
     }

@@ -503,6 +503,7 @@ document.addEventListener("DOMContentLoaded", function () {
         if (adminSnap.exists()) {
           const adminData = adminSnap.data();
           const roleValue = adminData.role ?? "admin";
+          const currentPage = window.location.pathname.split("/").pop() || "admin.html";
           // superuserなら必ずsuperuser.htmlへ遷移
           if (session.admin_id === "superuser" || roleValue === "superuser") {
             if (!window.location.pathname.endsWith("superuser.html")) {
@@ -511,6 +512,11 @@ document.addEventListener("DOMContentLoaded", function () {
               return;
             }
           } else if (roleValue === "admin") {
+            // user.htmlの場合はadminリダイレクトをスキップ
+            if (currentPage === "user.html") {
+              // user.htmlはadmin_id+user_idアクセスなのでリダイレクトしない
+              return;
+            }
             // adminならadmin.htmlへ（ただし今admin.htmlでなければ）
             if (!window.location.pathname.endsWith("admin.html")) {
               window.isRedirecting = true;
