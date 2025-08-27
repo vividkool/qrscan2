@@ -1,16 +1,12 @@
-// 認証・権限管理システム (Firebase Auth対応版)
+// 認証・権限管理システム（LEGACY認証専用・Firebase Auth最小限利用）
 import {
   initializeApp,
   getApps,
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
   getAuth,
-  signInWithEmailAndPassword,
-  signInWithPopup,
-  GoogleAuthProvider,
   signOut,
   onAuthStateChanged,
-  updateProfile,
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import {
   getFirestore,
@@ -65,7 +61,6 @@ const PAGE_PERMISSIONS = {
   "/": [USER_ROLES.ADMIN],
 };
 
-// 現在のユーザーセッション
 let currentUser = null;
 let currentFirebaseUser = null;
 
@@ -88,7 +83,6 @@ class FirebaseAuthManager {
       UserSession.clearSession();
       return { success: true };
     } catch (error) {
-      console.error("ログアウトエラー:", error);
       return { success: false, error: error.message };
     }
   }
@@ -98,31 +92,18 @@ class FirebaseAuthManager {
   // 認証状態監視
   static onAuthStateChanged(callback) {
     return onAuthStateChanged(auth, async (firebaseUser) => {
-      console.log(
-        "Firebase認証状態変更:",
-        firebaseUser ? "認証済み" : "未認証",
-        firebaseUser?.uid
-      );
-
       currentFirebaseUser = firebaseUser;
       if (firebaseUser) {
         try {
-          // Firestoreからユーザー情報を取得
           const userRef = doc(db, "users", firebaseUser.uid);
           const userSnap = await getDoc(userRef);
-
           if (userSnap.exists()) {
             const userData = {
               ...userSnap.data(),
               uid: firebaseUser.uid,
               firebaseUser: firebaseUser,
             };
-
-
-
-            // 退場済みユーザーの処理
             if (userData.status === "退場済") {
-              console.log("退場済みユーザー:", userData.user_name);
               callback({
                 ...userData,
                 isInactive: true,
@@ -130,9 +111,6 @@ class FirebaseAuthManager {
               });
               return;
             }
-
-
-            // Firebase専用のセッションデータを保存
             localStorage.setItem(
               "firebaseSessionData",
               JSON.stringify({
@@ -140,30 +118,20 @@ class FirebaseAuthManager {
                 timestamp: new Date().getTime(),
               })
             );
-
             UserSession.saveSession(userData);
             callback(userData);
           } else {
-            console.log(
-              "Firestoreにユーザーデータが見つかりません:",
-              firebaseUser.uid
-            );
             callback(null);
           }
-        } catch (error) {
-          console.error("認証状態確認エラー:", error);
+        } catch {
           callback(null);
         }
       } else {
-        console.log("Firebase認証解除 - レガシーセッションを確認");
-        // Firebase認証が解除されても、レガシーセッションがあるかもしれない
         const legacySession = UserSession.getSession();
         if (legacySession) {
-          console.log("レガシーセッション継続:", legacySession.user_name);
           currentUser = legacySession;
           callback(legacySession);
         } else {
-          console.log("全認証セッション解除");
           currentUser = null;
           UserSession.clearSession();
           callback(null);
@@ -196,11 +164,7 @@ class UserSession {
     try {
       localStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
       currentUser = sessionData;
-      console.log("セッション保存完了:", sessionData.user_name);
-    } catch (error) {
-      console.error("セッション保存エラー:", error);
-      // localStorage容量超過等のエラーハンドリング
-    }
+    } catch { }
   } // セッション取得
   // セッション取得（Firebase + レガシー対応）
   static async getSession() {
@@ -209,9 +173,7 @@ class UserSession {
     if (currentAdmin) {
       try {
         const adminObj = JSON.parse(currentAdmin);
-        // セッション互換用に必要フィールドを補完
-        // 必要フィールドを厳密に補完
-        const sessionObj = {
+        return {
           user_id: adminObj.admin_id ?? "",
           user_name: adminObj.admin_name ?? adminObj.admin_id ?? "",
           email: adminObj.email ?? "",
@@ -222,29 +184,18 @@ class UserSession {
           timestamp: adminObj.timestamp ?? Date.now(),
           authType: "ADMIN",
           status: adminObj.status ?? "active",
-          // 元データも保持
           ...adminObj,
         };
-        //alert("[getSession] currentAdmin返却: " + JSON.stringify(sessionObj));
-        console.log(
-          "[getSession] currentAdmin返却:",
-          JSON.stringify(sessionObj)
-        );
-        //alert("stop");
-        return sessionObj;
       } catch {
         return null;
       }
     }
 
     // ログイン画面では簡易セッションチェックのみ
-    const currentPage =
-      window.location.pathname.split("/").pop() || "admin.html";
+    const currentPage = window.location.pathname.split("/").pop() || "admin.html";
     if (currentPage === "login.html" || currentPage === "index.html") {
       const sessionData = localStorage.getItem(SESSION_KEY);
-      if (!sessionData) {
-        return null;
-      }
+      if (!sessionData) return null;
       try {
         return JSON.parse(sessionData);
       } catch {
@@ -254,94 +205,32 @@ class UserSession {
 
     // Firebase認証状態を優先的にチェック（保護されたページのみ）
     if (currentFirebaseUser) {
-      // Firebase認証ユーザーがいる場合、firebaseSessionDataを確認
       const firebaseSessionData = localStorage.getItem("firebaseSessionData");
       if (firebaseSessionData) {
         try {
           const parsed = JSON.parse(firebaseSessionData);
-          // Firebase認証データがある場合はそれを返す
           if (parsed.uid === currentFirebaseUser.uid) {
-            console.log("Firebase認証セッションを取得:", parsed.user_name);
             currentUser = parsed;
             return parsed;
           }
-        } catch (error) {
-          console.error("Firebase session parse error:", error);
-        }
+        } catch { }
       }
     }
 
-    // Firebase認証がないか、セッションデータがない場合はレガシーセッションを確認
-    console.log("=== getSession デバッグ ===");
-    console.log("SESSION_KEY:", SESSION_KEY);
-
+    // レガシーセッション
     const sessionData = localStorage.getItem(SESSION_KEY);
-    console.log("取得したセッションデータ:", sessionData);
-
-    // 他のキーも確認
-    console.log("currentUserキーの値:", localStorage.getItem("currentUser"));
-    console.log(
-      "qrscan_user_sessionキーの値:",
-      localStorage.getItem("qrscan_user_session")
-    );
-    console.log("==========================");
-
-    if (!sessionData) {
-      const currentPage =
-        window.location.pathname.split("/").pop() || "admin.html";
-      if (currentPage === "login.html" || currentPage === "index.html") {
-        // ログイン画面では正常な状態なのでログレベルを下げる
-        console.log("ログイン画面: セッションなし（正常）");
-      } else {
-        console.log("セッションデータが見つかりません");
-      }
-      return null;
-    }
-
+    if (!sessionData) return null;
     try {
       const parsed = JSON.parse(sessionData);
       const now = new Date().getTime();
       const sessionAge = now - parsed.timestamp;
-
-      // 8時間でセッション期限切れ
       if (sessionAge > 8 * 60 * 60 * 1000) {
-        console.log("レガシーセッション期限切れ");
         this.clearSession();
         return null;
       }
-
-      console.log("レガシーセッションを取得:", parsed.user_name);
-
-      // company_nameが不足している場合は、Firestoreから再取得して補完
-      if (!parsed.company_name && parsed.user_id) {
-        console.log(
-          "company_nameが不足しているため、Firestoreから再取得します"
-        );
-        try {
-          const usersQuery = query(
-            collection(db, "users"),
-            where("user_id", "==", parsed.user_id)
-          );
-          const querySnapshot = await getDocs(usersQuery);
-
-          if (!querySnapshot.empty) {
-            const userData = querySnapshot.docs[0].data();
-            if (userData.company_name) {
-              parsed.company_name = userData.company_name;
-              // 更新されたセッションを保存
-              this.saveSession(parsed);
-              console.log("company_nameを補完しました:", userData.company_name);
-            }
-          }
-        } catch (error) {
-          console.error("company_name補完エラー:", error);
-        }
-      }
-
       currentUser = parsed;
       return parsed;
-    } catch (error) {
-      console.error("Session parse error:", error);
+    } catch {
       this.clearSession();
       return null;
     }
@@ -366,20 +255,6 @@ class UserSession {
         where("user_id", "==", userId)
       );
       const querySnapshot = await getDocs(usersQuery);
-
-      // デバッグ用：既存ユーザーをログ出力
-      if (querySnapshot.empty) {
-        console.log(
-          "ユーザーが見つかりませんでした。既存ユーザーを確認します..."
-        );
-        const allUsersQuery = query(collection(db, "users"));
-        const allUsersSnapshot = await getDocs(allUsersQuery);
-        console.log("既存ユーザー数:", allUsersSnapshot.size);
-        allUsersSnapshot.forEach((doc) => {
-          const userData = doc.data();
-          console.log("- ユーザー:", userData.user_id, userData.user_name);
-        });
-      }
 
       if (querySnapshot.empty) {
         throw new Error(
@@ -444,40 +319,26 @@ class UserSession {
     const currentPage =
       window.location.pathname.split("/").pop() || "admin.html";
 
-    console.log("=== ページアクセスチェック開始 ===");
-    console.log("現在のページ:", currentPage);
-    console.log("リダイレクト中フラグ:", window.isRedirecting);
-
     // Admin認証システム優先チェック
     if (localStorage.getItem("currentAdmin")) {
-      console.log(
-        "🔐 Admin認証システム検出 - ページアクセスチェックをスキップ"
-      );
       return true;
     }
 
     // ログイン画面の場合は認証チェックをスキップ
     if (currentPage === "login.html" || currentPage === "index.html") {
-      console.log("ログイン画面のため認証チェックをスキップ");
       return true;
     }
 
     // リダイレクト中フラグで無限ループを防止
     if (window.isRedirecting) {
-      console.log("リダイレクト処理中のため、チェックをスキップ");
       return true;
     }
 
     // セッション取得（Firebaseまたはレガシー）
     const session = await this.getSession(); // await追加
-    console.log(
-      "現在のセッション:",
-      session ? `${session.user_name} (${session.role})` : "なし"
-    );
 
     // セッションがない場合はログインページへ
     if (!session) {
-      console.log("認証セッションなし - ログインページへリダイレクト");
       if (currentPage !== "login.html" && currentPage !== "index.html") {
         //alert("stop");
         this.redirectTo("login.html");
@@ -504,43 +365,18 @@ class UserSession {
 
     // ページアクセス権限チェック
     const allowedRoles = PAGE_PERMISSIONS[currentPage] || [];
-    console.log("=== 権限チェック詳細 ===");
-    console.log("ページの許可ロール:", allowedRoles);
-    console.log("ユーザーのロール:", session.role);
-    console.log(
-      "権限チェック結果:",
-      allowedRoles.length > 0 && !allowedRoles.includes(session.role)
-    );
-    console.log("=====================");
 
     if (allowedRoles.length > 0 && !allowedRoles.includes(session.role)) {
       const redirectUrl = this.getRedirectUrl(session.role);
-      console.log(
-        `権限不足 - 現在のロール: ${session.role
-        }, 必要なロール: [${allowedRoles.join(", ")}]`
-      );
-      console.log(`${redirectUrl}へリダイレクト`);
-
       const targetPage = redirectUrl.replace(".html", "");
       const currentPageName = currentPage.replace(".html", "");
 
-      console.log("=== リダイレクト判定 ===");
-      console.log("リダイレクト先ページ:", targetPage);
-      console.log("現在のページ名:", currentPageName);
-      console.log("リダイレクト必要か:", currentPageName !== targetPage);
-      console.log("====================");
-
       if (currentPageName !== targetPage) {
-        console.log("リダイレクト実行中...");
         this.redirectTo(redirectUrl);
-      } else {
-        console.log("既に正しいページにいるため、リダイレクトをスキップ");
       }
       return false;
     }
 
-    console.log(`アクセス許可: ${currentPage} (${session.role})`);
-    console.log("=== ページアクセスチェック完了 ===");
     return true;
   }
 
@@ -552,23 +388,17 @@ class UserSession {
     // ログイン画面から他のページへのリダイレクトは許可
     // ログイン画面内でのリダイレクトは防止
     if (currentPage === "login.html" && url.includes("login.html")) {
-      console.log("ログイン画面内でのリダイレクトを防止");
       return;
     }
 
     if (window.isRedirecting) {
-      console.log("リダイレクト処理中のため、新しいリダイレクトをスキップ");
       return;
     }
 
     window.isRedirecting = true;
-    console.log(`リダイレクト実行: ${url}`);
-
-    // ページアクセス権限チェックを一時的に無効化
     setTimeout(() => {
-      console.log(`実際にリダイレクト: ${url}`);
       window.location.href = url;
-    }, 500); // 少し長めの遅延でリダイレクト実行
+    }, 500);
   } // ログアウト
   static logout() {
     this.clearSession();
