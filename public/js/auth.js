@@ -74,8 +74,6 @@ const SESSION_KEY = "currentUser";
 
 // Firebase Authentication管理
 class FirebaseAuthManager {
-
-
   // ログアウト
   static async signOut() {
     try {
@@ -86,8 +84,6 @@ class FirebaseAuthManager {
       return { success: false, error: error.message };
     }
   }
-
-
 
   // 認証状態監視
   static onAuthStateChanged(callback) {
@@ -164,7 +160,7 @@ class UserSession {
     try {
       localStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
       currentUser = sessionData;
-    } catch { }
+    } catch {}
   } // セッション取得
   // セッション取得（Firebase + レガシー対応）
   static async getSession() {
@@ -192,7 +188,8 @@ class UserSession {
     }
 
     // ログイン画面では簡易セッションチェックのみ
-    const currentPage = window.location.pathname.split("/").pop() || "admin.html";
+    const currentPage =
+      window.location.pathname.split("/").pop() || "admin.html";
     if (currentPage === "login.html" || currentPage === "index.html") {
       const sessionData = localStorage.getItem(SESSION_KEY);
       if (!sessionData) return null;
@@ -213,7 +210,7 @@ class UserSession {
             currentUser = parsed;
             return parsed;
           }
-        } catch { }
+        } catch {}
       }
     }
 
@@ -346,8 +343,6 @@ class UserSession {
       return false;
     }
 
-
-
     // セッションのタイプを判定してログ出力
     if (session.uid) {
       console.log(
@@ -409,7 +404,6 @@ class UserSession {
   static async getCurrentUser() {
     return await this.getSession();
   }
-
 }
 
 // 認証状態監視の開始（ログイン画面以外でのみ有効）
@@ -493,7 +487,6 @@ document.addEventListener("DOMContentLoaded", function () {
       // Firestoreからadmin_settingsを取得
       const session = await UserSession.getSession();
       if (session && session.admin_id) {
-
         console.log("[superuser判定] session: " + JSON.stringify(session));
         //alert("stop");
         const adminRef = doc(db, "admin_settings", session.admin_id);
@@ -503,7 +496,8 @@ document.addEventListener("DOMContentLoaded", function () {
         if (adminSnap.exists()) {
           const adminData = adminSnap.data();
           const roleValue = adminData.role ?? "admin";
-          const currentPage = window.location.pathname.split("/").pop() || "admin.html";
+          const currentPage =
+            window.location.pathname.split("/").pop() || "admin.html";
           // superuserなら必ずsuperuser.htmlへ遷移
           if (session.admin_id === "superuser" || roleValue === "superuser") {
             if (!window.location.pathname.endsWith("superuser.html")) {
@@ -527,8 +521,7 @@ document.addEventListener("DOMContentLoaded", function () {
           // それ以外はリダイレクトしない
         }
       }
-    }
-    catch (e) {
+    } catch (e) {
       console.error("superuser判定・リダイレクトエラー", e);
     }
     // 通常のアクセスチェック
