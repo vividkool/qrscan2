@@ -38,6 +38,13 @@ document.addEventListener("DOMContentLoaded", async function () {
   // スキャン履歴の読み込み
   if (window.smartScanner && window.smartScanner.displayScanHistory) {
     window.smartScanner.displayScanHistory();
+  } else {
+    // スキャン履歴機能が無い場合やデータが無い場合の案内
+    const scanHistoryElement = document.getElementById("scanHistory");
+    if (scanHistoryElement) {
+      scanHistoryElement.innerHTML =
+        '<span style="color: #4285f4; font-weight: bold;">スキャンボタンを押してスキャンしてください</span>';
+    }
   }
 });
 
@@ -97,7 +104,8 @@ async function displayUserInfo() {
               <span style="font-weight: bold;">ご芳名：${userName}様</span>
             </div>
             <div style="font-size: 0.7em; color: #999; font-family: monospace;">
-              DEBUG: user_id = ${user.user_id || user.id || "未設定"}
+              DEBUG: user_id = ${user.user_id || user.id || "未設定"}<br>
+              DEBUG: collection = users/${user.user_id || user.id || "未設定"}
             </div>
           </div>
         `;

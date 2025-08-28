@@ -320,6 +320,9 @@
     <div id="loginSection">
       <form class="login-form" id="loginForm">
         <div class="form-group">
+          <label for="adminId">adminID</label>
+          <input type="text" id="adminId" name="adminId" placeholder="adminIDを入力してください" required />
+
           <label for="userId">ユーザーID</label>
           <input type="text" id="userId" name="userId" placeholder="ユーザーIDを入力してください" required />
         </div>
@@ -328,7 +331,7 @@
           <label for="password">パスワード</label>
           <input type="password" id="password" name="password" placeholder="パスワードを入力してください（管理者のみ）" />
           <small style="display: block; color: #28a745; margin-top: 5px;">
-            💡 管理者初回setup: 空白でもログイン可能
+            🔑 管理者はパスワード必須。一般ユーザーは空白でOK 。
           </small>
         </div>
 
@@ -337,74 +340,8 @@
         </button>
       </form>
 
-      <div id="registerPrompt" style="display: none; margin-top: 20px">
-        <button type="button" class="register-button" id="showRegisterButton">
-          新規登録
-        </button>
-      </div>
     </div>
 
-    <!-- 新規登録画面 -->
-    <div id="registerSection" style="display: none">
-      <h2>新規ユーザー登録</h2>
-
-      <!-- プロバイダ認証 -->
-      <div class="provider-buttons">
-        <button type="button" class="google-button" id="googleRegisterButton">
-          <span>🔗</span> Googleアカウントで登録
-        </button>
-      </div>
-
-      <div class="divider">Google認証のみ対応</div>
-
-      <!-- 手動入力フォーム（追加情報のみ） -->
-      <form class="register-form" id="registerForm" style="display: none">
-        <div class="form-group">
-          <label for="registerName">氏名 *</label>
-          <input type="text" id="registerName" placeholder="山田太郎" required autocomplete="name" />
-        </div>
-
-        <div class="form-group">
-          <label for="registerDepartment">部署・所属</label>
-          <input type="text" id="registerDepartment" placeholder="営業部、開発部など" autocomplete="organization" />
-        </div>
-
-        <button type="submit" class="register-button" id="registerSubmitButton">
-          登録を完了
-        </button>
-      </form>
-
-      <button type="button" class="back-button" id="backToLoginButton">
-        ← ログイン画面に戻る
-      </button>
-    </div>
-
-    <div class="loading" id="loading">
-      <div class="spinner"></div>
-      <span style="margin-left: 10px" id="loadingText">認証中...</span>
-    </div>
-
-    <div class="error-message" id="errorMessage"></div>
-    <div class="success-message" id="successMessage" style="display: none"></div>
-
-    <!-- デモ用ユーザー一覧（招待コードがない場合のみ表示） -->
-    <div class="demo-users" id="demoUsers">
-      <h3>💡 テストユーザー</h3>
-      <div class="demo-user" onclick="fillUserId('ADMIN001')" id="adminDemo">
-        <strong>ADMIN001</strong> - 管理者 (データベース管理)<br>
-        <small style="color: #28a745;">🔑 初回setup: パスワード空白でログイン可能</small><br>
-        <small style="color: #666;">設定完了後: admin画面で設定したパスワードが必要</small>
-      </div>
-      <div class="demo-user" onclick="fillUserId('UKETUKE001')">
-        <strong>UKETUKE001</strong> - 受付担当 (入退場・印刷管理)
-      </div>
-      <div class="demo-user" onclick="fillUserId('SCAN001')">
-        <strong>SCAN001</strong> - スキャナー (QRコード読取)
-      </div>
-      <div class="demo-user" onclick="fillUserId('GUEST001')">
-        <strong>GUEST001</strong> - ゲスト (基本機能のみ)
-      </div>
-    </div>
   </div>
 
   <script type="module" src="./js/login.js"></script>
