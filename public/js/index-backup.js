@@ -215,45 +215,49 @@ async function loginAdmin(adminId, password) {
   try {
     const adminRef = doc(db, "admin_settings", adminId);
     const adminDoc = await getDoc(adminRef);
+
     if (!adminDoc.exists()) {
       throw new Error("Admin IDが見つかりません");
     }
+
     const adminData = adminDoc.data();
-    // ステータス・パスワードチェック
-    const accountStatus = adminData.account_status || "test";
-    const planType = adminData.plan_type || "free";
-    const isActive = adminData.is_active !== false;
-    if (!isActive) throw new Error("このアカウントは無効化されています");
-    if (accountStatus === "suspended")
+    console.log(`[DEBUG] Admin ${adminId} のデータ:`, adminData);
+
+    // 新しいステータス管理システム
+    const accountStatus = adminData.account_status || "test"; // test/real/suspended
+    const planType = adminData.plan_type || "free"; // free/basic/premium
+    const isActive = adminData.is_active !== false; // アクティブ状態 (デフォルト: true)
+
+    // アカウントが無効化されているかチェック
+    if (!isActive) {
+      console.error(`[ERROR] Admin ${adminId} は無効化されています`);
+      throw new Error("このアカウントは無効化されています");
+    }
+
+    // 課金状態チェック (将来の拡張用)
+    if (accountStatus === "suspended") {
+      console.error(`[ERROR] Admin ${adminId} のアカウントが停止されています`);
       throw new Error(
         "このアカウントは停止されています。課金状況をご確認ください"
       );
-    if (adminData.password !== password)
-      throw new Error("パスワードが間違っています");
-
-    // 最終ログイン時刻を更新
-    await setDoc(adminRef, { ...adminData, last_login: serverTimestamp() });
-
-    // Firebase Authカスタムトークン取得
-    const tokenRes = await fetch(
-      "https://createcustomtoken-ijui6cxhzq-an.a.run.app",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: adminId }),
-      }
-    );
-    const tokenJson = await tokenRes.json();
-    if (!tokenJson.success || !tokenJson.customToken) {
-      throw new Error(tokenJson.error || "カスタムトークン取得失敗");
     }
 
-    // Firebase Auth認証
-    const { getAuth, signInWithCustomToken } = await import(
-      "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"
+    console.log(
+      `[INFO] Admin ${adminId} - アカウント種別: ${accountStatus}, プラン: ${planType}`
     );
-    const auth = getAuth(app);
-    await signInWithCustomToken(auth, tokenJson.customToken);
+
+    if (adminData.password !== password) {
+      console.error(
+        `[ERROR] パスワード不一致 - 入力: ${password}, 保存: ${adminData.password}`
+      );
+      throw new Error("パスワードが間違っています");
+    }
+
+    // 最終ログイン時刻を更新
+    await setDoc(adminRef, {
+      ...adminData,
+      last_login: serverTimestamp(),
+    });
 
     // セッション情報保存
     const sessionData = {
@@ -270,7 +274,16 @@ async function loginAdmin(adminId, password) {
       is_active: adminData.is_active !== false,
       timestamp: Date.now(),
     };
+
+    console.log("💾 セッションデータを保存します:", sessionData);
     localStorage.setItem("currentAdmin", JSON.stringify(sessionData));
+
+    // 保存確認
+    const savedData = localStorage.getItem("currentAdmin");
+    console.log("📦 保存されたセッション:", savedData);
+    console.log("🔍 JSON解析テスト:", JSON.parse(savedData));
+
+    console.log("Adminログイン成功:", adminId);
     return {
       success: true,
       adminData: sessionData,
