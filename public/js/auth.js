@@ -1,13 +1,25 @@
 // 認証・権限管理システム（LEGACY認証専用・Firebase Auth最小限利用）
 import {
-  initializeApp,
-  getApps,
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import {
   getAuth,
   signOut,
   onAuthStateChanged,
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+document.addEventListener("DOMContentLoaded", function () {
+  const auth = getAuth();
+  // 300msほど待ってから判定
+  setTimeout(() => {
+    if (!auth.currentUser) {
+      window.location.href = "./login.html";
+    }
+  }, 300);
+});
+
+import {
+  initializeApp,
+  getApps,
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+
 import {
   getFirestore,
   collection,
@@ -160,7 +172,7 @@ class UserSession {
     try {
       localStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
       currentUser = sessionData;
-    } catch {}
+    } catch { }
   } // セッション取得
   // セッション取得（Firebase + レガシー対応）
   static async getSession() {
@@ -210,7 +222,7 @@ class UserSession {
             currentUser = parsed;
             return parsed;
           }
-        } catch {}
+        } catch { }
       }
     }
 

@@ -1,4 +1,20 @@
 // User Page Functions
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+document.addEventListener("DOMContentLoaded", function () {
+  const auth = getAuth();
+  onAuthStateChanged(auth, (user) => {
+    if (!user) {
+
+      window.location.href = "./login.html";
+    }
+    // 認証済みなら何もしない
+
+  });
+});
+
+
+
 import "./auth.js";
 import "./smart-qr-scanner.js";
 
@@ -7,39 +23,16 @@ document.addEventListener("DOMContentLoaded", async function () {
   // ページ読み込み時のデバッグ情報
   console.log("=== user.htmlページ読み込み ===");
   console.log("現在のURL:", window.location.href);
-  console.log("セッション存在確認:", !!localStorage.getItem("currentUser"));
-  console.log("セッションデータ:", localStorage.getItem("currentUser"));
+  console.log("Firebase Auth currentUser:", getAuth().currentUser);
   console.log("================================");
 
-  // ロールチェック: currentAdminが存在し、roleがuser以外ならlogin.htmlに強制リダイレクト
-  const adminData = localStorage.getItem("currentAdmin");
-
-  if (adminData) {
-    try {
-      const currentAdmin = JSON.parse(adminData);
-      if (currentAdmin.role !== "user") {
-        alert("ユーザー権限がありません。ログイン画面に戻ります。");
-        localStorage.removeItem("currentAdmin");
-
-        window.location.href = "./login.html";
-        return;
-      }
-    } catch (e) {
-      localStorage.removeItem("currentAdmin");
-
-      window.location.href = "./login.html";
-      return;
-    }
-  }
-  // QRコードアクセス時もuser.htmlでそのまま処理（リダイレクトなし）
   // ユーザー情報表示
-  await displayUserInfo(); // await追加
+  await displayUserInfo();
 
   // スキャン履歴の読み込み
   if (window.smartScanner && window.smartScanner.displayScanHistory) {
     window.smartScanner.displayScanHistory();
   } else {
-    // スキャン履歴機能が無い場合やデータが無い場合の案内
     const scanHistoryElement = document.getElementById("scanHistory");
     if (scanHistoryElement) {
       scanHistoryElement.innerHTML =
@@ -50,53 +43,20 @@ document.addEventListener("DOMContentLoaded", async function () {
 
 // ユーザー情報表示
 async function displayUserInfo() {
+
   const userInfoElement = document.getElementById("userInfo");
   if (userInfoElement) {
     try {
-      // 複数の方法でユーザー情報を取得試行
       let user = null;
-
-      // 方法1: UserSessionクラスから取得
-      if (
-        window.UserSession &&
-        typeof UserSession.getCurrentUser === "function"
-      ) {
-        user = await UserSession.getCurrentUser(); // await追加
+      // UserSessionクラスから取得（localStorageは使わない）
+      if (window.UserSession && typeof UserSession.getCurrentUser === "function") {
+        user = await UserSession.getCurrentUser();
         console.log("UserSession経由でユーザー情報取得:", user);
       }
-
-      // 方法2: localStorageから直接取得（フォールバック）
-      if (!user) {
-        const userStr = localStorage.getItem("currentUser");
-        if (userStr) {
-          try {
-            user = JSON.parse(userStr);
-            console.log("localStorage経由でユーザー情報取得:", user);
-          } catch (e) {
-            console.error("localStorage ユーザー情報パースエラー:", e);
-          }
-        }
-      }
-
       if (user) {
-        // ユーザー情報の詳細をログ出力（デバッグ用）
-        console.log("取得したユーザー情報の詳細:", {
-          company_name: user.company_name,
-          user_name: user.user_name,
-          role: user.role,
-          department: user.department,
-          allFields: user,
-        });
-
-        // 安全な値取得（undefinedの場合のフォールバック）
-        const companyName =
-          user.company_name || user.companyName || "会社名未設定";
-        const userName =
-          user.user_name ||
-          user.userName ||
-          user.displayName ||
-          "ユーザー名未設定";
-
+        console.log("取得したユーザー情報の詳細:", user);
+        const companyName = user.company_name || user.companyName || "会社名未設定";
+        const userName = user.user_name || user.userName || user.displayName || "ユーザー名未設定";
         userInfoElement.innerHTML = `
           <div style="display: flex; flex-direction: column; gap: 5px;">
             <div style="display: flex; flex-direction: column;">
@@ -110,14 +70,12 @@ async function displayUserInfo() {
           </div>
         `;
       } else {
-        userInfoElement.innerHTML =
-          '<span style="color: #dc3545;">ユーザー情報を取得できませんでした</span>';
+        userInfoElement.innerHTML = '<span style="color: #dc3545;">ユーザー情報を取得できませんでした</span>';
         console.warn("ユーザー情報が見つかりません");
       }
     } catch (error) {
       console.error("displayUserInfo エラー:", error);
-      userInfoElement.innerHTML =
-        '<span style="color: #dc3545;">ユーザー情報の表示でエラーが発生しました</span>';
+      userInfoElement.innerHTML = '<span style="color: #dc3545;">ユーザー情報の表示でエラーが発生しました</span>';
     }
   } else {
     console.warn("userInfo要素が見つかりません");

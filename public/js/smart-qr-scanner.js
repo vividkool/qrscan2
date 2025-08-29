@@ -59,7 +59,7 @@ class SmartQRScanner {
     try {
       // ZXingライブラリの読み込み確認と待機
       await this.waitForZXing();
-
+      ///alert("stop1");
       if (typeof ZXing !== "undefined") {
         this.primaryScanner = new ZXing.BrowserQRCodeReader();
         this.debugLog("ZXing スキャナー初期化完了");

@@ -304,21 +304,11 @@
     <div class="app-logo">🔥</div>
     <h1 id="pageTitle">QR Scan Dashboard</h1>
 
-    <!-- 招待コード表示エリア -->
-    <!--
-    <div id="inviteInfo" class="invite-info" style="display: none">
-      <div class="invite-badge">
-        <span>🎫 招待コード:</span>
-        <strong id="inviteCodeDisplay"></strong>
-      </div>
-      <p id="inviteMessage">
-        イベントへの招待です。新規登録してご参加ください。
-      </p>
-    </div>
-    -->
+
     <!-- ログイン画面 -->
     <div id="loginSection">
       <form class="login-form" id="loginForm">
+
         <div class="form-group">
           <label for="adminId">adminID</label>
           <input type="text" id="adminId" name="adminId" placeholder="adminIDを入力してください" required />
@@ -327,19 +317,18 @@
           <input type="text" id="userId" name="userId" placeholder="ユーザーIDを入力してください" required />
         </div>
 
-        <div class="form-group">
-          <label for="password">パスワード</label>
-          <input type="password" id="password" name="password" placeholder="パスワードを入力してください（管理者のみ）" />
-          <small style="display: block; color: #28a745; margin-top: 5px;">
-            🔑 管理者はパスワード必須。一般ユーザーは空白でOK 。
-          </small>
-        </div>
+
 
         <button type="submit" class="login-button" id="loginButton">
           ログイン
         </button>
       </form>
-
+      <div id="loading" class="loading">
+        <div class="spinner"></div>
+        <span id="loadingText">処理中...</span>
+      </div>
+      <div id="errorMessage" class="error-message"></div>
+      <div id="successMessage" class="success-message"></div>
     </div>
 
   </div>

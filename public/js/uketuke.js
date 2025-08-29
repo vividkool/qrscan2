@@ -1,4 +1,13 @@
 // Uketuke Page Functions - 受付管理システム
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+document.addEventListener("DOMContentLoaded", function () {
+  const auth = getAuth();
+  if (!auth.currentUser) {
+    window.location.href = "./login.html";
+  }
+});
+
 import "./auth.js";
 
 // Firebase imports
