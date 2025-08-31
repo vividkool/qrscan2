@@ -440,8 +440,8 @@ class SmartQRScanner {
 
       this.showStatus("💾 展示会データを保存中...", "info");
 
-      // 現在のユーザー情報を取得
-      const currentUser = this.getCurrentUserInfo();
+      // 現在のユーザー情報を取得（awaitでPromise解決）
+      const currentUser = await this.getCurrentUserInfo();
 
       // scanItemsコレクションに保存するデータを構築
       const scanData = {
@@ -708,51 +708,28 @@ class SmartQRScanner {
       historyElement.innerHTML =
         '<div class="loading">📜 履歴を読み込み中...</div>';
 
-      // 現在のユーザー情報を取得
-      const currentUser = this.getCurrentUserInfo();
+      // 現在のユーザー情報を取得（awaitでPromise解決）
+      const currentUser = await this.getCurrentUserInfo();
 
-      this.debugLog("取得したユーザー情報の詳細", {
-        fullUser: currentUser,
-        userId: currentUser.user_id,
-        userIdType: typeof currentUser.user_id,
-        userName: currentUser.user_name,
-        hasUserId: !!currentUser.user_id,
-      });
-
-      const currentUserId = currentUser.user_id;
-
-      if (!currentUserId) {
-        this.debugLog("ユーザーIDが取得できません", {
-          currentUser: currentUser,
-          userIdValue: currentUserId,
-          localStorageRaw: localStorage.getItem("currentUser"),
-        });
+      // currentUserはgetCurrentUserInfo()のみで取得
+      if (!currentUser || !currentUser.user_id) {
+        this.debugLog("ユーザーIDが取得できません", { currentUser });
         historyElement.innerHTML =
           '<div class="error">ユーザー情報が取得できません。再ログインしてください。</div>';
         return;
       }
 
-      this.debugLog("現在のユーザーID", currentUserId);
-
       // Firestoreからスキャン履歴を取得（user_idでフィルタ）
       let querySnapshot;
       try {
-        // まず文字列のuser_idで検索
         const userQuery = query(
           collection(db, "scanItems"),
-          where("user_id", "==", String(currentUserId))
+          where("user_id", "==", String(currentUser.user_id))
         );
         querySnapshot = await getDocs(userQuery);
-
-        // 文字列で見つからない場合は数値で検索
         if (querySnapshot.empty) {
-          const userIdAsNumber = parseInt(currentUserId, 10);
+          const userIdAsNumber = parseInt(currentUser.user_id, 10);
           if (!isNaN(userIdAsNumber)) {
-            this.debugLog("文字列検索で見つからないため数値で再検索", {
-              original: currentUserId,
-              number: userIdAsNumber,
-            });
-
             const numberQuery = query(
               collection(db, "scanItems"),
               where("user_id", "==", userIdAsNumber)
@@ -761,9 +738,9 @@ class SmartQRScanner {
           }
         }
       } catch (error) {
-        this.debugLog("Firestoreクエリエラー", error);
         historyElement.innerHTML =
           '<div class="error">履歴の検索中にエラーが発生しました</div>';
+        this.debugLog("Firestoreクエリエラー", error);
         return;
       }
 
@@ -771,7 +748,7 @@ class SmartQRScanner {
         historyElement.innerHTML = `<div class="no-data">📝 ${
           currentUser.user_name || "あなた"
         }のスキャン履歴がありません</div>`;
-        this.debugLog("該当ユーザーのスキャン履歴なし", currentUserId);
+        this.debugLog("該当ユーザーのスキャン履歴なし", currentUser.user_id);
         return;
       }
 
@@ -900,8 +877,8 @@ class SmartQRScanner {
         return;
       }
 
-      // 現在のユーザー権限をチェック
-      const currentUser = this.getCurrentUserInfo();
+      // 現在のユーザー権限をチェック（awaitでPromise解決）
+      const currentUser = await this.getCurrentUserInfo();
       if (currentUser.role !== "admin") {
         this.debugLog("管理者権限なし", currentUser.role);
         historyElement.innerHTML =
