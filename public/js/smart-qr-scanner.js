@@ -1,5 +1,8 @@
 // 高性能QRスキャナー（ZXing第1候補 + HTML5-QRCode フォールバック）
-import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import {
+  initializeApp,
+  getApps,
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
   getFirestore,
   collection,
@@ -12,6 +15,10 @@ import {
   query,
   where,
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import {
+  getAuth,
+  onAuthStateChanged,
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 // Firebase設定
 const firebaseConfig = {
@@ -583,28 +590,26 @@ class SmartQRScanner {
     };
   }
 
-  getCurrentUserInfo() {
+  async getCurrentUserInfo() {
     try {
-      // 直接localStorageから取得（最も確実な方法）
-      const userStr = localStorage.getItem("currentUser");
-      if (userStr) {
-        const user = JSON.parse(userStr);
-        this.debugLog("localStorage からユーザー情報取得", user);
-        return user;
+      const auth = getAuth();
+      const user = auth.currentUser;
+      if (!user) throw new Error("ユーザーがログインしていません");
+
+      const db = getFirestore();
+      const userRef = doc(db, "users", user.uid);
+      const userSnap = await getDoc(userRef);
+
+      if (!userSnap.exists()) {
+        userInfoElement.innerHTML =
+          '<span style="color: #dc3545;">ユーザー情報を取得できませんでした</span>';
+        console.warn("ユーザー情報が見つかりません");
+        return;
       }
 
-      // フォールバック: UserSessionクラスから取得（非同期の場合があるので注意）
-      if (typeof UserSession !== "undefined" && UserSession.getSession) {
-        const user = UserSession.getSession();
-        this.debugLog("UserSession.getSession からユーザー情報取得", user);
-        if (user && typeof user === "object" && !user.then) {
-          // Promiseではない場合のみ
-          return user;
-        }
-      }
-
-      this.debugLog("ユーザー情報が見つかりません");
-      return {};
+      const userData = userSnap.data();
+      this.debugLog("取得したユーザー情報", userData);
+      return userData;
     } catch (error) {
       this.debugLog("ユーザー情報取得エラー", error);
       return {};
@@ -763,8 +768,9 @@ class SmartQRScanner {
       }
 
       if (querySnapshot.empty) {
-        historyElement.innerHTML = `<div class="no-data">📝 ${currentUser.user_name || "あなた"
-          }のスキャン履歴がありません</div>`;
+        historyElement.innerHTML = `<div class="no-data">📝 ${
+          currentUser.user_name || "あなた"
+        }のスキャン履歴がありません</div>`;
         this.debugLog("該当ユーザーのスキャン履歴なし", currentUserId);
         return;
       }
@@ -849,8 +855,9 @@ class SmartQRScanner {
       html += "</div>";
 
       if (scanData.length > 20) {
-        html += `<div class="history-footer">他 ${scanData.length - 20
-          } 件</div>`;
+        html += `<div class="history-footer">他 ${
+          scanData.length - 20
+        } 件</div>`;
       }
 
       // 総件数表示
@@ -994,8 +1001,9 @@ class SmartQRScanner {
       html += "</div>";
 
       if (scanData.length > 50) {
-        html += `<div class="history-footer">他 ${scanData.length - 50
-          } 件</div>`;
+        html += `<div class="history-footer">他 ${
+          scanData.length - 50
+        } 件</div>`;
       }
 
       // 総件数表示
@@ -1015,34 +1023,21 @@ class SmartQRScanner {
 
   // スキャン記録削除メソッド
   async deleteScanItem(docId) {
+    if (!docId) return;
+    const confirmDelete = confirm(
+      "このスキャン記録を削除してもよろしいですか？"
+    );
+    if (!confirmDelete) return;
+
     try {
-      // 確認ダイアログを表示
-      if (!confirm("この記録を削除しますか？\n削除すると元に戻せません。")) {
-        return;
-      }
-
-      this.debugLog("スキャン記録削除開始", docId);
-      this.showStatus("🗑️ 記録を削除中...", "info");
-
-      // Firestoreからドキュメントを削除
       await deleteDoc(doc(db, "scanItems", docId));
-
       this.debugLog("スキャン記録削除完了", docId);
-      this.showStatus("✅ 記録を削除しました", "success");
-
-      // 履歴を再読み込み
+      // 削除後にUIを更新
       await this.displayScanHistory();
-
-      // 2秒後にステータスを非表示
-      setTimeout(() => {
-        const statusElement = document.getElementById("scannerStatus");
-        if (statusElement) {
-          statusElement.style.display = "none";
-        }
-      }, 2000);
+      this.showStatus("🗑 削除完了", "success");
     } catch (error) {
       this.debugLog("スキャン記録削除エラー", error);
-      this.showError(`削除エラー: ${error.message}`);
+      this.showError("削除に失敗しました");
     }
   }
 }
