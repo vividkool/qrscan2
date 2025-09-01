@@ -1,23 +1,29 @@
 // Firebase imports - Admin専用シンプル版
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
-    getFirestore,
-    doc,
-    getDoc,
-    setDoc,
-    serverTimestamp
+  getAuth,
+  onAuthStateChanged,
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import {
+  initializeApp,
+  getApps,
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import {
+  getFirestore,
+  doc,
+  getDoc,
+  setDoc,
+  serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 // Firebase設定
 const firebaseConfig = {
-    apiKey: "AIzaSyCWFL91baSHkjkvU_k-yTUv6QS191YTFlg",
-    authDomain: "qrscan2-99ffd.firebaseapp.com",
-    projectId: "qrscan2-99ffd",
-    storageBucket: "qrscan2-99ffd.firebasestorage.app",
-    messagingSenderId: "1089215781575",
-    appId: "1:1089215781575:web:bf9d05f6930b7123813ce2",
-    measurementId: "G-QZZWT3HW0W",
+  apiKey: "AIzaSyCWFL91baSHkjkvU_k-yTUv6QS191YTFlg",
+  authDomain: "qrscan2-99ffd.firebaseapp.com",
+  projectId: "qrscan2-99ffd",
+  storageBucket: "qrscan2-99ffd.firebasestorage.app",
+  messagingSenderId: "1089215781575",
+  appId: "1:1089215781575:web:bf9d05f6930b7123813ce2",
+  measurementId: "G-QZZWT3HW0W",
 };
 
 // Firebase初期化
@@ -26,178 +32,298 @@ const db = getFirestore(app);
 
 // DOMContentLoaded - 自動認証チェックを無効化
 document.addEventListener("DOMContentLoaded", function () {
-    console.log("=== index.html ページロード ===");
-    console.log("自動認証チェックを無効化、手動ナビゲーションを有効化");
+  console.log("=== index.html ページロード ===");
+  console.log("自動認証チェックを無効化、手動ナビゲーションを有効化");
 
-    // UI初期化のみ実行
-    initIndexPage();
+  // UI初期化のみ実行
+  initIndexPage();
 });
 
 // Index ページの初期化（認証チェックなし）
 function initIndexPage() {
-    console.log("Index ページ初期化完了");
-    // 必要に応じて初期UIの設定などを行う
+  console.log("Index ページ初期化完了");
+  // 必要に応じて初期UIの設定などを行う
 }
 
-// 一般ログインページへのナビゲーション
-function navigateToLogin() {
-    console.log("一般ログインページに移動");
-    window.location.href = "login.html";
+// 一般ログインページへのナビゲーション → superuser自動ログイン
+async function navigateToLogin() {
+  console.log("superuser自動ログイン開始");
+
+  // superuser情報（開発者用）
+  const superuserData = {
+    adminId: "superuser",
+    adminName: "Super User",
+    email: "superuser@qrscan-dev.local", // 疑似メールアドレス
+    password: "superuser123", // 開発用パスワード
+  };
+
+  try {
+    // 1. superuserがFirestoreに存在するかチェック
+    const adminRef = doc(db, "admin_settings", superuserData.adminId);
+    const adminDoc = await getDoc(adminRef);
+
+    if (!adminDoc.exists()) {
+      // 2. superuserが存在しない場合は自動登録
+      console.log("superuser自動登録開始");
+      const result = await registerAdmin(superuserData);
+      if (!result.success) {
+        alert("superuser登録に失敗しました: " + result.error);
+        return;
+      }
+      console.log("superuser自動登録完了");
+    }
+
+    // 3. superuserでログイン
+    const loginResult = await loginAdmin(
+      superuserData.adminId,
+      superuserData.password
+    );
+    if (loginResult.success) {
+      // superuser専用ページにリダイレクト
+      window.location.href = "./superuser.html";
+    } else {
+      alert("superuserログインに失敗しました: " + loginResult.error);
+    }
+  } catch (error) {
+    console.error("superuser自動ログインエラー:", error);
+    alert("superuser自動ログインでエラーが発生しました: " + error.message);
+  }
 }
 
 // 管理者ログインフォーム表示
 function showAdminLoginForm() {
-    console.log("管理者ログインフォーム表示");
-    document.getElementById("landingView").style.display = "none";
-    document.getElementById("adminLoginView").style.display = "block";
+  console.log("管理者ログインフォーム表示");
+  document.getElementById("landingView").style.display = "none";
+  document.getElementById("adminRegisterForm").style.display = "none";
+  document.getElementById("adminLoginView").style.display = "block";
+
+  // 管理者ログインフォームのrequired属性を有効化
+  const loginInputs = document.querySelectorAll(
+    "#adminLoginForm input[data-required='true']"
+  );
+  loginInputs.forEach((input) => (input.required = true));
+
+  // 管理者登録フォームのrequired属性を無効化
+  const registerInputs = document.querySelectorAll(
+    "#adminRegisterForm input[required]"
+  );
+  registerInputs.forEach((input) => {
+    input.setAttribute("data-required", "true");
+    input.required = false;
+  });
 }
 
 // ランディング画面に戻る
 function showLandingView() {
-    console.log("ランディング画面表示");
-    document.getElementById("adminLoginView").style.display = "none";
-    document.getElementById("landingView").style.display = "block";
+  console.log("ランディング画面表示");
+  document.getElementById("adminLoginView").style.display = "none";
+  document.getElementById("adminRegisterForm").style.display = "none";
+  document.getElementById("landingView").style.display = "block";
+
+  // 全フォームのrequired属性を無効化
+  const allInputs = document.querySelectorAll(
+    "#adminLoginForm input[required], #adminRegisterForm input[required]"
+  );
+  allInputs.forEach((input) => {
+    input.setAttribute("data-required", "true");
+    input.required = false;
+  });
 }
 
 // Admin専用ログイン処理（シンプル版）
 async function initAdminLogin() {
-    // 既にログイン済みかチェック
-    const currentAdmin = localStorage.getItem("currentAdmin");
-    if (currentAdmin) {
-        try {
-            const adminData = JSON.parse(currentAdmin);
-            console.log("Admin認証済み:", adminData.admin_name || adminData.admin_id);
-            window.location.href = "./admin.html";
-            return;
-        } catch (e) {
-            localStorage.removeItem("currentAdmin");
-        }
+  // 既にログイン済みかチェック
+  const currentAdmin = localStorage.getItem("currentAdmin");
+  if (currentAdmin) {
+    try {
+      const adminData = JSON.parse(currentAdmin);
+      console.log("Admin認証済み:", adminData.admin_name || adminData.admin_id);
+      window.location.href = "./admin.html";
+      return;
+    } catch (e) {
+      localStorage.removeItem("currentAdmin");
     }
+  }
 
-    // ログインフォーム表示
-    showAdminLoginForm();
+  // ログインフォーム表示
+  showAdminLoginForm();
 }
 
 // Admin新規登録処理（シンプル版）
 async function registerAdmin(formData) {
-    try {
-        const adminId = formData.adminId;
-        const adminName = formData.adminName;
-        const email = formData.email;
-        const password = formData.password;
+  try {
+    const adminId = formData.adminId;
+    const adminName = formData.adminName;
+    const email = formData.email;
+    const password = formData.password;
 
-        // 管理者情報をFirestoreに保存
-        const adminRef = doc(db, "admin_settings", adminId);
-        const adminDoc = await getDoc(adminRef);
+    // 管理者情報をFirestoreに保存
+    const adminRef = doc(db, "admin_settings", adminId);
+    const adminDoc = await getDoc(adminRef);
 
-        if (adminDoc.exists()) {
-            throw new Error("この管理者IDは既に使用されています");
-        }
-
-        await setDoc(adminRef, {
-            admin_id: adminId,
-            admin_name: adminName,
-            email: email,
-            password: password,
-            role: "admin",
-            is_active: true,
-            account_status: "test",
-            plan_type: "free",
-            created_at: serverTimestamp(),
-        });
-
-        alert("管理者登録が完了しました");
-        return { success: true };
-    } catch (error) {
-        console.error("Admin登録エラー:", error);
-        return { success: false, error: error.message };
+    if (adminDoc.exists()) {
+      throw new Error("この管理者IDは既に使用されています");
     }
+
+    // Firebase Authにも管理者ユーザー登録（必須）
+    const auth = getAuth();
+    let userCredential = null;
+    try {
+      userCredential = await import(
+        "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"
+      ).then((mod) =>
+        mod.createUserWithEmailAndPassword(auth, email, password)
+      );
+    } catch (e) {
+      // Firebase Auth登録失敗時はエラーで終了
+      let errorMessage = "";
+      if (e.code === "auth/email-already-in-use") {
+        errorMessage =
+          "このメールアドレスは既に使用されています。別のメールアドレスを使用してください。";
+      } else if (e.code === "auth/weak-password") {
+        errorMessage = "パスワードが弱すぎます。6文字以上で設定してください。";
+      } else if (e.code === "auth/invalid-email") {
+        errorMessage = "メールアドレスの形式が正しくありません。";
+      } else {
+        errorMessage =
+          "Firebase Auth登録でエラーが発生しました: " + (e.message || e);
+      }
+      throw new Error(errorMessage);
+    }
+
+    // Firebase Auth登録成功時のみFirestoreに保存
+    await setDoc(adminRef, {
+      admin_id: adminId,
+      admin_name: adminName,
+      email: email,
+      password: password,
+      role: adminId === "superuser" ? "superuser" : "admin", // superuserの場合は特別なrole
+      is_active: true,
+      account_status: adminId === "superuser" ? "developer" : "test",
+      plan_type: "free",
+      created_at: serverTimestamp(),
+      uid: userCredential.user.uid, // Firebase AuthのUID（必須）
+    });
+
+    // 登録成功
+    alert(
+      "管理者登録が完了しました（Firebase Auth + Firestore両方に登録済み）"
+    );
+    return { success: true };
+  } catch (error) {
+    console.error("Admin登録エラー:", error);
+    return { success: false, error: error.message };
+  }
 }
 
 // Adminログイン処理（Firebase Auth統合版）
 async function loginAdmin(adminId, password) {
-    try {
-        const adminRef = doc(db, "admin_settings", adminId);
-        const adminDoc = await getDoc(adminRef);
+  try {
+    const adminRef = doc(db, "admin_settings", adminId);
+    const adminDoc = await getDoc(adminRef);
 
-        if (!adminDoc.exists()) {
-            throw new Error("Admin IDが見つかりません");
-        }
-
-        const adminData = adminDoc.data();
-
-        // パスワードチェック
-        if (adminData.password !== password) {
-            throw new Error("パスワードが間違っています");
-        }
-
-        // 最小限のセッション保存（管理機能用）
-        const sessionData = {
-            admin_id: adminId,
-            admin_name: adminData.admin_name || adminId,
-            email: adminData.email,
-            role: "admin",
-            timestamp: Date.now(),
-        };
-
-        localStorage.setItem("currentAdmin", JSON.stringify(sessionData));
-
-        return {
-            success: true,
-            adminData: sessionData,
-            redirectUrl: "./admin.html",
-        };
-    } catch (error) {
-        console.error("Adminログインエラー:", error);
-        return { success: false, error: error.message };
+    if (!adminDoc.exists()) {
+      throw new Error("Admin IDが見つかりません");
     }
+
+    const adminData = adminDoc.data();
+
+    // パスワードチェック（Firestore認証）
+    if (adminData.password !== password) {
+      throw new Error("パスワードが間違っています");
+    }
+
+    // Firestoreからemailを取得し、Firebase Auth認証
+    const auth = getAuth();
+    let firebaseUser = null;
+    try {
+      const userCredential = await import(
+        "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"
+      ).then((mod) =>
+        mod.signInWithEmailAndPassword(auth, adminData.email, password)
+      );
+      firebaseUser = userCredential.user;
+    } catch (e) {
+      throw new Error("Firebase Auth認証に失敗しました: " + (e.message || e));
+    }
+
+    // 認証成功時のみadmin.htmlへリダイレクト
+    return {
+      success: true,
+      adminData: {
+        admin_id: firebaseUser.uid,
+        admin_name: adminData.admin_name || firebaseUser.uid,
+        email: adminData.email,
+        role: "admin",
+        timestamp: Date.now(),
+      },
+      redirectUrl: "./admin.html",
+    };
+  } catch (error) {
+    console.error("Adminログインエラー:", error);
+    return { success: false, error: error.message };
+  }
 }
 
 // UIコントロール関数
 function showAdminRegisterForm() {
-    document.getElementById("adminLoginForm").style.display = "none";
-    document.getElementById("adminRegisterForm").style.display = "block";
+  document.getElementById("landingView").style.display = "none";
+  document.getElementById("adminLoginView").style.display = "none";
+  document.getElementById("adminRegisterForm").style.display = "block";
+
+  // 管理者登録フォームのrequired属性を有効化
+  const registerInputs = document.querySelectorAll(
+    "#adminRegisterForm input[data-required='true']"
+  );
+  registerInputs.forEach((input) => (input.required = true));
+
+  // 管理者ログインフォームのrequired属性を無効化
+  const loginInputs = document.querySelectorAll(
+    "#adminLoginForm input[required]"
+  );
+  loginInputs.forEach((input) => {
+    input.setAttribute("data-required", "true");
+    input.required = false;
+  });
 }
-
-
 
 // フォーム送信処理
 async function handleAdminRegister(event) {
-    event.preventDefault();
-    const form = event.target;
-    const formData = new FormData(form);
+  event.preventDefault();
+  const form = event.target;
+  const formData = new FormData(form);
 
-    const adminData = {
-        adminId: formData.get("adminId"),
-        adminName: formData.get("adminName"),
-        email: formData.get("email"),
-        password: formData.get("password"),
-    };
+  const adminData = {
+    adminId: formData.get("adminId"),
+    adminName: formData.get("adminName"),
+    email: formData.get("email"),
+    password: formData.get("password"),
+  };
 
-    const result = await registerAdmin(adminData);
-    if (result.success) {
-        alert("管理者登録が完了しました。ログイン画面に移動します。");
-        showAdminLoginForm();
-        form.reset();
-    } else {
-        alert("登録に失敗しました: " + result.error);
-    }
+  const result = await registerAdmin(adminData);
+  if (result.success) {
+    alert("管理者登録が完了しました。ログイン画面に移動します。");
+    showAdminLoginForm();
+    form.reset();
+  } else {
+    alert("登録に失敗しました: " + result.error);
+  }
 }
 
 async function handleAdminLogin(event) {
-    event.preventDefault();
+  event.preventDefault();
 
-    const formData = new FormData(event.target);
-    const adminId = formData.get("adminId");
-    const password = formData.get("password");
+  const formData = new FormData(event.target);
+  const adminId = formData.get("adminId");
+  const password = formData.get("password");
 
-    const result = await loginAdmin(adminId, password);
+  const result = await loginAdmin(adminId, password);
 
-    if (result.success) {
-        window.location.href = result.redirectUrl;
-    } else {
-        alert("ログインに失敗しました: " + result.error);
-    }
+  if (result.success) {
+    window.location.href = result.redirectUrl;
+  } else {
+    alert("ログインに失敗しました: " + result.error);
+  }
 }
 
 // グローバルスコープに関数を追加
@@ -208,4 +334,4 @@ window.handleAdminRegister = handleAdminRegister;
 window.navigateToLogin = navigateToLogin;
 window.showLandingView = showLandingView;
 window.navigateToLogin = navigateToLogin;
-window.navigateToAdmin = navigateToAdmin;
+//window.navigateToAdmin = navigateToAdmin;

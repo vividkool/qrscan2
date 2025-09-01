@@ -44,6 +44,7 @@ const db = getFirestore(app);
 // ユーザーロール定義
 const USER_ROLES = {
   ADMIN: "admin",
+  SUPERUSER: "superuser", // 開発者用SuperUser
   USER: "user",
   STAFF: "staff",
   MAKER: "maker",
@@ -53,11 +54,16 @@ const USER_ROLES = {
 
 // ページアクセス権限定義
 const PAGE_PERMISSIONS = {
-  "admin.html": [USER_ROLES.ADMIN],
-  "staff.html": [USER_ROLES.STAFF],
-  "maker.html": [USER_ROLES.MAKER],
-  "superuser.html": [USER_ROLES.SUPERUSER],
-  "user.html": [USER_ROLES.USER, USER_ROLES.STAFF, USER_ROLES.MAKER],
+  "admin.html": [USER_ROLES.ADMIN, USER_ROLES.SUPERUSER], // SUPERUSERも管理画面アクセス可
+  "staff.html": [USER_ROLES.STAFF, USER_ROLES.SUPERUSER],
+  "maker.html": [USER_ROLES.MAKER, USER_ROLES.SUPERUSER],
+  "superuser.html": [USER_ROLES.SUPERUSER], // SUPERUSER専用
+  "user.html": [
+    USER_ROLES.USER,
+    USER_ROLES.STAFF,
+    USER_ROLES.MAKER,
+    USER_ROLES.SUPERUSER,
+  ],
   "index.html": [], // 公開ページ
   "login.html": [], // 公開ページ
   "/": [USER_ROLES.ADMIN],
@@ -91,9 +97,29 @@ class FirebaseAuthManager {
       currentFirebaseUser = firebaseUser;
       if (firebaseUser) {
         try {
+          // Firestoreから管理者情報を取得
+          let adminData = null;
+          try {
+            const adminQuery = query(
+              collection(db, "admin_settings"),
+              where("uid", "==", firebaseUser.uid),
+              limit(1)
+            );
+            const adminSnapshot = await getDocs(adminQuery);
+            if (!adminSnapshot.empty) {
+              adminData = adminSnapshot.docs[0].data();
+              console.log("🔍 Firestoreから管理者データ取得:", adminData);
+            }
+          } catch (error) {
+            console.log(
+              "管理者データ取得エラー（通常ユーザーの可能性）:",
+              error
+            );
+          }
+
           // Firebase Authトークンから情報を優先取得
           const token = await firebaseUser.getIdToken();
-          const payload = JSON.parse(atob(token.split('.')[1]));
+          const payload = JSON.parse(atob(token.split(".")[1]));
 
           console.log("🔍 onAuthStateChanged トークン詳細:");
           console.log("- UID:", firebaseUser.uid);
@@ -101,7 +127,7 @@ class FirebaseAuthManager {
 
           // UTF-8デコードを修正
           let userName = payload.user_name;
-          if (userName && typeof userName === 'string') {
+          if (userName && typeof userName === "string") {
             // 文字化けしたUTF-8文字列をデコード
             try {
               userName = decodeURIComponent(escape(userName));
@@ -114,8 +140,10 @@ class FirebaseAuthManager {
           const userData = {
             uid: firebaseUser.uid,
             user_id: payload.user_id || firebaseUser.uid,
-            user_name: userName,
-            role: payload.role, // Firebase Authトークンのroleを優先
+            user_name: adminData
+              ? adminData.admin_name
+              : userName || firebaseUser.uid,
+            role: adminData ? adminData.role : payload.role, // Firestoreの管理者データを優先
             authType: "FIREBASE",
             timestamp: Date.now(),
             firebaseUser: firebaseUser,
@@ -133,10 +161,7 @@ class FirebaseAuthManager {
           }
 
           // Firebase AuthトークンベースのデータでlocalStorageを更新
-          localStorage.setItem(
-            "firebaseSessionData",
-            JSON.stringify(userData)
-          );
+          localStorage.setItem("firebaseSessionData", JSON.stringify(userData));
 
           callback(userData);
         } catch (error) {
@@ -198,13 +223,36 @@ class UserSession {
             currentUser = parsed;
             return parsed;
           }
-        } catch { }
+        } catch {}
       }
 
       // Firebase Authのトークンから直接情報を取得
       try {
+        // Firestoreから管理者情報を取得
+        let adminData = null;
+        try {
+          const adminQuery = query(
+            collection(db, "admin_settings"),
+            where("uid", "==", currentFirebaseUser.uid),
+            limit(1)
+          );
+          const adminSnapshot = await getDocs(adminQuery);
+          if (!adminSnapshot.empty) {
+            adminData = adminSnapshot.docs[0].data();
+            console.log(
+              "🔍 getCurrentUser: Firestoreから管理者データ取得:",
+              adminData
+            );
+          }
+        } catch (error) {
+          console.log(
+            "getCurrentUser: 管理者データ取得エラー（通常ユーザーの可能性）:",
+            error
+          );
+        }
+
         const token = await currentFirebaseUser.getIdToken();
-        const payload = JSON.parse(atob(token.split('.')[1]));
+        const payload = JSON.parse(atob(token.split(".")[1]));
 
         console.log("🔍 Firebase Auth トークン詳細デバッグ:");
         console.log("- UID:", currentFirebaseUser.uid);
@@ -215,7 +263,7 @@ class UserSession {
 
         // UTF-8デコードを修正
         let userName = payload.user_name;
-        if (userName && typeof userName === 'string') {
+        if (userName && typeof userName === "string") {
           try {
             userName = decodeURIComponent(escape(userName));
           } catch (e) {
@@ -226,8 +274,8 @@ class UserSession {
         const firebaseUserData = {
           uid: currentFirebaseUser.uid,
           user_id: payload.user_id,
-          user_name: userName,
-          role: payload.role, // Firebase Authのトークンから直接取得
+          user_name: adminData ? adminData.admin_name : userName,
+          role: adminData ? adminData.role : payload.role, // Firestoreの管理者データを優先
           authType: "FIREBASE",
           timestamp: Date.now(),
           firebaseUser: currentFirebaseUser,
@@ -236,7 +284,10 @@ class UserSession {
         console.log("🎯 最終的なuserData:", firebaseUserData);
 
         // キャッシュとして保存
-        localStorage.setItem("firebaseSessionData", JSON.stringify(firebaseUserData));
+        localStorage.setItem(
+          "firebaseSessionData",
+          JSON.stringify(firebaseUserData)
+        );
         currentUser = firebaseUserData;
         return firebaseUserData;
       } catch (error) {
@@ -319,7 +370,11 @@ if (
 
   FirebaseAuthManager.onAuthStateChanged((user) => {
     if (user) {
-      console.log("認証状態監視: Firebase Auth認証済み -", user.user_name, "(" + user.role + ")");
+      console.log(
+        "認証状態監視: Firebase Auth認証済み -",
+        user.user_name,
+        "(" + user.role + ")"
+      );
       currentUser = user;
     } else {
       console.log("認証状態監視: 未認証状態");

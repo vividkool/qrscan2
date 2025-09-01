@@ -114,17 +114,15 @@ async function debugLogin(admin_id, user_id) {
     );
 
     showSuccess(
-      `${userData.user_name || user_id
+      `${
+        userData.user_name || user_id
       } さんでログインしました。リダイレクトします...`
     );
 
-    // Firebase Auth認証成功後、ロールベースでパラメータなしリダイレクト
     if (role === "maker") {
-      window.location.href = "./maker.html";
-    } else if (role === "staff") {
-      window.location.href = "./staff.html";
+      window.location.href = `./maker.html?admin_id=${admin_id}&user_id=${user_id}`;
     } else {
-      window.location.href = "./user.html";
+      window.location.href = `./user.html?admin_id=${admin_id}&user_id=${user_id}`;
     }
   } catch (err) {
     showError("ログインエラー: " + (err.message || err));
