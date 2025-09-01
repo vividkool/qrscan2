@@ -85,7 +85,7 @@ function checkAdminAuthentication() {
     }
     if (currentAdmin.role === "user") {
       alert("ユーザー権限で管理画面にアクセスしたため、ユーザーページに移動します。");
-      window.location.href = `./user.html?admin_id=${currentAdmin.admin_id}&user_id=${currentAdmin.user_id}`;
+      window.location.href = "./user.html";
       return null;
     }
     if (currentAdmin.role !== "admin") {
