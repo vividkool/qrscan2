@@ -1,257 +1,212 @@
-// Maker Page Functions
-import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+// Maker Page Functions (Firebase Auth専用・パラメータ削除版)
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import "./auth.js";
 import "./smart-qr-scanner.js";
-import {
-  initializeApp,
-  getApps,
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import {
-  getFirestore,
-  collection,
-  getDocs,
-  query,
-  where,
-  orderBy,
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-// Firebase設定
-const firebaseConfig = {
-  apiKey: "AIzaSyCWFL91baSHkjkvU_k-yTUv6QS191YTFlg",
-  authDomain: "qrscan2-99ffd.firebaseapp.com",
-  projectId: "qrscan2-99ffd",
-  storageBucket: "qrscan2-99ffd.firebasestorage.app",
-  messagingSenderId: "1089215781575",
-  appId: "1:1089215781575:web:bf9d05f6930b7123813ce2",
-  measurementId: "G-QZZWT3HW0W",
-};
-
-// Firebase初期化
-const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-import { AuthManager, USER_ROLES } from "./auth.js";
 
 console.log("=== maker.html ページ初期化 ===");
 
-document.addEventListener("DOMContentLoaded", async () => {
-  const params = new URLSearchParams(window.location.search);
-  const userId = params.get("user_id");
+// Firebase Auth認証状態の確定を待機
+async function waitForFirebaseAuth() {
+  const auth = getAuth();
 
-  if (!userId) {
-    console.error("user_id が URL にありません");
-    window.location.href = "login.html";
-    return;
-  }
-
-  const user = await AuthManager.fetchUser(userId);
-  if (!user) {
-    console.error("ユーザー情報が取得できません:", userId);
-    window.location.href = "login.html";
-    return;
-  }
-
-  // makerページ専用アクセスチェック
-  if (user.role !== USER_ROLES.MAKER) {
-    console.warn("アクセス権限がありません:", user.role);
-    window.location.href = AuthManager.getRedirectUrl(user.role);
-    return;
-  }
-
-  console.log("[DEBUG] 現在のユーザー:", user);
-
-  // 初期化処理
-  if (window.SmartQRScanner) {
-    console.log("[Smart QR Scanner] スキャン履歴表示開始");
-    SmartQRScanner.init(user);
-  }
-
-  // デバッグボタン
-  const debugBtn = document.createElement("button");
-  debugBtn.textContent = "デバッグ: 現在ユーザー情報";
-  debugBtn.style.position = "fixed";
-  debugBtn.style.bottom = "10px";
-  debugBtn.style.right = "10px";
-  debugBtn.style.zIndex = 9999;
-  debugBtn.onclick = () => {
-    console.log("[DEBUG] user object:", user);
-    alert(JSON.stringify(user, null, 2));
-  };
-  document.body.appendChild(debugBtn);
-});
-
-// ユーザー情報HTML生成関数（user.js からコピー）
-function generateUserInfoHTML(user, userId) {
-  const companyName = user.company_name || user.companyName || "未設定";
-  return `
-    <div class="user-card">
-      <div class="user-details">
-        <div class="detail-item">
-          <span class="label">🏢 会社名:</span>
-          <span class="value">${companyName}</span>
-        </div>
-      </div>
-      <div class="user-header">
-        <h3>👨‍💼 ${user.user_name || user.name || "ユーザー"}</h3>
-      </div>
-    </div>
-  `;
-}
-
-// エラー表示HTML
-function generateErrorHTML(title, message) {
-  return `
-    <div class="user-card error">
-      <div class="user-header">
-        <h3>⚠️ ${title}</h3>
-      </div>
-      <div class="user-details">
-        <p>${message}</p>
-        <button onclick="handleLogout()" class="logout-btn">ログアウト</button>
-      </div>
-    </div>
-  `;
-}
-
-// ユーザー情報表示とメーカーアイテム表示
-async function displayUserInfo(userId) {
-  const userInfoElement = document.getElementById("userInfo");
-  if (!userInfoElement) return;
-
-  try {
-    // Firestoreからユーザー情報取得
-    const userQuery = query(
-      collection(db, "users"),
-      where("user_id", "==", userId)
-    );
-    const userSnapshot = await getDocs(userQuery);
-
-    if (userSnapshot.empty) {
-      userInfoElement.innerHTML = generateErrorHTML(
-        "エラー",
-        "ユーザーが見つかりません"
-      );
+  return new Promise((resolve) => {
+    if (auth.currentUser) {
+      // 既に認証済みの場合
+      resolve(auth.currentUser);
       return;
     }
 
-    const userDoc = userSnapshot.docs[0];
-    const user = userDoc.data();
+    // 認証状態変更を監視
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      console.log("Firebase Auth状態変更:", user ? "認証済み" : "未認証", user?.uid);
+      unsubscribe(); // 一度だけ実行
+      resolve(user);
+    });
 
-    // 表示準備
-    userInfoElement.innerHTML =
-      generateUserInfoHTML(user, userId) +
-      `
-      <div class="loading-container">
-        <div class="spinner"></div>
-        <span>メーカー関連アイテムを読み込み中...</span>
-      </div>
-    `;
-
-    // メーカー関連アイテム表示
-    await displayMakerItems(user);
-  } catch (error) {
-    console.error("ユーザー情報表示エラー:", error);
-    userInfoElement.innerHTML = generateErrorHTML(
-      "エラー",
-      `ユーザー情報取得中にエラーが発生しました: ${error.message}`
-    );
-  }
+    // タイムアウト処理（10秒で諦める）
+    setTimeout(() => {
+      console.warn("Firebase Auth認証待機タイムアウト");
+      unsubscribe();
+      resolve(null);
+    }, 10000);
+  });
 }
 
-// メーカー関連アイテム取得・表示（簡略版）
-async function displayMakerItems(user) {
-  const userInfoElement = document.getElementById("userInfo");
-  const userId = user.user_id || user.uid;
-
-  try {
-    const itemsQuery = query(
-      collection(db, "items"),
-      where("maker_code", "==", userId),
-      orderBy("item_no", "asc")
-    );
-    const itemsSnapshot = await getDocs(itemsQuery);
-
-    let html = generateUserInfoHTML(user, userId);
-
-    if (itemsSnapshot.empty) {
-      html += `<div class="user-card">
-        <div class="user-header"><h3>📦 メーカー関連アイテム</h3></div>
-        <div class="user-details"><p>該当するアイテムが見つかりません。</p></div>
-      </div>`;
-    } else {
-      // 簡易集計: scanItems 全取得してメモリ上でカウント
-      const scanSnapshot = await getDocs(collection(db, "scanItems"));
-      const scanCounts = {};
-      scanSnapshot.forEach((doc) => {
-        const data = doc.data();
-        if (data.item_no != null) {
-          const key = data.item_no.toString();
-          scanCounts[key] = (scanCounts[key] || 0) + 1;
-        }
-      });
-
-      html += `<div class="user-card">
-        <div class="user-header"><h3>📦 メーカー関連アイテム (${itemsSnapshot.size}件)</h3></div>
-        <div class="items-table-container">
-          <table class="items-table">
-            <thead>
-              <tr>
-                <th>アイテム番号</th>
-                <th>カテゴリ</th>
-                <th>会社名</th>
-                <th>アイテム名</th>
-                <th>スキャン回数</th>
-              </tr>
-            </thead>
-            <tbody>`;
-
-      itemsSnapshot.forEach((doc) => {
-        const data = doc.data();
-        const scanCount = scanCounts[data.item_no?.toString()] || 0;
-
-        let scanCountClass = "";
-        if (scanCount > 10)
-          scanCountClass =
-            'style="background-color:#28a745;color:white;font-weight:bold;"';
-        else if (scanCount > 5)
-          scanCountClass =
-            'style="background-color:#ffc107;color:black;font-weight:bold;"';
-        else if (scanCount > 0)
-          scanCountClass = 'style="background-color:#9cf2aeff;"';
-        else scanCountClass = 'style="background-color:#ffffff;"';
-
-        html += `<tr>
-          <td><strong>${data.item_no || "未設定"}</strong></td>
-          <td>${data.category_name || "未分類"}</td>
-          <td>${data.company_name || "未設定"}</td>
-          <td>${data.item_name || "未設定"}</td>
-          <td class="content-cell" ${scanCountClass}>${scanCount}回</td>
-        </tr>`;
-      });
-
-      html += `</tbody></table></div></div>`;
-    }
-
-    userInfoElement.innerHTML = html;
-  } catch (error) {
-    console.error("メーカー関連アイテム取得エラー:", error);
-    userInfoElement.innerHTML =
-      generateUserInfoHTML(user, userId) +
-      generateErrorHTML(
-        "アイテム取得エラー",
-        `取得中にエラーが発生しました: ${error.message}`
-      );
+// ページロード時の初期化
+document.addEventListener("DOMContentLoaded", async function () {
+  // URLパラメータをクリーンアップ（レガシーパラメータ削除）
+  const url = new URL(window.location.href);
+  if (url.search) {
+    console.log("レガシーURLパラメータを削除:", url.search);
+    // パラメータを削除してURLを更新
+    window.history.replaceState({}, '', url.pathname);
   }
-}
 
-// ログアウト処理
-function handleLogout() {
-  if (confirm("ログアウトしますか？")) {
+  // レガシーlocalStorageデータを削除
+  localStorage.removeItem("currentUser");
+  localStorage.removeItem("session");
+  localStorage.removeItem("loginTime");
+
+  // Firebase Auth認証待機
+  console.log("Firebase Auth認証を待機しています...");
+  const firebaseUser = await waitForFirebaseAuth();
+
+  if (!firebaseUser) {
+    console.warn("Firebase Auth認証に失敗、ログイン画面にリダイレクト");
     window.location.href = "login.html";
+    return;
+  }
+
+  console.log("Firebase Auth認証完了:", firebaseUser.uid);
+
+  // ユーザー情報取得と役割チェック
+  let userData = null;
+  if (window.UserSession && typeof UserSession.getCurrentUser === "function") {
+    userData = await UserSession.getCurrentUser();
+    console.log("Firebase Auth ユーザーデータ取得:", userData);
+  }
+
+  // 役割に応じたページリダイレクト処理
+  if (userData && userData.role) {
+    const currentPage = window.location.pathname.split('/').pop();
+    console.log("現在のページ:", currentPage, "ユーザー役割:", userData.role);
+
+    // 役割とページの整合性チェック
+    if (userData.role === 'user' && currentPage === 'maker.html') {
+      console.log("一般ユーザーをuser.htmlにリダイレクト");
+      window.location.href = "user.html";
+      return;
+    } else if (userData.role === 'staff' && currentPage === 'maker.html') {
+      console.log("staffユーザーをstaff.htmlにリダイレクト");
+      window.location.href = "staff.html";
+      return;
+    } else if (userData.role === 'admin' && currentPage === 'maker.html') {
+      console.log("adminユーザーをstaff.htmlにリダイレクト");
+      window.location.href = "staff.html";
+      return;
+    } else if (userData.role !== 'maker' && currentPage === 'maker.html') {
+      console.log(`${userData.role}ユーザーのためmaker.htmlから適切なページにリダイレクト`);
+      // デフォルトで適切なページにリダイレクト
+      if (userData.role === 'user') {
+        window.location.href = "user.html";
+      } else if (userData.role === 'staff' || userData.role === 'admin') {
+        window.location.href = "staff.html";
+      }
+      return;
+    }
+  }
+
+  // ユーザー情報表示とメーカー関連アイテム表示
+  await displayUserInfo();
+
+  // スキャン履歴の読み込み
+  if (window.smartScanner && window.smartScanner.displayScanHistory) {
+    await window.smartScanner.displayScanHistory();
+  } else {
+    const scanHistoryElement = document.getElementById("scanHistory");
+    if (scanHistoryElement) {
+      scanHistoryElement.innerHTML =
+        '<span style="color: #4285f4; font-weight: bold;">スキャンボタンを押してスキャンしてください</span>';
+    }
+  }
+});
+
+// ユーザー情報表示とメーカー関連アイテム表示
+async function displayUserInfo() {
+  const userInfoElement = document.getElementById("userInfo");
+  if (userInfoElement) {
+    try {
+      let user = null;
+      // UserSessionクラスから取得（Firebase Auth専用）
+      if (window.UserSession && typeof UserSession.getCurrentUser === "function") {
+        user = await UserSession.getCurrentUser();
+        console.log("UserSession経由でユーザー情報取得:", user);
+      }
+
+      if (user) {
+        console.log("取得したユーザー情報の詳細:", user);
+        const companyName = user.company_name || user.companyName || "会社名未設定";
+        const userName = user.user_name || user.userName || user.displayName || "ユーザー名未設定";
+
+        // ロールチェック
+        if (user.role !== "maker") {
+          console.warn("アクセス権限がありません:", user.role);
+          const redirectUrl = user.role === "staff" ? "staff.html" : user.role === "admin" ? "admin.html" : "user.html";
+          window.location.href = redirectUrl;
+          return;
+        }
+
+        userInfoElement.innerHTML = `
+          <div style="display: flex; flex-direction: column; gap: 5px;">
+            <div style="display: flex; flex-direction: column;">
+              <span style="font-weight: bold;">会社名：${companyName}様</span>
+              <span style="font-weight: bold;">ご芳名：${userName}様 (Maker)</span>
+            </div>
+            <div style="font-size: 0.7em; color: #999; font-family: monospace;">
+              DEBUG: user_id = ${user.user_id || user.id || "未設定"}<br>
+              DEBUG: role = ${user.role || "未設定"}
+            </div>
+          </div>
+        `;
+
+        console.log("Maker情報表示完了:", user);
+
+        // メーカー関連アイテム表示
+        await displayMakerItems(user);
+      } else {
+        userInfoElement.innerHTML = '<span style="color: #dc3545;">ユーザー情報を取得できませんでした</span>';
+        console.warn("ユーザー情報が見つかりません");
+      }
+    } catch (error) {
+      console.error("displayUserInfo エラー:", error);
+      userInfoElement.innerHTML = '<span style="color: #dc3545;">ユーザー情報の表示でエラーが発生しました</span>';
+    }
+  } else {
+    console.warn("userInfo要素が見つかりません");
   }
 }
 
-window.handleLogout = handleLogout;
-window.displayUserInfo = displayUserInfo;
+// メーカー関連アイテム表示
+async function displayMakerItems(user) {
+  const makerItemsElement = document.getElementById("makerItems");
+  if (makerItemsElement && user.user_name) {
+    try {
+      makerItemsElement.innerHTML = '<div class="loading">関連アイテムを読み込み中...</div>';
+
+      // TODO: メーカー関連アイテムの表示ロジックを実装
+      // 現在は基本的な表示のみ
+      makerItemsElement.innerHTML = `
+        <div style="padding: 20px; background: #f8f9fa; border-radius: 8px;">
+          <h3 style="margin-top: 0;">🏭 ${user.user_name} 関連アイテム</h3>
+          <p>メーカー関連アイテムの表示機能を準備中です。</p>
+        </div>
+      `;
+
+      console.log("メーカー関連アイテム表示完了");
+    } catch (error) {
+      console.error("メーカー関連アイテム表示エラー:", error);
+      makerItemsElement.innerHTML = '<div class="error">関連アイテムの表示でエラーが発生しました</div>';
+    }
+  }
+}
 
 console.log("Maker page functions loaded");
+
+// Maker用ログアウト処理（Firebase Auth版）
+async function handleLogout() {
+  console.log("ログアウト処理開始");
+  
+  const auth = getAuth();
+  try {
+    await auth.signOut();
+    console.log("Firebase Auth ログアウト完了");
+    alert("ログアウトしました。");
+    window.location.href = "login.html";
+  } catch (error) {
+    console.error("ログアウトエラー:", error);
+    alert("ログアウト中にエラーが発生しました。");
+  }
+}
+
+// ログアウト関数をグローバルに公開
+window.handleLogout = handleLogout;

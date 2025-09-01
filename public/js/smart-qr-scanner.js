@@ -592,24 +592,17 @@ class SmartQRScanner {
 
   async getCurrentUserInfo() {
     try {
-      const auth = getAuth();
-      const user = auth.currentUser;
-      if (!user) throw new Error("ユーザーがログインしていません");
-
-      const db = getFirestore();
-      const userRef = doc(db, "users", user.uid);
-      const userSnap = await getDoc(userRef);
-
-      if (!userSnap.exists()) {
-        userInfoElement.innerHTML =
-          '<span style="color: #dc3545;">ユーザー情報を取得できませんでした</span>';
-        console.warn("ユーザー情報が見つかりません");
-        return;
+      // Firebase Auth優先でユーザー情報取得（UserSession経由）
+      if (typeof UserSession !== "undefined" && UserSession.getSession) {
+        const user = await UserSession.getSession();
+        if (user && typeof user === "object") {
+          this.debugLog("UserSession からユーザー情報取得", user);
+          return user;
+        }
       }
 
-      const userData = userSnap.data();
-      this.debugLog("取得したユーザー情報", userData);
-      return userData;
+      this.debugLog("ユーザー情報が見つかりません");
+      return {};
     } catch (error) {
       this.debugLog("ユーザー情報取得エラー", error);
       return {};
@@ -722,12 +715,25 @@ class SmartQRScanner {
       // Firestoreからスキャン履歴を取得（user_idでフィルタ）
       let querySnapshot;
       try {
+        this.debugLog("🔍 Firestoreクエリ開始", {
+          collection: "scanItems",
+          user_id: currentUser.user_id,
+          user_id_type: typeof currentUser.user_id
+        });
+
         const userQuery = query(
           collection(db, "scanItems"),
           where("user_id", "==", String(currentUser.user_id))
         );
         querySnapshot = await getDocs(userQuery);
+
+        this.debugLog("🔍 文字列クエリ結果", {
+          isEmpty: querySnapshot.empty,
+          size: querySnapshot.size
+        });
+
         if (querySnapshot.empty) {
+          this.debugLog("🔍 数値型でのクエリを試行中...");
           const userIdAsNumber = parseInt(currentUser.user_id, 10);
           if (!isNaN(userIdAsNumber)) {
             const numberQuery = query(
@@ -735,8 +741,26 @@ class SmartQRScanner {
               where("user_id", "==", userIdAsNumber)
             );
             querySnapshot = await getDocs(numberQuery);
+            this.debugLog("🔍 数値クエリ結果", {
+              isEmpty: querySnapshot.empty,
+              size: querySnapshot.size,
+              userIdAsNumber
+            });
           }
         }
+
+        // 全ドキュメント取得して確認（デバッグ用）
+        this.debugLog("🔍 全scanItemsドキュメント確認中...");
+        const allDocsQuery = query(collection(db, "scanItems"));
+        const allDocs = await getDocs(allDocsQuery);
+        this.debugLog("🔍 全scanItemsドキュメント", {
+          totalCount: allDocs.size,
+          sample: allDocs.size > 0 ? allDocs.docs.slice(0, 3).map(doc => ({
+            id: doc.id,
+            data: doc.data()
+          })) : []
+        });
+
       } catch (error) {
         historyElement.innerHTML =
           '<div class="error">履歴の検索中にエラーが発生しました</div>';
@@ -745,9 +769,8 @@ class SmartQRScanner {
       }
 
       if (querySnapshot.empty) {
-        historyElement.innerHTML = `<div class="no-data">📝 ${
-          currentUser.user_name || "あなた"
-        }のスキャン履歴がありません</div>`;
+        historyElement.innerHTML = `<div class="no-data">📝 ${currentUser.user_name || "あなた"
+          }のスキャン履歴がありません</div>`;
         this.debugLog("該当ユーザーのスキャン履歴なし", currentUser.user_id);
         return;
       }
@@ -832,9 +855,8 @@ class SmartQRScanner {
       html += "</div>";
 
       if (scanData.length > 20) {
-        html += `<div class="history-footer">他 ${
-          scanData.length - 20
-        } 件</div>`;
+        html += `<div class="history-footer">他 ${scanData.length - 20
+          } 件</div>`;
       }
 
       // 総件数表示
@@ -978,9 +1000,8 @@ class SmartQRScanner {
       html += "</div>";
 
       if (scanData.length > 50) {
-        html += `<div class="history-footer">他 ${
-          scanData.length - 50
-        } 件</div>`;
+        html += `<div class="history-footer">他 ${scanData.length - 50
+          } 件</div>`;
       }
 
       // 総件数表示

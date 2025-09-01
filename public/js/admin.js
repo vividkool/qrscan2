@@ -1,11 +1,87 @@
-﻿// Firebase Index Page Functions (Admin別データ管理版)
-import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+﻿// Firebase Index Page Functions (Firebase Auth専用版)
+import {
+  getAuth,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import "./auth.js"; // UserSession機能を利用
 
-document.addEventListener("DOMContentLoaded", function () {
+// Firebase Auth認証チェック（admin.js専用）
+async function waitForFirebaseAuth() {
   const auth = getAuth();
-  if (!auth.currentUser) {
-    window.location.href = "./login.html";
+
+  return new Promise((resolve) => {
+    if (auth.currentUser) {
+      // 既に認証済みの場合
+      resolve(auth.currentUser);
+      return;
+    }
+
+    // 認証状態変更を監視
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      console.log("Firebase Auth状態変更:", user ? "認証済み" : "未認証", user?.uid);
+      unsubscribe(); // 一度だけ実行
+      resolve(user);
+    });
+
+    // タイムアウト処理（10秒で諦める）
+    setTimeout(() => {
+      console.warn("Firebase Auth認証待機タイムアウト");
+      unsubscribe();
+      resolve(null);
+    }, 10000);
+  });
+}
+
+// 初期認証チェック（Firebase Auth対応）
+document.addEventListener("DOMContentLoaded", async function () {
+  console.log("=== admin.htmlページ読み込み (Firebase Auth版) ===");
+
+  // Firebase Auth認証待機
+  const firebaseUser = await waitForFirebaseAuth();
+
+  if (!firebaseUser) {
+    console.warn("Firebase Auth認証に失敗、ログイン画面にリダイレクト");
+    window.location.href = "login.html";
+    return;
   }
+
+  // ユーザー情報取得と管理者権限チェック
+  let userData = null;
+  if (window.UserSession && typeof UserSession.getCurrentUser === "function") {
+    userData = await UserSession.getCurrentUser();
+    console.log("Firebase Auth ユーザーデータ取得:", userData);
+  }
+
+  // 管理者権限チェック
+  if (!userData || userData.role !== 'admin') {
+    console.warn("管理者権限なし:", userData?.role);
+    alert("管理者権限が必要です。");
+
+    // 適切なページにリダイレクト
+    if (userData?.role === 'user') {
+      window.location.href = "user.html";
+    } else if (userData?.role === 'maker') {
+      window.location.href = "maker.html";
+    } else if (userData?.role === 'staff') {
+      window.location.href = "staff.html";
+    } else {
+      window.location.href = "login.html";
+    }
+    return;
+  }
+
+  console.log("✅ 管理者認証成功:", userData);
+
+  // currentAdminをFirebase Authデータで設定
+  currentAdmin = {
+    admin_id: userData.user_id, // Firebase AuthのUIDを使用
+    user_name: userData.user_name,
+    role: userData.role,
+    uid: firebaseUser.uid
+  };
+  window.currentAdmin = currentAdmin;
+
+  console.log("Admin別コレクションパス:", `admin_collections/${currentAdmin.admin_id}/`);
 });
 
 import {
@@ -50,65 +126,52 @@ let currentAdmin = null;
 // currentAdminをグローバルに公開
 window.currentAdmin = currentAdmin;
 
-// Admin認証チェック関数
-function checkAdminAuthentication() {
-  console.log("=== Admin認証チェック開始 ===");
-  console.log("localStorage全体:", { ...localStorage });
+// Admin認証チェック関数（Firebase Auth版）
+async function checkAdminAuthentication() {
+  console.log("=== Admin認証チェック開始 (Firebase Auth版) ===");
 
-  const adminData = localStorage.getItem("currentAdmin");
-  console.log("取得したcurrentAdmin:", adminData);
-
-  if (!adminData) {
-    console.log("❌ Admin認証情報がありません");
-    console.log("localStorage.length:", localStorage.length);
-    console.log("利用可能なキー:", Object.keys(localStorage));
-    /*
-    // デバッグのため3秒待機
-    setTimeout(() => {
-      alert("管理者認証が必要です。ログイン画面に移動します。");
-      window.location.href = "./index.html";
-    }, 3000);
-    */
+  const auth = getAuth();
+  if (!auth.currentUser) {
+    console.log("❌ Firebase Auth認証なし");
     return null;
   }
 
-  try {
-    currentAdmin = JSON.parse(adminData);
-    window.currentAdmin = currentAdmin; // グローバルに公開
-    console.log("✅ Admin認証確認:", currentAdmin);
+  // UserSessionから管理者情報取得
+  let userData = null;
+  if (window.UserSession && typeof UserSession.getCurrentUser === "function") {
+    userData = await UserSession.getCurrentUser();
+  }
 
-    if (!currentAdmin.admin_id) {
-      alert("認証データが不正です。ログイン画面に戻ります。");
-      localStorage.removeItem("currentAdmin");
-      window.location.href = "./login.html";
-      return null;
-    }
-    if (currentAdmin.role === "user") {
-      alert("ユーザー権限で管理画面にアクセスしたため、ユーザーページに移動します。");
-      window.location.href = "./user.html";
-      return null;
-    }
-    if (currentAdmin.role !== "admin") {
-      alert("権限が不正です。ログイン画面に戻ります。");
-      localStorage.removeItem("currentAdmin");
-      window.location.href = "./login.html";
-      return null;
-    }
-    return currentAdmin;
-  } catch (error) {
-    console.error("❌ Admin認証データが破損しています:", error);
-    alert("認証データが破損しています。再ログインしてください。");
-    localStorage.removeItem("currentAdmin");
-    window.location.href = "./login.html";
+  if (!userData || userData.role !== 'admin') {
+    console.log("❌ 管理者権限なし:", userData?.role);
     return null;
   }
+
+  console.log("✅ Admin認証確認:", userData);
+
+  // currentAdminデータを更新
+  currentAdmin = {
+    admin_id: userData.user_id,
+    user_name: userData.user_name,
+    role: userData.role,
+    uid: auth.currentUser.uid
+  };
+  window.currentAdmin = currentAdmin;
+
+  return currentAdmin;
 }
 
-// Admin用ログアウト処理
-function handleAdminLogout() {
-  localStorage.removeItem("currentAdmin");
-  alert("ログアウトしました。");
-  window.location.href = "./index.html";
+// Admin用ログアウト処理（Firebase Auth版）
+async function handleAdminLogout() {
+  const auth = getAuth();
+  try {
+    await auth.signOut();
+    alert("ログアウトしました。");
+    window.location.href = "login.html";
+  } catch (error) {
+    console.error("ログアウトエラー:", error);
+    alert("ログアウト中にエラーが発生しました。");
+  }
 }
 
 // Admin別コレクション参照を取得する関数
@@ -142,47 +205,6 @@ function getAdminDoc(collectionName, docId) {
     docId
   );
 }
-
-// ページ読み込み時の処理
-document.addEventListener("DOMContentLoaded", function () {
-  console.log("=== admin.htmlページ読み込み (Admin別データ管理版) ===");
-  console.log("現在のURL:", window.location.href);
-  console.log("読み込み時のlocalStorage:", { ...localStorage });
-
-  // Admin認証チェック（古いセッションクリア前）
-  const admin = checkAdminAuthentication();
-  if (!admin) {
-    return; // 認証失敗時はリダイレクト済み
-  }
-
-  console.log("✅ Admin認証成功:", admin);
-
-  // Admin認証が成功した場合のみ、古いセッションをクリア
-  if (localStorage.getItem("currentUser")) {
-    console.log("🧹 古いcurrentUserセッションをクリアします");
-    localStorage.removeItem("currentUser");
-  }
-  if (localStorage.getItem("qrscan_user_session")) {
-    console.log("🧹 古いqrscan_user_sessionをクリアします");
-    localStorage.removeItem("qrscan_user_session");
-  }
-
-  console.log("認証済みAdmin:", admin);
-
-  console.log(
-    "Admin別コレクションパス:",
-    `admin_collections/${admin.admin_id}/`
-  );
-  console.log("クリア後のlocalStorage:", { ...localStorage });
-  console.log("================================");
-
-  // レガシーセッションシステムは無効化
-  // UserSessionやauth.jsの機能は使用しない
-
-  // auth.jsの自動認証チェックを無効化
-  window.isRedirecting = true; // リダイレクトフラグでauth.jsをブロック
-
-});
 
 // 現在表示中のコレクション状態を管理
 let currentCollectionType = null;
