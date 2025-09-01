@@ -24,20 +24,40 @@ const firebaseConfig = {
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// DOMContentLoaded
+// DOMContentLoaded - 自動認証チェックを無効化
 document.addEventListener("DOMContentLoaded", function () {
-    const auth = getAuth();
-    onAuthStateChanged(auth, (user) => {
-        if (user) {
-            // Firebase Auth認証済みならadmin.htmlへリダイレクト
-            window.location.href = "./admin.html";
-        }
-        // 未認証なら管理者ログインフォームを表示
-    });
+    console.log("=== index.html ページロード ===");
+    console.log("自動認証チェックを無効化、手動ナビゲーションを有効化");
 
-    // 管理者ログインのみをサポート
-    initAdminLogin();
+    // UI初期化のみ実行
+    initIndexPage();
 });
+
+// Index ページの初期化（認証チェックなし）
+function initIndexPage() {
+    console.log("Index ページ初期化完了");
+    // 必要に応じて初期UIの設定などを行う
+}
+
+// 一般ログインページへのナビゲーション
+function navigateToLogin() {
+    console.log("一般ログインページに移動");
+    window.location.href = "login.html";
+}
+
+// 管理者ログインフォーム表示
+function showAdminLoginForm() {
+    console.log("管理者ログインフォーム表示");
+    document.getElementById("landingView").style.display = "none";
+    document.getElementById("adminLoginView").style.display = "block";
+}
+
+// ランディング画面に戻る
+function showLandingView() {
+    console.log("ランディング画面表示");
+    document.getElementById("adminLoginView").style.display = "none";
+    document.getElementById("landingView").style.display = "block";
+}
 
 // Admin専用ログイン処理（シンプル版）
 async function initAdminLogin() {
@@ -139,10 +159,7 @@ function showAdminRegisterForm() {
     document.getElementById("adminRegisterForm").style.display = "block";
 }
 
-function showAdminLoginForm() {
-    document.getElementById("adminRegisterForm").style.display = "none";
-    document.getElementById("adminLoginForm").style.display = "block";
-}
+
 
 // フォーム送信処理
 async function handleAdminRegister(event) {
@@ -188,3 +205,7 @@ window.showAdminRegisterForm = showAdminRegisterForm;
 window.showAdminLoginForm = showAdminLoginForm;
 window.handleAdminLogin = handleAdminLogin;
 window.handleAdminRegister = handleAdminRegister;
+window.navigateToLogin = navigateToLogin;
+window.showLandingView = showLandingView;
+window.navigateToLogin = navigateToLogin;
+window.navigateToAdmin = navigateToAdmin;

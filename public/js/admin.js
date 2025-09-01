@@ -34,6 +34,18 @@ async function waitForFirebaseAuth() {
 
 // 初期認証チェック（Firebase Auth対応）
 document.addEventListener("DOMContentLoaded", async function () {
+  console.log("=== admin.js DOMContentLoaded ===");
+
+  // 現在のページをチェック
+  const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+  console.log("現在のページ:", currentPage);
+
+  // index.htmlの場合は認証処理をスキップ
+  if (currentPage === 'index.html') {
+    console.log("index.htmlのため認証処理をスキップします");
+    return;
+  }
+
   console.log("=== admin.htmlページ読み込み (Firebase Auth版) ===");
 
   // Firebase Auth認証待機

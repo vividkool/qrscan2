@@ -195,7 +195,7 @@ console.log("Maker page functions loaded");
 // Maker用ログアウト処理（Firebase Auth版）
 async function handleLogout() {
   console.log("ログアウト処理開始");
-  
+
   const auth = getAuth();
   try {
     await auth.signOut();

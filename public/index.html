@@ -237,12 +237,76 @@
 </head>
 
 <body>
-  <div class="landing-container">
+  <!-- ランディング画面 -->
+  <div id="landingView" class="landing-container">
     <div class="logo">📱</div>
     <h1 class="title">QRスキャンシステム</h1>
     <p class="subtitle">
       展示会用　QRコード識別システム<br />効率的なデータ管理とスキャニング機能
     </p>
+
+    <div class="button-group">
+      <button class="btn btn-primary" onclick="navigateToLogin()">
+        🔑 一般ユーザーログイン
+      </button>
+      <button class="btn btn-secondary" onclick="showAdminLoginForm()">
+        ⚙️ 管理者ログイン
+      </button>
+    </div>
+
+    <div class="features">
+      <div class="feature-list">
+        <div class="feature-item">
+          <span class="feature-icon">✨</span>
+          <span>QRコードスキャニング機能</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">📊</span>
+          <span>データ管理システム</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">👥</span>
+          <span>ロールベースアクセス制御</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-icon">📱</span>
+          <span>モバイル対応</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 管理者ログイン画面 -->
+  <div id="adminLoginView" class="auth-container" style="display: none;">
+    <div class="auth-form">
+      <div class="logo">🔒</div>
+      <h2 class="title">管理者ログイン</h2>
+      <p class="subtitle">管理者権限でシステムにアクセスします</p>
+
+      <form id="adminLoginForm" onsubmit="handleAdminLogin(event)">
+        <div class="form-group">
+          <label for="adminId">管理者ID</label>
+          <input type="text" id="adminId" name="adminId" required>
+          <small>管理者IDを入力してください</small>
+        </div>
+
+        <div class="form-group">
+          <label for="password">パスワード</label>
+          <input type="password" id="password" name="password" required>
+          <small>パスワードを入力してください</small>
+        </div>
+
+        <button type="submit" class="btn btn-primary">
+          🔑 管理者ログイン
+        </button>
+      </form>
+
+      <div class="form-footer">
+        <button type="button" class="btn btn-link" onclick="showLandingView()">
+          ← トップページに戻る
+        </button>
+      </div>
+    </div>
   </div>
 
 
@@ -250,7 +314,6 @@
   <!-- 必要なスクリプト読み込み -->
   <script type="module" src="./js/template-utils.js"></script>
   <script type="module" src="./js/index.js"></script>
-  <script type="module" src="./js/admin.js"></script>
 </body>
 
 </html>
