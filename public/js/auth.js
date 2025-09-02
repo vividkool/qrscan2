@@ -57,7 +57,7 @@ const PAGE_PERMISSIONS = {
   "admin.html": [USER_ROLES.ADMIN, USER_ROLES.SUPERUSER], // SUPERUSERも管理画面アクセス可
   "staff.html": [USER_ROLES.STAFF, USER_ROLES.SUPERUSER],
   "maker.html": [USER_ROLES.MAKER, USER_ROLES.SUPERUSER],
-  "superuser.html": [USER_ROLES.SUPERUSER], // SUPERUSER専用
+  "login.html": [USER_ROLES.SUPERUSER], // SUPERUSER専用
   "user.html": [
     USER_ROLES.USER,
     USER_ROLES.STAFF,
@@ -65,7 +65,7 @@ const PAGE_PERMISSIONS = {
     USER_ROLES.SUPERUSER,
   ],
   "index.html": [], // 公開ページ
-  "login.html": [], // 公開ページ
+  "superuser.html": [], // 公開ページ
   "/": [USER_ROLES.ADMIN],
 };
 
@@ -223,7 +223,7 @@ class UserSession {
             currentUser = parsed;
             return parsed;
           }
-        } catch {}
+        } catch { }
       }
 
       // Firebase Authのトークンから直接情報を取得
@@ -324,7 +324,7 @@ class UserSession {
       case USER_ROLES.MAKER:
         return "maker.html";
       case USER_ROLES.SUPERUSER:
-        return "superuser.html";
+        return "login.html"; // superuserは特別扱い、ログイン画面に戻す
       default:
         return "login.html";
     }

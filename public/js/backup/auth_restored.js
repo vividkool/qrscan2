@@ -56,10 +56,10 @@ const PAGE_PERMISSIONS = {
     "admin.html": [USER_ROLES.ADMIN],
     "staff.html": [USER_ROLES.STAFF],
     "maker.html": [USER_ROLES.MAKER],
-    "superuser.html": [USER_ROLES.SUPERUSER],
+    "login.html": [USER_ROLES.SUPERUSER],
     "user.html": [USER_ROLES.USER, USER_ROLES.STAFF, USER_ROLES.MAKER],
     "index.html": [], // 公開ページ
-    "login.html": [], // 公開ページ
+    "superuser.html": [], // 公開ページ
     "/": [USER_ROLES.ADMIN],
 };
 
@@ -258,9 +258,9 @@ class UserSession {
             case USER_ROLES.MAKER:
                 return "maker.html";
             case USER_ROLES.SUPERUSER:
-                return "superuser.html";
-            default:
                 return "login.html";
+            default:
+                return "superuser.html";
         }
     }
 

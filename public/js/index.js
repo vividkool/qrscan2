@@ -15,6 +15,9 @@ import {
     serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+// auth.jsをインポートしてUserSession機能を利用
+import "./auth.js";
+
 // Firebase設定
 const firebaseConfig = {
     apiKey: "AIzaSyCWFL91baSHkjkvU_k-yTUv6QS191YTFlg",
@@ -45,49 +48,10 @@ function initIndexPage() {
     // 必要に応じて初期UIの設定などを行う
 }
 
-// 一般ログインページへのナビゲーション → superuser自動ログイン
-async function navigateToLogin() {
-    console.log("superuser自動ログイン開始");
-
-    // superuser情報（開発者用）
-    const superuserData = {
-        adminId: "superuser",
-        adminName: "Super User",
-        email: "superuser@qrscan-dev.local", // 疑似メールアドレス
-        password: "superuser123", // 開発用パスワード
-    };
-
-    try {
-        // 1. superuserがFirestoreに存在するかチェック
-        const adminRef = doc(db, "admin_settings", superuserData.adminId);
-        const adminDoc = await getDoc(adminRef);
-
-        if (!adminDoc.exists()) {
-            // 2. superuserが存在しない場合は自動登録
-            console.log("superuser自動登録開始");
-            const result = await registerAdmin(superuserData);
-            if (!result.success) {
-                alert("superuser登録に失敗しました: " + result.error);
-                return;
-            }
-            console.log("superuser自動登録完了");
-        }
-
-        // 3. superuserでログイン
-        const loginResult = await loginAdmin(
-            superuserData.adminId,
-            superuserData.password
-        );
-        if (loginResult.success) {
-            // superuser専用ページにリダイレクト
-            window.location.href = "./login.html";
-        } else {
-            alert("superuserログインに失敗しました: " + loginResult.error);
-        }
-    } catch (error) {
-        console.error("superuser自動ログインエラー:", error);
-        alert("superuser自動ログインでエラーが発生しました: " + error.message);
-    }
+// 一般ログインページへのナビゲーション
+function navigateToLogin() {
+    console.log("一般ログインページに移動");
+    window.location.href = "login.html";
 }
 
 // 管理者ログインフォーム表示
@@ -129,7 +93,7 @@ function showLandingView() {
         input.required = false;
     });
 }
-
+/*
 // Admin専用ログイン処理（シンプル版）
 async function initAdminLogin() {
     // 既にログイン済みかチェック
@@ -148,7 +112,7 @@ async function initAdminLogin() {
     // ログインフォーム表示
     showAdminLoginForm();
 }
-
+*/
 // Admin新規登録処理（シンプル版）
 async function registerAdmin(formData) {
     try {
@@ -216,7 +180,7 @@ async function registerAdmin(formData) {
     }
 }
 
-// Adminログイン処理（Firebase Auth統合版）
+// Adminログイン処理（Firebase Auth統合版 + auth.js role判定）
 async function loginAdmin(adminId, password) {
     try {
         const adminRef = doc(db, "admin_settings", adminId);
@@ -247,17 +211,38 @@ async function loginAdmin(adminId, password) {
             throw new Error("Firebase Auth認証に失敗しました: " + (e.message || e));
         }
 
-        // 認証成功時のみadmin.htmlへリダイレクト
+        // Firebase Auth認証成功後、auth.jsのUserSessionでrole判定
+        // 少し待機してFirebase Authの状態が安定するのを待つ
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        // UserSessionから現在のユーザー情報を取得
+        let userData = null;
+        if (window.UserSession && typeof UserSession.getCurrentUser === "function") {
+            try {
+                userData = await UserSession.getCurrentUser();
+                console.log("Firebase Auth認証後のUserSession データ:", userData);
+            } catch (error) {
+                console.error("UserSession取得エラー:", error);
+            }
+        }
+
+        // auth.jsのgetRedirectUrlでroleに応じたリダイレクト先を決定
+        let redirectUrl = "admin.html"; // デフォルト
+        if (userData && userData.role && window.UserSession?.getRedirectUrl) {
+            redirectUrl = window.UserSession.getRedirectUrl(userData.role);
+            console.log(`Role: ${userData.role} → Redirect: ${redirectUrl}`);
+        }
+
         return {
             success: true,
             adminData: {
                 admin_id: firebaseUser.uid,
                 admin_name: adminData.admin_name || firebaseUser.uid,
                 email: adminData.email,
-                role: "admin",
+                role: userData?.role || "admin",
                 timestamp: Date.now(),
             },
-            redirectUrl: "./admin.html",
+            redirectUrl: redirectUrl,
         };
     } catch (error) {
         console.error("Adminログインエラー:", error);
