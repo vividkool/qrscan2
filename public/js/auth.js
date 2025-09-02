@@ -144,6 +144,19 @@ class FirebaseAuthManager {
               ? adminData.admin_name
               : userName || firebaseUser.uid,
             role: adminData ? adminData.role : payload.role, // Firestoreの管理者データを優先
+            // Firestoreから取得した管理者データを全て含める
+            ...(adminData && {
+              admin_id: adminData.admin_id,
+              admin_name: adminData.admin_name,
+              company_name: adminData.company_name,
+              email: adminData.email,
+              phone: adminData.phone_number,
+              project_name: adminData.project_name,
+              event_date: adminData.event_date,
+              status: adminData.status,
+              plan_type: adminData.plan_type,
+              is_active: adminData.is_active,
+            }),
             authType: "FIREBASE",
             timestamp: Date.now(),
             firebaseUser: firebaseUser,
@@ -160,8 +173,8 @@ class FirebaseAuthManager {
             return;
           }
 
-          // Firebase AuthトークンベースのデータでlocalStorageを更新
-          localStorage.setItem("firebaseSessionData", JSON.stringify(userData));
+          // ※ localStorage保存は削除（Firebase Auth専用システムのため不要）
+          // localStorage.setItem("firebaseSessionData", JSON.stringify(userData));
 
           callback(userData);
         } catch (error) {
@@ -190,31 +203,10 @@ class UserSession {
 
   // セッション取得（Firebase Auth優先）
   static async getSession() {
-    // currentAdminが存在する場合は最優先で返す（admin用）
-    const currentAdmin = localStorage.getItem("currentAdmin");
-    if (currentAdmin) {
-      try {
-        const adminObj = JSON.parse(currentAdmin);
-        return {
-          user_id: adminObj.admin_id ?? "",
-          user_name: adminObj.admin_name ?? adminObj.admin_id ?? "",
-          email: adminObj.email ?? "",
-          company_name: adminObj.company_name ?? "",
-          role: adminObj.role ?? "admin",
-          department: adminObj.department ?? "",
-          is_active: adminObj.is_active ?? true,
-          timestamp: adminObj.timestamp ?? Date.now(),
-          authType: "ADMIN",
-          status: adminObj.status ?? "active",
-          ...adminObj,
-        };
-      } catch {
-        return null;
-      }
-    }
-
-    // Firebase認証状態を優先的にチェック
+    // Firebase認証状態を最優先でチェック
     if (currentFirebaseUser) {
+      // ※ localStorageキャッシュは削除（Firebase Auth専用システムのため不要）
+      /*
       const firebaseSessionData = localStorage.getItem("firebaseSessionData");
       if (firebaseSessionData) {
         try {
@@ -225,6 +217,7 @@ class UserSession {
           }
         } catch { }
       }
+      */
 
       // Firebase Authのトークンから直接情報を取得
       try {
@@ -276,6 +269,19 @@ class UserSession {
           user_id: payload.user_id,
           user_name: adminData ? adminData.admin_name : userName,
           role: adminData ? adminData.role : payload.role, // Firestoreの管理者データを優先
+          // Firestoreから取得した管理者データを全て含める
+          ...(adminData && {
+            admin_id: adminData.admin_id,
+            admin_name: adminData.admin_name,
+            company_name: adminData.company_name,
+            email: adminData.email,
+            phone: adminData.phone_number,
+            project_name: adminData.project_name,
+            event_date: adminData.event_date,
+            status: adminData.status,
+            plan_type: adminData.plan_type,
+            is_active: adminData.is_active,
+          }),
           authType: "FIREBASE",
           timestamp: Date.now(),
           firebaseUser: currentFirebaseUser,
@@ -284,10 +290,12 @@ class UserSession {
         console.log("🎯 最終的なuserData:", firebaseUserData);
 
         // キャッシュとして保存
+        /*
         localStorage.setItem(
           "firebaseSessionData",
           JSON.stringify(firebaseUserData)
         );
+        */
         currentUser = firebaseUserData;
         return firebaseUserData;
       } catch (error) {
@@ -295,19 +303,49 @@ class UserSession {
       }
     }
 
+    // フォールバック：古いcurrentAdminデータ（Firebase認証がない場合のみ）
+    // ※ Firebase Auth専用システムのため、以下のlocalStorageフォールバックは無効化
+    /*
+    const currentAdmin = localStorage.getItem("currentAdmin");
+    if (currentAdmin) {
+      try {
+        const adminObj = JSON.parse(currentAdmin);
+        console.log("⚠️  フォールバック: 古いcurrentAdminデータを使用:", adminObj);
+        return {
+          user_id: adminObj.admin_id ?? "",
+          user_name: adminObj.admin_name ?? adminObj.admin_id ?? "",
+          email: adminObj.email ?? "",
+          company_name: adminObj.company_name ?? "",
+          role: adminObj.role ?? "admin",
+          department: adminObj.department ?? "",
+          is_active: adminObj.is_active ?? true,
+          timestamp: adminObj.timestamp ?? Date.now(),
+          authType: "ADMIN",
+          status: adminObj.status ?? "active",
+          ...adminObj,
+        };
+      } catch {
+        return null;
+      }
+    }
+    */
+
     return null;
   }
 
-  // セッションクリア（Firebase Auth専用・レガシーデータ完全削除）
+  // セッションクリア（Firebase Auth専用・localStorage完全削除版）
   static clearSession() {
-    localStorage.removeItem("firebaseSessionData");
-    localStorage.removeItem("currentUser"); // レガシーデータ削除
-    localStorage.removeItem("session"); // レガシーデータ削除
-    localStorage.removeItem("loginTime"); // レガシーデータ削除
-    // 追加：Smart QR Scannerが参照する可能性のあるキーも削除
-    localStorage.removeItem("user");
-    localStorage.removeItem("sessionData");
-    localStorage.removeItem("userData");
+    // ※ Firebase Auth専用システムのため、localStorage使用を完全停止
+    // localStorage.removeItem("firebaseSessionData");
+
+    // ※ レガシーデータ削除処理も無効化（Firebase Auth専用のため不要）
+    // localStorage.removeItem("currentUser"); // レガシーデータ削除
+    // localStorage.removeItem("session"); // レガシーデータ削除
+    // localStorage.removeItem("loginTime"); // レガシーデータ削除
+    // localStorage.removeItem("user");
+    // localStorage.removeItem("sessionData");
+    // localStorage.removeItem("userData");
+
     currentUser = null;
     currentFirebaseUser = null;
   }
