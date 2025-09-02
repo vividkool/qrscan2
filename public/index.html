@@ -1,372 +1,435 @@
 <!DOCTYPE html>
 <html lang="ja">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="google-site-verification" content="4e4fa1e3c40dcc41" />
-    <title>QRスキャンシステム</title>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="google-site-verification" content="4e4fa1e3c40dcc41" />
+  <title>QRスキャンシステム</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .landing-container {
+      background: white;
+      border-radius: 20px;
+      padding: 60px 40px;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+      max-width: 500px;
+      width: 90%;
+    }
+
+    .logo {
+      font-size: 48px;
+      margin-bottom: 20px;
+    }
+
+    .title {
+      font-size: 28px;
+      color: #333;
+      margin-bottom: 15px;
+      font-weight: 600;
+    }
+
+    .subtitle {
+      color: #666;
+      margin-bottom: 40px;
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    .button-group {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .btn {
+      padding: 15px 30px;
+      border: none;
+      border-radius: 50px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-secondary {
+      background: #f8f9fa;
+      color: #495057;
+      border: 2px solid #e9ecef;
+    }
+
+    .btn-secondary:hover {
+      background: #e9ecef;
+      transform: translateY(-2px);
+    }
+
+    .features {
+      margin-top: 40px;
+      padding-top: 30px;
+      border-top: 1px solid #e9ecef;
+    }
+
+    .feature-list {
+      display: grid;
+      gap: 15px;
+      text-align: left;
+    }
+
+    .feature-item {
+      display: flex;
+      align-items: center;
+      color: #666;
+      font-size: 14px;
+    }
+
+    .feature-icon {
+      margin-right: 10px;
+      font-size: 16px;
+    }
+
+    .loading-spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #667eea;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 1s linear infinite;
+      margin: 20px auto;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
       }
 
-      body {
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        min-height: 100vh;
-        display: flex;
-        justify-content: center;
-        align-items: center;
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* Admin認証画面用スタイル */
+    .auth-container {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+      max-width: 600px;
+      /* 2列レイアウトのため幅を広げる */
+      width: 90%;
+    }
+
+    .auth-form {
+      text-align: center;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+      text-align: left;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 12px 15px;
+      border: 2px solid #e1e5e9;
+      border-radius: 10px;
+      font-size: 16px;
+      transition: border-color 0.3s ease;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .form-group small {
+      display: block;
+      margin-top: 5px;
+      font-size: 12px;
+      color: #666;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 20px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-link {
+      background: none;
+      border: none;
+      color: #667eea;
+      cursor: pointer;
+      text-decoration: underline;
+      font-size: 14px;
+      padding: 5px;
+    }
+
+    .btn-link:hover {
+      color: #764ba2;
+    }
+
+    .form-footer {
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #e1e5e9;
+    }
+
+    .form-footer p {
+      margin-bottom: 10px;
+      color: #666;
+      font-size: 14px;
+    }
+
+    /* 2列レイアウト用スタイル */
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .form-row .form-group {
+      margin-bottom: 0;
+    }
+
+    /* 全幅フィールド */
+    .form-group.full-width {
+      grid-column: 1 / -1;
+    }
+
+    /* レスポンシブ対応 */
+    @media (max-width: 768px) {
+      .form-row {
+        grid-template-columns: 1fr;
+        gap: 20px;
       }
 
-      .landing-container {
-        background: white;
-        border-radius: 20px;
-        padding: 60px 40px;
-        text-align: center;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
-        max-width: 500px;
-        width: 90%;
+      .form-group.full-width {
+        grid-column: 1;
       }
+    }
 
-      .logo {
-        font-size: 48px;
-        margin-bottom: 20px;
-      }
+    /* 管理者登録ボタン群 */
+    .button-group-register {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin-top: 20px;
+    }
 
-      .title {
-        font-size: 28px;
-        color: #333;
-        margin-bottom: 15px;
-        font-weight: 600;
-      }
+    .btn-test {
+      background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+      position: relative;
+    }
 
-      .subtitle {
-        color: #666;
-        margin-bottom: 40px;
-        font-size: 16px;
-        line-height: 1.6;
-      }
+    .btn-test:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(40, 167, 69, 0.3);
+    }
 
-      .button-group {
-        display: flex;
-        flex-direction: column;
-        gap: 15px;
-      }
+    .btn-real {
+      background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
+      position: relative;
+    }
 
-      .btn {
-        padding: 15px 30px;
-        border: none;
-        border-radius: 50px;
-        font-size: 16px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        text-decoration: none;
-        display: inline-block;
-      }
+    .btn-real:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(220, 53, 69, 0.3);
+    }
 
-      .btn-primary {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-      }
+    /* ボタンの説明テキスト */
+    .btn-description {
+      font-size: 11px;
+      opacity: 0.8;
+      display: block;
+      margin-top: 4px;
+      font-weight: 400;
+    }
+  </style>
+</head>
 
-      .btn-primary:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
-      }
+<body>
+  <!-- ランディング画面 -->
+  <div id="landingView" class="landing-container">
+    <h1 class="title">QRスキャンシステム</h1>
+    <p class="subtitle">
+      展示会用　QRコード識別システム<br />効率的なデータ管理とスキャニング機能
+    </p>
 
-      .btn-secondary {
-        background: #f8f9fa;
-        color: #495057;
-        border: 2px solid #e9ecef;
-      }
+    <div class="button-group">
 
-      .btn-secondary:hover {
-        background: #e9ecef;
-        transform: translateY(-2px);
-      }
+      <!-- 管理者ログイン画面 -->
+      <div id="adminLoginView" class="auth-container" style="display: block">
+        <div class="auth-form">
+          <h2 class="title">管理者ログイン</h2>
+          <p class="subtitle">管理者権限でシステムにアクセスします</p>
 
-      .features {
-        margin-top: 40px;
-        padding-top: 30px;
-        border-top: 1px solid #e9ecef;
-      }
+          <form id="adminLoginForm" onsubmit="handleAdminLogin(event)">
+            <div class="form-group">
+              <label for="adminId">管理者ID</label>
+              <input type="text" id="adminId" name="adminId" />
+              <small>管理者IDを入力してください</small>
+            </div>
 
-      .feature-list {
-        display: grid;
-        gap: 15px;
-        text-align: left;
-      }
+            <div class="form-group">
+              <label for="password">パスワード</label>
+              <input type="password" id="password" name="password" />
+              <small>パスワードを入力してください</small>
+            </div>
 
-      .feature-item {
-        display: flex;
-        align-items: center;
-        color: #666;
-        font-size: 14px;
-      }
+            <button type="submit" class="btn btn-primary">
+              🔑 管理者ログイン
+            </button>
+          </form>
 
-      .feature-icon {
-        margin-right: 10px;
-        font-size: 16px;
-      }
-
-      .loading-spinner {
-        border: 4px solid #f3f3f3;
-        border-top: 4px solid #667eea;
-        border-radius: 50%;
-        width: 50px;
-        height: 50px;
-        animation: spin 1s linear infinite;
-        margin: 20px auto;
-      }
-
-      @keyframes spin {
-        0% {
-          transform: rotate(0deg);
-        }
-
-        100% {
-          transform: rotate(360deg);
-        }
-      }
-
-      /* Admin認証画面用スタイル */
-      .auth-container {
-        background: white;
-        border-radius: 20px;
-        padding: 40px;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
-        max-width: 450px;
-        width: 90%;
-      }
-
-      .auth-form {
-        text-align: center;
-      }
-
-      .form-group {
-        margin-bottom: 20px;
-        text-align: left;
-      }
-
-      .form-group label {
-        display: block;
-        margin-bottom: 5px;
-        font-weight: 600;
-        color: #333;
-      }
-
-      .form-group input {
-        width: 100%;
-        padding: 12px 15px;
-        border: 2px solid #e1e5e9;
-        border-radius: 10px;
-        font-size: 16px;
-        transition: border-color 0.3s ease;
-      }
-
-      .form-group input:focus {
-        outline: none;
-        border-color: #667eea;
-        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-      }
-
-      .form-group small {
-        display: block;
-        margin-top: 5px;
-        font-size: 12px;
-        color: #666;
-      }
-
-      .btn-primary {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border: none;
-        padding: 15px 30px;
-        border-radius: 10px;
-        font-size: 16px;
-        font-weight: 600;
-        cursor: pointer;
-        width: 100%;
-        margin-top: 20px;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-      }
-
-      .btn-primary:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
-      }
-
-      .btn-primary:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-        transform: none;
-      }
-
-      .btn-link {
-        background: none;
-        border: none;
-        color: #667eea;
-        cursor: pointer;
-        text-decoration: underline;
-        font-size: 14px;
-        padding: 5px;
-      }
-
-      .btn-link:hover {
-        color: #764ba2;
-      }
-
-      .form-footer {
-        margin-top: 30px;
-        padding-top: 20px;
-        border-top: 1px solid #e1e5e9;
-      }
-
-      .form-footer p {
-        margin-bottom: 10px;
-        color: #666;
-        font-size: 14px;
-      }
-    </style>
-  </head>
-
-  <body>
-    <!-- ランディング画面 -->
-    <div id="landingView" class="landing-container">
-      <div class="logo">📱</div>
-      <h1 class="title">QRスキャンシステム</h1>
-      <p class="subtitle">
-        展示会用　QRコード識別システム<br />効率的なデータ管理とスキャニング機能
-      </p>
-
-      <div class="button-group">
-        <button class="btn btn-primary" onclick="navigateToLogin()">
-          � 開発者・SuperUser ログイン
-        </button>
-        <button class="btn btn-secondary" onclick="showAdminLoginForm()">
-          ⚙️ 管理者ログイン
-        </button>
-        <button class="btn btn-link" onclick="showAdminRegisterForm()">
-          📝 新規管理者登録
-        </button>
-      </div>
-
-      <div class="features">
-        <div class="feature-list">
-          <div class="feature-item">
-            <span class="feature-icon">✨</span>
-            <span>QRコードスキャニング機能</span>
-          </div>
-          <div class="feature-item">
-            <span class="feature-icon">📊</span>
-            <span>データ管理システム</span>
-          </div>
-          <div class="feature-item">
-            <span class="feature-icon">👥</span>
-            <span>ロールベースアクセス制御</span>
-          </div>
-          <div class="feature-item">
-            <span class="feature-icon">📱</span>
-            <span>モバイル対応</span>
-          </div>
+          <button type="button" class="btn btn-link" onclick="showAdminRegisterForm()">
+            📝 新規管理者登録
+          </button>
         </div>
       </div>
+
     </div>
+  </div>
 
-    <!-- 管理者ログイン画面 -->
-    <div id="adminLoginView" class="auth-container" style="display: none">
-      <div class="auth-form">
-        <div class="logo">🔒</div>
-        <h2 class="title">管理者ログイン</h2>
-        <p class="subtitle">管理者権限でシステムにアクセスします</p>
+  <!-- 管理者新規登録画面 -->
+  <div id="adminRegisterForm" class="auth-container" style="display: none">
+    <div class="auth-form">
+      <h2 class="title">新規　管理者登録</h2>
+      <p class="subtitle">管理者アカウントを作成します</p>
 
-        <form id="adminLoginForm" onsubmit="handleAdminLogin(event)">
-          <div class="form-group">
-            <label for="adminId">管理者ID</label>
-            <input type="text" id="adminId" name="adminId" required />
-            <small>管理者IDを入力してください</small>
-          </div>
-
-          <div class="form-group">
-            <label for="password">パスワード</label>
-            <input type="password" id="password" name="password" required />
-            <small>パスワードを入力してください</small>
-          </div>
-
-          <button type="submit" class="btn btn-primary">
-            🔑 管理者ログイン
-          </button>
-        </form>
-
-        <div class="form-footer">
-          <button
-            type="button"
-            class="btn btn-link"
-            onclick="showLandingView()"
-          >
-            ← トップページに戻る
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- 管理者新規登録画面 -->
-    <div id="adminRegisterForm" class="auth-container" style="display: none">
-      <div class="auth-form">
-        <div class="logo">📝</div>
-        <h2 class="title">新規管理者登録</h2>
-        <p class="subtitle">管理者アカウントを作成します</p>
-
-        <form id="adminRegisterFormInner" onsubmit="handleAdminRegister(event)">
+      <form id="adminRegisterFormInner">
+        <!-- 基本情報行 -->
+        <div class="form-row">
           <div class="form-group">
             <label for="adminIdReg">管理者ID</label>
-            <input type="text" id="adminIdReg" name="adminId" required />
+            <input type="text" id="adminIdReg" name="adminIdReg" required />
             <small>管理者IDを入力してください</small>
           </div>
           <div class="form-group">
-            <label for="adminNameReg">管理者名</label>
-            <input type="text" id="adminNameReg" name="adminName" required />
-            <small>管理者名を入力してください</small>
+            <label for="projectNameReg">プロジェクト名</label>
+            <input type="text" id="projectNameReg" name="projectNameReg" required />
+            <small>プロジェクト名を入力してください</small>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="passwordReg">パスワード</label>
+            <input type="password" id="passwordReg" name="passwordReg" required />
+            <small>パスワードを入力してください</small>
           </div>
           <div class="form-group">
+            <label for="eventDateReg">イベント開催日</label>
+            <input type="date" id="eventDateReg" name="eventDateReg" required />
+            <small>イベント開催日を選択してください</small>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
             <label for="emailReg">メールアドレス</label>
-            <input type="email" id="emailReg" name="email" required />
+            <input type="email" id="emailReg" name="emailReg" required />
             <small>メールアドレスを入力してください</small>
           </div>
           <div class="form-group">
-            <label for="passwordReg">パスワード</label>
-            <input type="password" id="passwordReg" name="password" required />
-            <small>パスワードを入力してください</small>
+            <label for="adminNameReg">管理者名</label>
+            <input type="text" id="adminNameReg" name="adminNameReg" required />
+            <small>管理者名を入力してください</small>
           </div>
-          <button type="submit" class="btn btn-primary">📝 管理者登録</button>
-        </form>
+        </div>
 
-        <div class="form-footer">
-          <button
-            type="button"
-            class="btn btn-link"
-            onclick="showAdminLoginForm()"
-          >
-            ← 管理者ログイン画面に戻る
+        <!-- メール・パスワード行 -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="phoneNumberReg">電話番号</label>
+            <input type="tel" id="phoneNumberReg" name="phoneNumberReg" required />
+            <small>電話番号を入力してください</small>
+          </div>
+          <div class="form-group">
+            <label for="companyNameReg">会社名</label>
+            <input type="text" id="companyNameReg" name="companyNameReg" required />
+            <small>会社名を入力してください</small>
+          </div>
+        </div>
+
+        <!-- 管理者登録ボタン（2種類） -->
+        <div class="button-group-register">
+          <button type="button" class="btn btn-primary btn-test" onclick="handleAdminRegister(event, 'test')">
+            🧪 テストモードで登録
           </button>
-          <button
-            type="button"
-            class="btn btn-link"
-            onclick="showLandingView()"
-          >
-            ← トップページに戻る
+          <button type="button" class="btn btn-primary btn-real" onclick="handleAdminRegister(event, 'real')">
+            � 本番モードで登録
           </button>
         </div>
+      </form>
+
+      <div class="form-footer">
+        <button type="button" class="btn btn-link" onclick="showLandingView()">
+          ← 管理者ログイン画面に戻る
+        </button>
+
       </div>
     </div>
+  </div>
 
-    <!-- 必要なスクリプト読み込み -->
-    <script type="module" src="./js/template-utils.js"></script>
-    <script type="module" src="./js/index.js"></script>
-  </body>
+  <!-- 必要なスクリプト読み込み -->
+  <script type="module" src="./js/template-utils.js"></script>
+  <script type="module" src="./js/index.js"></script>
+</body>
+
 </html>

@@ -32,9 +32,44 @@ async function waitForFirebaseAuth() {
 
 // ページロード時の初期化
 document.addEventListener("DOMContentLoaded", async function () {
+  // QRコード用のuidパラメータチェック
+  const urlParams = new URLSearchParams(window.location.search);
+  const qrUid = urlParams.get('uid');
+
+  if (qrUid) {
+    console.log("QRコードからのアクセス検出:", qrUid);
+
+    // QRコード用の簡易認証処理
+    if (qrUid.startsWith('demo_')) {
+      // デモユーザーの場合は認証をスキップして直接アクセスを許可
+      console.log("デモQRコードからのアクセス - 認証スキップ");
+
+      // URLからパラメータを除去
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState({}, '', cleanUrl);
+
+      // デモユーザー情報を設定
+      const roleFromUid = qrUid.includes('maker') ? 'maker' :
+        qrUid.includes('staff') ? 'staff' : 'user';
+
+      // 役割に応じたページリダイレクト
+      if (roleFromUid === 'maker' && window.location.pathname.includes('user.html')) {
+        window.location.href = "maker.html?uid=" + qrUid;
+        return;
+      } else if (roleFromUid === 'staff' && window.location.pathname.includes('user.html')) {
+        window.location.href = "staff.html?uid=" + qrUid;
+        return;
+      }
+
+      // ページ表示処理を続行
+      initializePage();
+      return;
+    }
+  }
+
   // URLパラメータをクリーンアップ（レガシーパラメータ削除）
   const url = new URL(window.location.href);
-  if (url.search) {
+  if (url.search && !qrUid) {
     console.log("レガシーURLパラメータを削除:", url.search);
     // パラメータを削除してURLを更新
     window.history.replaceState({}, '', url.pathname);
@@ -51,6 +86,12 @@ document.addEventListener("DOMContentLoaded", async function () {
   console.log("Firebase Auth currentUser:", getAuth().currentUser);
   console.log("================================");
 
+  // Firebase Auth認証処理を実行
+  await performFirebaseAuth();
+});
+
+// Firebase Auth認証処理（既存処理）
+async function performFirebaseAuth() {
   // Firebase Auth認証待機
   console.log("Firebase Auth認証を待機しています...");
   const firebaseUser = await waitForFirebaseAuth();
@@ -100,6 +141,14 @@ document.addEventListener("DOMContentLoaded", async function () {
     }
   }
 
+  // 認証完了後のページ初期化
+  initializePage();
+}
+
+// ページ初期化処理
+async function initializePage() {
+  console.log("ページ初期化処理を開始");
+
   // ユーザー情報表示
   await displayUserInfo();
 
@@ -113,7 +162,7 @@ document.addEventListener("DOMContentLoaded", async function () {
         '<span style="color: #4285f4; font-weight: bold;">スキャンボタンを押してスキャンしてください</span>';
     }
   }
-});
+}
 
 // ユーザー情報表示
 async function displayUserInfo() {

@@ -275,7 +275,102 @@
       background: #5a6268;
     }
 
+    /* 区切り線 */
+    .divider-container {
+      position: relative;
+      margin: 20px 0;
+    }
+
+    .divider-line {
+      height: 1px;
+      background: #ddd;
+      z-index: 1;
+    }
+
+    .divider {
+      background: white;
+      padding: 0 15px;
+      z-index: 2;
+      position: relative;
+      display: inline-block;
+      color: #666;
+      font-size: 14px;
+    }
+
     /* 成功メッセージ */
+    .success-message {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+      border-radius: 6px;
+      padding: 12px;
+      margin-top: 15px;
+      text-align: center;
+    }
+
+    /* トーストメッセージ */
+    .toast {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+      border-radius: 8px;
+      padding: 15px 20px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      z-index: 9999;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+      max-width: 400px;
+      text-align: center;
+      font-weight: 600;
+    }
+
+    .toast.show {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(-50%) translateY(10px);
+    }
+
+    .toast.success {
+      background: #d4edda;
+      color: #155724;
+      border-color: #c3e6cb;
+    }
+
+    .toast.error {
+      background: #f8d7da;
+      color: #721c24;
+      border-color: #f5c6cb;
+    }
+
+    /* 新規管理者登録ボタン */
+    .register-admin-button {
+      background: #34a853;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 15px;
+      transition: background-color 0.3s ease;
+      text-decoration: none;
+      display: inline-block;
+      text-align: center;
+    }
+
+    .register-admin-button:hover {
+      background: #2d8f47;
+      text-decoration: none;
+      color: white;
+    }
+
     .success-message {
       background: #d4edda;
       color: #155724;
@@ -296,19 +391,123 @@
       margin-bottom: 20px;
       font-size: 20px;
     }
+
+    /* QRコード表示エリア */
+    .qr-section {
+      background: #f8f9fa;
+      border: 2px dashed #4285f4;
+      border-radius: 8px;
+      padding: 30px;
+      margin: 20px 0;
+      text-align: center;
+    }
+
+    .qr-title {
+      color: #4285f4;
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 15px;
+    }
+
+    .qr-description {
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+
+    .qr-display {
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      padding: 20px;
+      margin: 15px 0;
+      min-height: 200px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+    }
+
+    .qr-placeholder {
+      color: #999;
+      font-size: 16px;
+    }
+
+    .qr-url-display {
+      background: #f5f5f5;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 10px;
+      margin-top: 15px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      word-break: break-all;
+      color: #333;
+    }
+
+    .demo-qr-button {
+      background: #34a853;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      margin: 5px;
+    }
+
+    .demo-qr-button:hover {
+      background: #2d8a47;
+    }
   </style>
 </head>
 
 <body>
   <div class="login-container">
-    <div class="app-logo">🔥</div>
-    <h1 id="pageTitle">superuser Dashboard</h1>
+    <div class="app-logo">
+      <h1 id="pageTitle">superuser Dashboard</h1>
+    </div>
 
+    <!-- QRコード表示エリア -->
+    <div class="qr-section">
+      <div class="qr-title">🔐 QRコード認証</div>
+      <div class="qr-description">
+        本番環境ではQRコードをスキャンしてアクセスします<br>
+        各ユーザー専用のQRコードが生成されます
+      </div>
 
-    <!-- ログイン画面 -->
+      <div class="qr-display" id="qrDisplay">
+        <div class="qr-placeholder">QRコード表示エリア</div>
+      </div>
+
+      <div class="qr-url-display" id="qrUrlDisplay">
+        QRコードURL: https://qrscan2-99ffd.web.app/user.html?uid=xxxxxxxxxxx
+      </div>
+
+      <div style="margin-top: 15px;">
+        <button class="demo-qr-button" id="demoUser">
+          👤 一般ユーザーQR
+        </button>
+        <button class="demo-qr-button" id="demoMaker">
+          🏭 メーカーQR
+        </button>
+        <button class="demo-qr-button" id="demoStaff">
+          👥 スタッフQR
+        </button>
+      </div>
+    </div>
+
+    <!-- 手動ログイン画面 (開発用) -->
     <div id="loginSection">
-      <form class="login-form" id="loginForm">
+      <div style="text-align: center; margin: 20px 0;">
+        <div class="divider-container">
+          <div class="divider-line"></div>
+          <div class="divider">または開発用手動ログイン</div>
+        </div>
+      </div>
 
+      <form class="login-form" id="loginForm">
         <div class="form-group">
           <label for="adminId">adminID</label>
           <input type="text" id="adminId" name="adminId" placeholder="adminIDを入力してください" required />
@@ -317,12 +516,16 @@
           <input type="text" id="userId" name="userId" placeholder="ユーザーIDを入力してください" required />
         </div>
 
-
-
         <button type="submit" class="login-button" id="loginButton">
-          ログイン
+          手動ログイン
         </button>
       </form>
+
+      <!-- 新規管理者登録ボタン -->
+      <button type="button" class="register-admin-button" onclick="goToAdminRegister()">
+        📝 新規管理者登録
+      </button>
+
       <div id="loading" class="loading">
         <div class="spinner"></div>
         <span id="loadingText">処理中...</span>
@@ -332,6 +535,9 @@
     </div>
 
   </div>
+
+  <!-- トーストメッセージ -->
+  <div id="toast" class="toast"></div>
 
   <script type="module" src="./js/login.js"></script>
 </body>

@@ -48,11 +48,6 @@ function initIndexPage() {
     // 必要に応じて初期UIの設定などを行う
 }
 
-// 一般ログインページへのナビゲーション
-function navigateToLogin() {
-    console.log("一般ログインページに移動");
-    window.location.href = "login.html";
-}
 
 // 管理者ログインフォーム表示
 function showAdminLoginForm() {
@@ -93,33 +88,18 @@ function showLandingView() {
         input.required = false;
     });
 }
-/*
-// Admin専用ログイン処理（シンプル版）
-async function initAdminLogin() {
-    // 既にログイン済みかチェック
-    const currentAdmin = localStorage.getItem("currentAdmin");
-    if (currentAdmin) {
-        try {
-            const adminData = JSON.parse(currentAdmin);
-            console.log("Admin認証済み:", adminData.admin_name || adminData.admin_id);
-            window.location.href = "./admin.html";
-            return;
-        } catch (e) {
-            localStorage.removeItem("currentAdmin");
-        }
-    }
 
-    // ログインフォーム表示
-    showAdminLoginForm();
-}
-*/
 // Admin新規登録処理（シンプル版）
-async function registerAdmin(formData) {
+async function registerAdmin(formData, accountStatus = 'test') {
     try {
         const adminId = formData.adminId;
         const adminName = formData.adminName;
         const email = formData.email;
         const password = formData.password;
+        const projectName = formData.projectName;
+        const eventDate = formData.eventDate;
+        const companyName = formData.companyName;
+        const phoneNumber = formData.phoneNumber;
 
         // 管理者情報をFirestoreに保存
         const adminRef = doc(db, "admin_settings", adminId);
@@ -161,19 +141,21 @@ async function registerAdmin(formData) {
             admin_name: adminName,
             email: email,
             password: password,
+            project_name: projectName,
+            event_date: eventDate,
+            company_name: companyName,
+            phone_number: phoneNumber,
             role: adminId === "superuser" ? "superuser" : "admin", // superuserの場合は特別なrole
             is_active: true,
-            account_status: adminId === "superuser" ? "developer" : "test",
-            plan_type: "free",
+            account_status: accountStatus, // test または real
+            plan_type: accountStatus === 'real' ? 'premium' : 'free',
             created_at: serverTimestamp(),
             uid: userCredential.user.uid, // Firebase AuthのUID（必須）
         });
 
-        // 登録成功
-        alert(
-            "管理者登録が完了しました（Firebase Auth + Firestore両方に登録済み）"
-        );
-        return { success: true };
+        // 登録成功 - 認証状態を保持したまま（既にサインイン済み）
+        console.log("管理者登録完了 - Firebase Auth認証状態:", userCredential.user.uid);
+        return { success: true, user: userCredential.user, accountStatus: accountStatus };
     } catch (error) {
         console.error("Admin登録エラー:", error);
         return { success: false, error: error.message };
@@ -256,6 +238,12 @@ function showAdminRegisterForm() {
     document.getElementById("adminLoginView").style.display = "none";
     document.getElementById("adminRegisterForm").style.display = "block";
 
+    // フォームをリセット
+    const form = document.getElementById("adminRegisterFormInner");
+    if (form) {
+        form.reset();
+    }
+
     // 管理者登録フォームのrequired属性を有効化
     const registerInputs = document.querySelectorAll(
         "#adminRegisterForm input[data-required='true']"
@@ -273,29 +261,58 @@ function showAdminRegisterForm() {
 }
 
 // フォーム送信処理
-async function handleAdminRegister(event) {
-    event.preventDefault();
-    const form = event.target;
-    const formData = new FormData(form);
+async function handleAdminRegister(event, accountStatus = 'test') {
+    // フォーム要素を直接取得
+    const form = document.getElementById("adminRegisterFormInner");
+
+    if (!form) {
+        alert("フォームが見つかりません");
+        return;
+    }
+
+    // フォーム検証
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+
+    const formData = new FormData(form);    // 必須項目チェック
+    const requiredFields = [
+        'adminIdReg', 'adminNameReg', 'emailReg', 'passwordReg',
+        'projectNameReg', 'eventDateReg', 'companyNameReg', 'phoneNumberReg'
+    ];
+
+    for (const field of requiredFields) {
+        if (!formData.get(field)) {
+            alert(`${field.replace('Reg', '')}を入力してください`);
+            return;
+        }
+    }
 
     const adminData = {
-        adminId: formData.get("adminId"),
-        adminName: formData.get("adminName"),
-        email: formData.get("email"),
-        password: formData.get("password"),
+        adminId: formData.get("adminIdReg"),
+        adminName: formData.get("adminNameReg"),
+        email: formData.get("emailReg"),
+        password: formData.get("passwordReg"),
+        projectName: formData.get("projectNameReg"),
+        eventDate: formData.get("eventDateReg"),
+        companyName: formData.get("companyNameReg"),
+        phoneNumber: formData.get("phoneNumberReg"),
     };
 
-    const result = await registerAdmin(adminData);
+    const result = await registerAdmin(adminData, accountStatus);
     if (result.success) {
-        alert("管理者登録が完了しました。ログイン画面に移動します。");
-        showAdminLoginForm();
-        form.reset();
+        const modeText = accountStatus === 'test' ? 'テストモード' : '本番モード';
+        alert(`管理者登録が完了しました（${modeText}）。管理者ページに移動します。`);
+
+        // Firebase Authの認証状態が安定するまで少し待機
+        setTimeout(() => {
+            window.location.href = "admin.html";
+        }, 1000);
     } else {
         alert("登録に失敗しました: " + result.error);
     }
-}
-
-async function handleAdminLogin(event) {
+} async function handleAdminLogin(event) {
     event.preventDefault();
 
     const formData = new FormData(event.target);
@@ -316,7 +333,6 @@ window.showAdminRegisterForm = showAdminRegisterForm;
 window.showAdminLoginForm = showAdminLoginForm;
 window.handleAdminLogin = handleAdminLogin;
 window.handleAdminRegister = handleAdminRegister;
-window.navigateToLogin = navigateToLogin;
 window.showLandingView = showLandingView;
-window.navigateToLogin = navigateToLogin;
-//window.navigateToAdmin = navigateToAdmin;
+
+

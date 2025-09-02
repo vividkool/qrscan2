@@ -37,16 +37,43 @@ const errorMessage = document.getElementById("errorMessage");
 const successMessage = document.getElementById("successMessage");
 
 function showError(msg) {
+  showToast(msg, 'error');
   errorMessage.textContent = msg;
   errorMessage.style.display = "block";
   successMessage.style.display = "none";
 }
 
 function showSuccess(msg) {
+  showToast(msg, 'success');
   successMessage.textContent = msg;
   successMessage.style.display = "block";
   errorMessage.style.display = "none";
 }
+
+// トーストメッセージ表示機能
+function showToast(message, type = 'error') {
+  const toast = document.getElementById('toast');
+
+  // トーストの内容とスタイルを設定
+  toast.textContent = message;
+  toast.className = `toast ${type}`;
+
+  // トーストを表示
+  toast.classList.add('show');
+
+  // 4秒後に自動で非表示
+  setTimeout(() => {
+    toast.classList.remove('show');
+  }, 4000);
+}
+
+// 新規管理者登録ページへ遷移
+function goToAdminRegister() {
+  window.location.href = 'index.html';
+}
+
+// グローバル関数として公開
+window.goToAdminRegister = goToAdminRegister;
 
 function toggleLoading(show, text = "処理中...") {
   loading.style.display = show ? "flex" : "none";
@@ -114,8 +141,7 @@ async function debugLogin(admin_id, user_id) {
     );
 
     showSuccess(
-      `${
-        userData.user_name || user_id
+      `${userData.user_name || user_id
       } さんでログインしました。リダイレクトします...`
     );
 
@@ -137,4 +163,64 @@ loginForm.addEventListener("submit", (e) => {
   const admin_id = admin_idInput.value.trim();
   const user_id = user_idInput.value.trim();
   debugLogin(admin_id, user_id);
+});
+
+// QRコード表示関数
+function addDivider(text) {
+  return `
+    <div style="position: relative; margin: 20px 0;">
+      <div style="height: 1px; background: #ddd; z-index: 1;"></div>
+      <div style="background: white; padding: 0 15px; z-index: 2; position: relative; display: inline-block; color: #666; font-size: 14px;">${text}</div>
+    </div>
+  `;
+}
+
+function generateQRDisplay(role, demoUrl) {
+  const qrDisplay = document.getElementById('qrDisplay');
+  const roleIcons = {
+    user: '👤',
+    maker: '🔧',
+    staff: '👷'
+  };
+  const roleNames = {
+    user: 'ユーザー',
+    maker: '製造者',
+    staff: 'スタッフ'
+  };
+  const roleColors = {
+    user: '#28a745',
+    maker: '#17a2b8',
+    staff: '#ffc107'
+  };
+
+  qrDisplay.innerHTML = `
+    <div style="text-align: center; padding: 60px 20px; background: #f5f5f5; border: 2px dashed #ddd; border-radius: 8px;">
+      <div style="font-size: 48px; margin-bottom: 10px;">${roleIcons[role]}</div>
+      <div style="color: #666; margin-bottom: 15px;">${roleNames[role]}用QRコード</div>
+      <div style="font-size: 12px; word-break: break-all; background: white; padding: 10px; border-radius: 4px; color: #333;">${demoUrl}</div>
+    </div>
+    ${addDivider('または直接アクセス')}
+    <div style="text-align: center; margin-top: 15px;">
+      <button onclick="window.location.href='${demoUrl}'" style="background: ${roleColors[role]}; color: ${role === 'staff' ? '#212529' : 'white'}; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">${roleNames[role]}ページへ</button>
+    </div>
+  `;
+}
+
+// DOMContentLoaded後の初期化処理
+document.addEventListener('DOMContentLoaded', function () {
+  // デモボタンのイベントリスナー設定
+  document.getElementById('demoUser').addEventListener('click', function () {
+    const demoUrl = 'https://qrscan2-99ffd.web.app/user.html?uid=demo_user_001';
+    generateQRDisplay('user', demoUrl);
+  });
+
+  document.getElementById('demoMaker').addEventListener('click', function () {
+    const demoUrl = 'https://qrscan2-99ffd.web.app/maker.html?uid=demo_maker_001';
+    generateQRDisplay('maker', demoUrl);
+  });
+
+  document.getElementById('demoStaff').addEventListener('click', function () {
+    const demoUrl = 'https://qrscan2-99ffd.web.app/staff.html?uid=demo_staff_001';
+    generateQRDisplay('staff', demoUrl);
+  });
 });
