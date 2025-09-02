@@ -164,7 +164,7 @@ async function registerAdmin(formData, accountStatus = "test") {
     // テンプレートコレクションをコピー
     try {
       console.log("=== テンプレートコレクションコピー開始 ===");
-      await copyTemplateCollections(adminId, companyName);
+      await copyTemplateCollections(adminId); // companyNameではなくadminIdを使用
       console.log("テンプレートコレクションコピー完了");
     } catch (copyError) {
       console.error("テンプレートコピーエラー:", copyError);
@@ -183,36 +183,28 @@ async function registerAdmin(formData, accountStatus = "test") {
 }
 
 // テンプレートコレクションをコピーする関数
-async function copyTemplateCollections(newAdminId, companyName) {
+async function copyTemplateCollections(targetAdminId) {
   try {
-    console.log(`新規管理者 ${newAdminId} にテンプレートをコピー開始`);
+    console.log(`新規管理者 ${targetAdminId} にテンプレートをコピー開始`);
 
-    // testテンプレートからコピー（test/realの両方に対応）
-    const sourceCollectionName = "testtemplate";
-    const targetCollectionName = companyName; // "test" または "real"
+    // admin_collectionsの下のtesttemplateから新規adminIdベースのコレクションにコピー
+    const sourceCollectionName = "admin_collections/testtemplate";
+    const targetCollectionName = `admin_collections/${targetAdminId}`;
 
     console.log(
       `コピー元: ${sourceCollectionName} → コピー先: ${targetCollectionName}`
     );
 
-    // サブコレクションをコピー
+    // サブコレクションをコピー（test/real関係なく常に実行）
     await copySubCollections(sourceCollectionName, targetCollectionName, [
       "items",
       "scanItems",
       "users",
     ]);
 
-    // ついでにrealモードの場合はtestテンプレートもコピー
-    if (companyName === "real") {
-      console.log("本番モード: testテンプレートも追加でコピー");
-      await copySubCollections("testtemplate", "test", [
-        "items",
-        "scanItems",
-        "users",
-      ]);
-    }
-
-    console.log(`テンプレートコピー完了: ${newAdminId}`);
+    console.log(
+      `テンプレートコピー完了: ${targetAdminId} → ${targetCollectionName}`
+    );
   } catch (error) {
     console.error("テンプレートコピーエラー:", error);
     throw error;
@@ -232,7 +224,8 @@ async function copySubCollections(
       );
 
       // ソースコレクションからドキュメントを取得
-      const sourceRef = collection(db, sourceCollection, "data", subColName);
+      // admin_collections/testtemplate の場合の正しい参照方法
+      const sourceRef = collection(db, sourceCollection, subColName);
       const sourceSnapshot = await getDocs(sourceRef);
 
       if (sourceSnapshot.empty) {
@@ -249,13 +242,7 @@ async function copySubCollections(
 
       sourceSnapshot.docs.forEach((docSnap) => {
         const docData = docSnap.data();
-        const targetRef = doc(
-          db,
-          targetCollection,
-          "data",
-          subColName,
-          docSnap.id
-        );
+        const targetRef = doc(db, targetCollection, subColName, docSnap.id);
 
         batch.set(targetRef, {
           ...docData,

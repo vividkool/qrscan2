@@ -95,7 +95,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   // currentAdminをFirebase Authデータで設定
   currentAdmin = {
-    admin_id: userData.user_id, // Firebase AuthのUIDを使用
+    admin_id: firebaseUser.uid, // Firebase AuthのUIDを直接使用
     user_name: userData.user_name,
     role: userData.role,
     uid: firebaseUser.uid,
@@ -175,7 +175,7 @@ async function checkAdminAuthentication() {
 
   // currentAdminデータを更新
   currentAdmin = {
-    admin_id: userData.user_id,
+    admin_id: auth.currentUser.uid, // Firebase AuthのUIDを直接使用
     user_name: userData.user_name,
     role: userData.role,
     uid: auth.currentUser.uid,
@@ -1508,12 +1508,6 @@ window.callHelloWorld = callHelloWorld;
 window.deleteDocument = deleteDocument;
 window.editDocument = editDocument;
 window.submitEditData = submitEditData;
-window.showFileUploadModal = showFileUploadModal;
-window.closeFileUploadModal = closeFileUploadModal;
-window.clearSelectedFile = clearSelectedFile;
-window.handleFileUpload = handleFileUpload;
-window.processSelectedFile = processSelectedFile;
-window.proceedWithUpload = proceedWithUpload;
 
 // Admin別データ管理用関数
 window.handleAdminLogout = handleAdminLogout;
