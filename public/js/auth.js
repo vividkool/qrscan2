@@ -57,7 +57,7 @@ const PAGE_PERMISSIONS = {
   "admin.html": [USER_ROLES.ADMIN, USER_ROLES.SUPERUSER], // SUPERUSERも管理画面アクセス可
   "staff.html": [USER_ROLES.STAFF, USER_ROLES.SUPERUSER],
   "maker.html": [USER_ROLES.MAKER, USER_ROLES.SUPERUSER],
-  "login.html": [USER_ROLES.SUPERUSER], // SUPERUSER専用
+  "superuser.html": [USER_ROLES.SUPERUSER], // SUPERUSER専用
   "user.html": [
     USER_ROLES.USER,
     USER_ROLES.STAFF,
@@ -362,9 +362,9 @@ class UserSession {
       case USER_ROLES.MAKER:
         return "maker.html";
       case USER_ROLES.SUPERUSER:
-        return "login.html"; // superuserは特別扱い、ログイン画面に戻す
+        return "superuser.html"; // superuserは特別扱い、ログイン画面に戻す
       default:
-        return "login.html";
+        return "superuser.html";
     }
   }
 
@@ -386,12 +386,12 @@ class UserSession {
       this.clearSession();
 
       // ログイン画面にリダイレクト
-      window.location.href = "login.html";
+      window.location.href = "superuser.html";
     } catch (error) {
       console.error("ログアウトエラー:", error);
       // エラーが発生してもセッションはクリアする
       this.clearSession();
-      window.location.href = "login.html";
+      window.location.href = "superuser.html";
     }
   }
 }
@@ -401,7 +401,7 @@ const currentPageForAuth =
   window.location.pathname.split("/").pop() || "admin.html";
 
 if (
-  currentPageForAuth !== "login.html" &&
+  currentPageForAuth !== "superuser.html" &&
   currentPageForAuth !== "index.html"
 ) {
   console.log("保護されたページのため認証監視を開始します");
@@ -431,7 +431,7 @@ document.addEventListener("DOMContentLoaded", function () {
   console.log("現在のページ:", currentPage);
 
   // ログイン画面では一切の認証チェックを行わない
-  if (currentPage === "login.html" || currentPage === "index.html") {
+  if (currentPage === "superuser.html" || currentPage === "index.html") {
     console.log("ログイン画面のため認証チェックをスキップします");
     return;
   }

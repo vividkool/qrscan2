@@ -1,10 +1,13 @@
 // Firebase Authentication対応版 認証システム
-import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import {
+  initializeApp,
+  getApps,
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
   getAuth,
   signInWithCustomToken,
   onAuthStateChanged,
-  signOut
+  signOut,
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import {
   getFirestore,
@@ -33,7 +36,8 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 // カスタムトークン生成関数のURL
-const CUSTOM_TOKEN_URL = 'https://asia-northeast1-qrscan2-99ffd.cloudfunctions.net/createCustomToken';
+const CUSTOM_TOKEN_URL =
+  "https://asia-northeast1-qrscan2-99ffd.cloudfunctions.net/createCustomToken";
 
 // ユーザーロール定義
 const USER_ROLES = {
@@ -48,7 +52,13 @@ const USER_ROLES = {
 // ページアクセス権限定義
 const PAGE_PERMISSIONS = {
   "index.html": [USER_ROLES.ADMIN],
-  "user.html": [USER_ROLES.USER, USER_ROLES.STAFF, USER_ROLES.MAKER, USER_ROLES.SCANNER, USER_ROLES.GUEST],
+  "user.html": [
+    USER_ROLES.USER,
+    USER_ROLES.STAFF,
+    USER_ROLES.MAKER,
+    USER_ROLES.SCANNER,
+    USER_ROLES.GUEST,
+  ],
   "/": [USER_ROLES.ADMIN],
 };
 
@@ -62,21 +72,21 @@ class UserSession {
     try {
       // Firebase Functionsでカスタムトークンを生成
       const response = await fetch(CUSTOM_TOKEN_URL, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ userId: userId })
+        body: JSON.stringify({ userId: userId }),
       });
 
       if (!response.ok) {
-        throw new Error('カスタムトークンの取得に失敗しました');
+        throw new Error("カスタムトークンの取得に失敗しました");
       }
 
       const data = await response.json();
       return data.customToken;
     } catch (error) {
-      console.error('Custom token error:', error);
+      console.error("Custom token error:", error);
       throw error;
     }
   }
@@ -95,7 +105,9 @@ class UserSession {
 
       if (querySnapshot.empty) {
         // デバッグ用：既存ユーザーをログ出力
-        console.log("ユーザーが見つかりませんでした。既存ユーザーを確認します...");
+        console.log(
+          "ユーザーが見つかりませんでした。既存ユーザーを確認します..."
+        );
         const allUsersQuery = query(collection(db, "users"));
         const allUsersSnapshot = await getDocs(allUsersQuery);
         console.log("既存ユーザー数:", allUsersSnapshot.size);
@@ -132,7 +144,7 @@ class UserSession {
         ...userData,
         role: userRole,
         firebaseUid: firebaseUser.uid,
-        idToken: await firebaseUser.getIdToken() // JWTトークン取得
+        idToken: await firebaseUser.getIdToken(), // JWTトークン取得
       };
 
       currentUser = sessionData;
@@ -164,7 +176,7 @@ class UserSession {
       case USER_ROLES.GUEST:
         return "user.html";
       default:
-        return "login.html";
+        return "superuser.html";
     }
   }
 
@@ -175,14 +187,16 @@ class UserSession {
 
   // セッション情報取得（互換性のため）
   static getSession() {
-    return currentUser ? {
-      userId: currentUser.user_id,
-      role: currentUser.role,
-      userName: currentUser.user_name,
-      department: currentUser.department,
-      authenticated: true,
-      firebaseUid: currentUser.firebaseUid
-    } : null;
+    return currentUser
+      ? {
+          userId: currentUser.user_id,
+          role: currentUser.role,
+          userName: currentUser.user_name,
+          department: currentUser.department,
+          authenticated: true,
+          firebaseUid: currentUser.firebaseUid,
+        }
+      : null;
   }
 
   // Firebase Authユーザー取得
@@ -201,12 +215,13 @@ class UserSession {
 
   // ページアクセス権限チェック
   static checkPageAccess() {
-    const currentPage = window.location.pathname.split("/").pop() || "index.html";
+    const currentPage =
+      window.location.pathname.split("/").pop() || "index.html";
 
     // Firebase Auth認証状態をチェック
     if (!auth.currentUser || !currentUser) {
-      if (currentPage !== "login.html") {
-        window.location.href = "login.html";
+      if (currentPage !== "superuser.html") {
+        window.location.href = "superuser.html";
       }
       return false;
     }
@@ -230,12 +245,12 @@ class UserSession {
     try {
       await signOut(auth);
       currentUser = null;
-      window.location.href = "login.html";
+      window.location.href = "superuser.html";
     } catch (error) {
       console.error("Logout error:", error);
       // エラーが発生してもログアウト処理を続行
       currentUser = null;
-      window.location.href = "login.html";
+      window.location.href = "superuser.html";
     }
   }
 }
@@ -266,7 +281,7 @@ onAuthStateChanged(auth, async (user) => {
             currentUser = {
               ...userData,
               role: userRole,
-              firebaseUid: user.uid
+              firebaseUid: user.uid,
             };
           }
         }
@@ -284,7 +299,7 @@ onAuthStateChanged(auth, async (user) => {
 document.addEventListener("DOMContentLoaded", function () {
   // ログインページ以外では認証チェック
   const currentPage = window.location.pathname.split("/").pop() || "index.html";
-  if (currentPage !== "login.html") {
+  if (currentPage !== "superuser.html") {
     // Firebase Authの状態が確定するまで少し待つ
     setTimeout(() => {
       UserSession.checkPageAccess();

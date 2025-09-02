@@ -57,7 +57,7 @@ const PAGE_PERMISSIONS = {
   "superuser.html": [USER_ROLES.SUPERUSER],
   "user.html": [USER_ROLES.USER, USER_ROLES.STAFF, USER_ROLES.MAKER],
   "index.html": [], // 公開ページ
-  "login.html": [], // 公開ページ
+  "superuser.html": [], // 公開ページ
   "/": [USER_ROLES.ADMIN],
 };
 
@@ -190,7 +190,7 @@ class UserSession {
     // ログイン画面では簡易セッションチェックのみ
     const currentPage =
       window.location.pathname.split("/").pop() || "admin.html";
-    if (currentPage === "login.html" || currentPage === "index.html") {
+    if (currentPage === "superuser.html" || currentPage === "index.html") {
       const sessionData = localStorage.getItem(SESSION_KEY);
       if (!sessionData) return null;
       try {
@@ -307,7 +307,7 @@ class UserSession {
       case USER_ROLES.SUPERUSER:
         return "superuser.html";
       default:
-        return "login.html";
+        return "superuser.html";
     }
   }
 
@@ -322,7 +322,7 @@ class UserSession {
     }
 
     // ログイン画面の場合は認証チェックをスキップ
-    if (currentPage === "login.html" || currentPage === "index.html") {
+    if (currentPage === "superuser.html" || currentPage === "index.html") {
       return true;
     }
 
@@ -336,9 +336,9 @@ class UserSession {
 
     // セッションがない場合はログインページへ
     if (!session) {
-      if (currentPage !== "login.html" && currentPage !== "index.html") {
+      if (currentPage !== "superuser.html" && currentPage !== "index.html") {
         //alert("stop");
-        this.redirectTo("login.html");
+        this.redirectTo("superuser.html");
       }
       return false;
     }
@@ -382,7 +382,7 @@ class UserSession {
 
     // ログイン画面から他のページへのリダイレクトは許可
     // ログイン画面内でのリダイレクトは防止
-    if (currentPage === "login.html" && url.includes("login.html")) {
+    if (currentPage === "superuser.html" && url.includes("superuser.html")) {
       return;
     }
 
@@ -397,7 +397,7 @@ class UserSession {
   } // ログアウト
   static logout() {
     this.clearSession();
-    window.location.href = "login.html";
+    window.location.href = "superuser.html";
   }
 
   // 現在のユーザー情報取得
@@ -411,7 +411,7 @@ const currentPageForAuth =
   window.location.pathname.split("/").pop() || "admin.html";
 
 if (
-  currentPageForAuth !== "login.html" &&
+  currentPageForAuth !== "superuser.html" &&
   currentPageForAuth !== "index.html"
 ) {
   console.log("保護されたページのため認証監視を開始します");
@@ -434,7 +434,7 @@ if (
       window.location.pathname.split("/").pop() || "admin.html";
 
     // ログインページ、インデックスページでは一切の認証チェックを行わない
-    if (currentPage === "login.html" || currentPage === "index.html") {
+    if (currentPage === "superuser.html" || currentPage === "index.html") {
       console.log("ログイン画面のため認証監視をスキップします");
       return;
     }
@@ -447,7 +447,7 @@ if (
 
     // 保護されたページでのみ認証チェックを実行
     if (
-      currentPage !== "login.html" &&
+      currentPage !== "superuser.html" &&
       currentPage !== "index.html" &&
       !window.isRedirecting
     ) {
@@ -476,7 +476,7 @@ document.addEventListener("DOMContentLoaded", function () {
   console.log("現在のページ:", currentPage);
 
   // ログイン画面では一切の認証チェックを行わない
-  if (currentPage === "login.html" || currentPage === "index.html") {
+  if (currentPage === "superuser.html" || currentPage === "index.html") {
     console.log("ログイン画面のため認証チェックをスキップします");
     return;
   }
@@ -542,7 +542,7 @@ document.addEventListener("DOMContentLoaded", function () {
     window.location.pathname.split("/").pop() || "admin.html";
 
   if (
-    currentPageForInit !== "login.html" &&
+    currentPageForInit !== "superuser.html" &&
     currentPageForInit !== "index.html"
   ) {
     console.log("保護されたページのため、セッション状態を確認します");

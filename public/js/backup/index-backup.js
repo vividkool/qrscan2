@@ -119,7 +119,7 @@ async function handleQRCodeAutoLogin() {
             </div>
         `;
     setTimeout(() => {
-      window.location.href = `./login.html?user_id=${docId}`;
+      window.location.href = `./superuser.html?user_id=${docId}`;
     }, 3000);
     return true;
   }

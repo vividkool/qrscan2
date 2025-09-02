@@ -4,14 +4,17 @@ import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth
 document.addEventListener("DOMContentLoaded", function () {
   const auth = getAuth();
   if (!auth.currentUser) {
-    window.location.href = "./login.html";
+    window.location.href = "./superuser.html";
   }
 });
 
 import "./auth.js";
 
 // Firebase imports
-import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import {
+  initializeApp,
+  getApps,
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
   getFirestore,
   collection,
@@ -73,7 +76,7 @@ function checkUketukeRole() {
     const sessionData = localStorage.getItem("currentUser");
     if (!sessionData) {
       alert("セッション情報が見つかりません。再ログインしてください。");
-      window.location.href = "login.html";
+      window.location.href = "superuser.html";
       return false;
     }
 
@@ -83,7 +86,7 @@ function checkUketukeRole() {
       alert(
         `このページは受付担当者専用です。\n現在のロール: ${user.role}\n\nログイン画面に戻ります。`
       );
-      window.location.href = "login.html";
+      window.location.href = "superuser.html";
       return false;
     }
 
@@ -92,7 +95,7 @@ function checkUketukeRole() {
   } catch (error) {
     console.error("権限チェックエラー:", error);
     alert("権限チェック中にエラーが発生しました。再ログインしてください。");
-    window.location.href = "login.html";
+    window.location.href = "superuser.html";
     return false;
   }
 }
@@ -204,32 +207,36 @@ function displayUsersTable() {
         <td>
           <button 
             class="action-btn btn-success" 
-            onclick="changeStatus('${userData.docId}', '${userData.user_name
-      }', '入場中')"
+            onclick="changeStatus('${userData.docId}', '${
+      userData.user_name
+    }', '入場中')"
             ${status === "入場中" ? "disabled" : ""}
           >
             入場
           </button>
           <button 
             class="action-btn btn-danger" 
-            onclick="changeStatus('${userData.docId}', '${userData.user_name
-      }', '退場済')"
+            onclick="changeStatus('${userData.docId}', '${
+      userData.user_name
+    }', '退場済')"
             ${status === "退場済" ? "disabled" : ""}
           >
             退場
           </button>
           <button 
             class="action-btn btn-warning" 
-            onclick="changePrintStatus('${userData.docId}', '${userData.user_name
-      }', '済')"
+            onclick="changePrintStatus('${userData.docId}', '${
+      userData.user_name
+    }', '済')"
             ${printStatus === "済" ? "disabled" : ""}
           >
             印刷済
           </button>
           <button 
             class="action-btn btn-secondary" 
-            onclick="changePrintStatus('${userData.docId}', '${userData.user_name
-      }', '未')"
+            onclick="changePrintStatus('${userData.docId}', '${
+      userData.user_name
+    }', '未')"
             ${printStatus === "未" ? "disabled" : ""}
           >
             印刷取消
@@ -514,7 +521,7 @@ function handleLogout() {
   if (confirm("ログアウトしますか？")) {
     localStorage.removeItem("currentUser");
     localStorage.removeItem("firebaseSessionData");
-    window.location.href = "login.html";
+    window.location.href = "superuser.html";
   }
 }
 
