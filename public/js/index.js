@@ -138,6 +138,12 @@ async function registerAdmin(formData, accountStatus = "test") {
         }
 
         // Firebase Auth登録成功時のみFirestoreに保存
+        // event_idは今日の日付（作成日）をベースに生成（イベント開催日変更に対応）
+        const today = new Date();
+        const todayEventId = "EXPO" + today.getFullYear() +
+            String(today.getMonth() + 1).padStart(2, '0') +
+            String(today.getDate()).padStart(2, '0');
+
         await setDoc(adminRef, {
             admin_id: adminId,
             admin_name: adminName,
@@ -145,7 +151,7 @@ async function registerAdmin(formData, accountStatus = "test") {
             password: password,
             project_name: projectName,
             event_date: eventDate,
-            event_id: formData.eventId || "EXPO" + eventDate.replace(/-/g, ""), // event_id追加
+            event_id: todayEventId, // 今日の日付ベース（EXPO20250903形式）
             company_name: companyName,
             phone_number: phoneNumber,
             role: adminId === "superuser" ? "superuser" : "admin", // superuserの場合は特別なrole
@@ -165,7 +171,7 @@ async function registerAdmin(formData, accountStatus = "test") {
         // テンプレートコレクションをコピー（3層構造対応）
         try {
             console.log("=== テンプレートコレクションコピー開始 ===");
-            await copyTemplateCollections(adminId, formData.eventId); // event_idも渡す
+            await copyTemplateCollections(adminId, todayEventId); // 今日の日付ベースevent_idを使用
             console.log("テンプレートコレクションコピー完了");
         } catch (copyError) {
             console.error("テンプレートコピーエラー:", copyError);
@@ -213,10 +219,7 @@ async function copyTemplateCollections(targetAdminId, eventId) {
             await createInitialCollections(targetCollectionName);
         }
 
-        // 基本コレクション作成を無効化（testtemplateコピーを優先）
-        // console.log("🚀 基本コレクション作成を開始...");
-        // await createInitialCollections(targetCollectionName);
-        // console.log("✅ 基本コレクション作成完了");
+
 
         console.log(
             `テンプレートコピー完了: ${targetAdminId} → ${targetCollectionName}`
@@ -391,8 +394,8 @@ async function copySubCollections(
                     batch.set(targetRef, {
                         ...docData,
                         collection_type: subColName, // データタイプを識別するフィールド
-                        copied_at: serverTimestamp(),
-                        copied_from: sourceCollectionPath,
+
+
                     });
 
                     batchCount++;
@@ -571,6 +574,12 @@ async function handleAdminRegister(event, accountStatus = "test") {
         }
     }
 
+    // 現在の日付からevent_idを生成（作成日ベース）
+    const today = new Date();
+    const todayEventId = "EXPO" + today.getFullYear() +
+        String(today.getMonth() + 1).padStart(2, '0') +
+        String(today.getDate()).padStart(2, '0');
+
     const adminData = {
         adminId: formData.get("adminIdReg"),
         adminName: formData.get("adminNameReg"),
@@ -578,7 +587,7 @@ async function handleAdminRegister(event, accountStatus = "test") {
         password: formData.get("passwordReg"),
         projectName: formData.get("projectNameReg"),
         eventDate: formData.get("eventDateReg"),
-        eventId: "EXPO" + formData.get("eventDateReg").replace(/-/g, ""), // EXPO + YYYYMMDD形式
+        eventId: todayEventId, // 作成日ベースのevent_id
         companyName: formData.get("companyNameReg"),
         phoneNumber: formData.get("phoneNumberReg"),
     };
