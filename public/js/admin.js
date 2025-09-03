@@ -115,7 +115,9 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   console.log(
     "Admin別コレクションパス:",
-    `admin_collections/${currentAdmin.admin_id}/${currentAdmin.event_id || 'NO_EVENT_ID'}/`
+    `admin_collections/${currentAdmin.admin_id}/${
+      currentAdmin.event_id || "NO_EVENT_ID"
+    }/`
   );
 
   // デバッグ：admin_idとevent_idの詳細を表示
@@ -211,7 +213,10 @@ async function checkAdminAuthentication() {
   initializeAdminModal(db, currentAdmin, null);
 
   // デバッグ：admin_idの詳細を表示
-  console.log("🔍 checkAdminAuth currentAdmin.admin_id:", currentAdmin.admin_id);
+  console.log(
+    "🔍 checkAdminAuth currentAdmin.admin_id:",
+    currentAdmin.admin_id
+  );
   console.log("🔍 checkAdminAuth userData.admin_id:", userData.admin_id);
   console.log("🔍 checkAdminAuth auth.currentUser.uid:", auth.currentUser.uid);
 
@@ -241,21 +246,26 @@ function getAdminCollection(collectionName) {
       hasCurrentAdmin: !!currentAdmin,
       hasAdminId: !!(currentAdmin && currentAdmin.admin_id),
       hasEventId: !!(currentAdmin && currentAdmin.event_id),
-      currentAdmin: currentAdmin
+      currentAdmin: currentAdmin,
     };
     console.error("Admin認証またはevent_id が不足:", errorDetail);
-    throw new Error(`Admin認証またはevent_id が必要です。admin_id: ${currentAdmin?.admin_id || 'なし'}, event_id: ${currentAdmin?.event_id || 'なし'}`);
+    throw new Error(
+      `Admin認証またはevent_id が必要です。admin_id: ${
+        currentAdmin?.admin_id || "なし"
+      }, event_id: ${currentAdmin?.event_id || "なし"}`
+    );
   }
 
-  const adminPath = `admin_collections/${currentAdmin.admin_id}/${currentAdmin.event_id}/${collectionName}`;
-  console.log(`[DEBUG] Admin collection path (3-tier): ${adminPath}`);
+  // 4セグメント構造: admin_collections/{admin_id}/{event_id}_{collectionName}
+  const collectionKey = `${currentAdmin.event_id}_${collectionName}`;
+  const adminPath = `admin_collections/${currentAdmin.admin_id}/${collectionKey}`;
+  console.log(`[DEBUG] Admin collection path (4セグメント): ${adminPath}`);
 
   return collection(
     db,
     "admin_collections",
     currentAdmin.admin_id,
-    currentAdmin.event_id,
-    collectionName
+    collectionKey
   );
 }
 
@@ -266,9 +276,13 @@ function getAdminDoc(collectionName, docId) {
       hasCurrentAdmin: !!currentAdmin,
       hasAdminId: !!(currentAdmin && currentAdmin.admin_id),
       hasEventId: !!(currentAdmin && currentAdmin.event_id),
-      currentAdmin: currentAdmin
+      currentAdmin: currentAdmin,
     });
-    throw new Error(`Admin認証またはevent_id が必要です。admin_id: ${currentAdmin?.admin_id || 'なし'}, event_id: ${currentAdmin?.event_id || 'なし'}`);
+    throw new Error(
+      `Admin認証またはevent_id が必要です。admin_id: ${
+        currentAdmin?.admin_id || "なし"
+      }, event_id: ${currentAdmin?.event_id || "なし"}`
+    );
   }
 
   return doc(
@@ -309,7 +323,9 @@ function generateUUID() {
 // Firestoreエラーメッセージからインデックス作成URLを抽出
 function extractIndexUrl(errorMessage) {
   try {
-    const urlMatch = errorMessage.match(/https:\/\/console\.firebase\.google\.com[^\s\)]+/);
+    const urlMatch = errorMessage.match(
+      /https:\/\/console\.firebase\.google\.com[^\s\)]+/
+    );
     return urlMatch ? urlMatch[0] : null;
   } catch (e) {
     console.warn("インデックスURL抽出エラー:", e);
@@ -366,21 +382,10 @@ async function getAllItems() {
   try {
     showLoading("firestoreResult");
 
-    // Admin別の3層構造コレクションから items データを取得
-    // admin_collections/adminId/eventId/ の中で collection_type="items" のドキュメントを取得
-    const adminEventCollection = collection(
-      db,
-      "admin_collections",
-      currentAdmin.admin_id,
-      currentAdmin.event_id
-    );
+    // Admin別の4セグメント構造コレクションから items データを取得
+    const adminCollection = getAdminCollection("items");
 
-    // collection_type が "items" のドキュメントのみを取得（複合インデックス使用）
-    const q = query(
-      adminEventCollection,
-      where("collection_type", "==", "items"),
-      orderBy("item_no", "asc")
-    );
+    const q = query(adminCollection, orderBy("item_no", "asc"));
     const querySnapshot = await getDocs(q);
 
     if (querySnapshot.empty) {
@@ -420,8 +425,9 @@ async function getAllItems() {
     html += "</tbody></table>";
 
     showResult("firestoreResult", html, "success");
-    document.getElementById("firestoreResult-collectionname").textContent =
-      `itemsデータベース (admin_collections/${currentAdmin.admin_id}/${currentAdmin.event_id}/)`;
+    document.getElementById(
+      "firestoreResult-collectionname"
+    ).textContent = `itemsデータベース (admin_collections/${currentAdmin.admin_id}/${currentAdmin.event_id}/)`;
     document.getElementById(
       "firestoreResult-count"
     ).textContent = `${querySnapshot.size}件`;
@@ -433,7 +439,10 @@ async function getAllItems() {
     console.error("getAllItems error:", error);
 
     // Firestoreインデックスエラーの場合は専用メッセージを表示
-    if (error.code === 'failed-precondition' && error.message.includes('index')) {
+    if (
+      error.code === "failed-precondition" &&
+      error.message.includes("index")
+    ) {
       const indexUrl = extractIndexUrl(error.message);
       const indexMessage = `
         <div style="background:#fff3cd; border:1px solid #ffeaa7; padding:15px; border-radius:5px; margin:10px 0;">
@@ -447,7 +456,11 @@ async function getAllItems() {
             2. 「インデックスを作成」ボタンをクリック<br>
             3. 作成完了後（約1-2分）にページを再読み込み
           </p>
-          ${indexUrl ? `<a href="${indexUrl}" target="_blank" style="background:#007bff; color:white; padding:10px 15px; text-decoration:none; border-radius:5px; display:inline-block; margin:10px 0;">📊 Firestoreインデックスを作成</a>` : ''}
+          ${
+            indexUrl
+              ? `<a href="${indexUrl}" target="_blank" style="background:#007bff; color:white; padding:10px 15px; text-decoration:none; border-radius:5px; display:inline-block; margin:10px 0;">📊 Firestoreインデックスを作成</a>`
+              : ""
+          }
           <br>
           <button onclick="location.reload()" style="background:#28a745; color:white; padding:8px 12px; border:none; border-radius:3px; margin:5px 0;">🔄 ページを再読み込み</button>
         </div>
@@ -464,24 +477,21 @@ async function getAllUsers() {
   try {
     showLoading("firestoreResult");
 
-    // Admin別の3層構造コレクションから users データを取得
-    const adminEventCollection = collection(
-      db,
-      "admin_collections",
-      currentAdmin.admin_id,
-      currentAdmin.event_id
-    );
+    // Admin別の4セグメント構造コレクションから users データを取得
+    const adminCollection = getAdminCollection("users");
 
-    // collection_type が "users" で user_role が "user" のドキュメントのみを取得
+    // user_role が "user" のドキュメントのみを取得
     const q = query(
-      adminEventCollection,
-      where("collection_type", "==", "users"),
-      where("user_role", "==", "user")
+      adminCollection,
+      where("user_role", "==", "user"),
+      orderBy("user_id", "asc")
     );
     const querySnapshot = await getDocs(q);
 
-    const usersQueryPath = `admin_collections/${currentAdmin.admin_id}/${currentAdmin.event_id}/`;
-    console.log(`[DEBUG] Query result from ${usersQueryPath}: ${querySnapshot.size} documents`);
+    const usersQueryPath = `admin_collections/${currentAdmin.admin_id}/${currentAdmin.event_id}_users`;
+    console.log(
+      `[DEBUG] Query result from ${usersQueryPath}: ${querySnapshot.size} documents`
+    );
 
     if (querySnapshot.empty) {
       showResult(
@@ -552,24 +562,17 @@ async function getAllScanItems() {
   try {
     showLoading("firestoreResult");
 
-    // Admin別の3層構造コレクションから scanItems データを取得
-    const adminEventCollection = collection(
-      db,
-      "admin_collections",
-      currentAdmin.admin_id,
-      currentAdmin.event_id
-    );
+    // Admin別の4セグメント構造コレクションから scanItems データを取得
+    const adminCollection = getAdminCollection("scanItems");
 
-    // collection_type が "scanItems" のドキュメントのみを取得（_initドキュメントは除外）
-    const q = query(
-      adminEventCollection,
-      where("collection_type", "==", "scanItems"),
-      orderBy("timestamp", "desc")
-    );
+    // scanItemsデータを取得（非正規化データなので1クエリで関連情報も含む）
+    const q = query(adminCollection, orderBy("scan_time", "desc"));
     const querySnapshot = await getDocs(q);
 
     // _initドキュメントは除外
-    const filteredDocs = querySnapshot.docs.filter(doc => !doc.id.startsWith('_'));
+    const filteredDocs = querySnapshot.docs.filter(
+      (doc) => !doc.id.startsWith("_")
+    );
 
     if (filteredDocs.length === 0) {
       showResult(
@@ -592,8 +595,8 @@ async function getAllScanItems() {
       const timestamp = data.timestamp || data.createdAt;
       const timeStr = timestamp
         ? new Date(
-          timestamp.seconds ? timestamp.toDate() : timestamp
-        ).toLocaleString("ja-JP")
+            timestamp.seconds ? timestamp.toDate() : timestamp
+          ).toLocaleString("ja-JP")
         : "不明";
       const content = data.content || "データなし";
       const userName = data.user_name || data.user_id || "不明";
@@ -622,8 +625,9 @@ async function getAllScanItems() {
     html += "</tbody></table>";
 
     showResult("firestoreResult", html, "success");
-    document.getElementById("firestoreResult-collectionname").textContent =
-      `scanItemsデータベース (admin_collections/${currentAdmin.admin_id}/${currentAdmin.event_id}/)`;
+    document.getElementById(
+      "firestoreResult-collectionname"
+    ).textContent = `scanItemsデータベース (admin_collections/${currentAdmin.admin_id}/${currentAdmin.event_id}/)`;
     document.getElementById(
       "firestoreResult-count"
     ).textContent = `${filteredDocs.length}件`;
@@ -641,26 +645,21 @@ async function getAllStaff() {
   try {
     showLoading("firestoreResult");
 
-    // Admin別の3層構造コレクションから staff データを取得
-    const adminEventCollection = collection(
-      db,
-      "admin_collections",
-      currentAdmin.admin_id,
-      currentAdmin.event_id
-    );
+    // Admin別の4セグメント構造コレクションから staff データを取得
+    const adminCollection = getAdminCollection("users");
 
-    // collection_type が "users" で user_role が "staff" のドキュメントのみを取得
+    // user_role が "staff" または "uketuke" のドキュメントを取得
     const q = query(
-      adminEventCollection,
-      where("collection_type", "==", "users"),
-      where("user_role", "==", "staff")
+      adminCollection,
+      where("user_role", "in", ["staff", "uketuke"]),
+      orderBy("user_id", "asc")
     );
     const querySnapshot = await getDocs(q);
 
     if (querySnapshot.empty) {
       showResult(
         "firestoreResult",
-        `${currentAdmin.admin_id}の管理するスタッフデータがありません<br><small>📂 参照パス: admin_collections/${currentAdmin.admin_id}/${currentAdmin.event_id}/ (collection_type="users", user_role="staff")</small>`,
+        `${currentAdmin.admin_id}の管理するスタッフデータがありません<br><small>📂 参照パス: admin_collections/${currentAdmin.admin_id}/${currentAdmin.event_id}/ (user_role="staff" or "uketuke")</small>`,
         "info"
       );
       console.log(`Admin ${currentAdmin.admin_id}: スタッフデータなし`);
@@ -701,8 +700,9 @@ async function getAllStaff() {
     html += "</tbody></table>";
 
     showResult("firestoreResult", html, "success");
-    document.getElementById("firestoreResult-collectionname").textContent =
-      `スタッフデータベース (admin_collections/${currentAdmin.admin_id}/${currentAdmin.event_id}/)`;
+    document.getElementById(
+      "firestoreResult-collectionname"
+    ).textContent = `スタッフ・受付データベース (admin_collections/${currentAdmin.admin_id}/${currentAdmin.event_id}/)`;
     document.getElementById(
       "firestoreResult-count"
     ).textContent = `${sortedDocs.length}件`;
@@ -722,19 +722,14 @@ async function getAllMaker() {
   try {
     showLoading("firestoreResult");
 
-    // Admin別の3層構造コレクションから maker データを取得
-    const adminEventCollection = collection(
-      db,
-      "admin_collections",
-      currentAdmin.admin_id,
-      currentAdmin.event_id
-    );
+    // Admin別の4セグメント構造コレクションから maker データを取得
+    const adminCollection = getAdminCollection("users");
 
-    // collection_type が "users" で user_role が "maker" のドキュメントのみを取得
+    // user_role が "maker" のドキュメントのみを取得
     const q = query(
-      adminEventCollection,
-      where("collection_type", "==", "users"),
-      where("user_role", "==", "maker")
+      adminCollection,
+      where("user_role", "==", "maker"),
+      orderBy("user_id", "asc")
     );
     const querySnapshot = await getDocs(q);
 
@@ -782,8 +777,9 @@ async function getAllMaker() {
     html += "</tbody></table>";
 
     showResult("firestoreResult", html, "success");
-    document.getElementById("firestoreResult-collectionname").textContent =
-      `メーカーコレクション (admin_collections/${currentAdmin.admin_id}/${currentAdmin.event_id}/)`;
+    document.getElementById(
+      "firestoreResult-collectionname"
+    ).textContent = `メーカーコレクション (admin_collections/${currentAdmin.admin_id}/${currentAdmin.event_id}/)`;
     document.getElementById(
       "firestoreResult-count"
     ).textContent = `${sortedDocs.length}件`;
@@ -856,28 +852,33 @@ function generateEditFormFields(collectionType, currentData) {
     fields = `
       <div style="margin-bottom:15px;">
         <label style="display:block; margin-bottom:5px; font-weight:bold;">アイテム番号 <span style="color:red;">*</span></label>
-        <input type="text" id="modal_item_no" required value="${currentData.item_no || ""
-      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+        <input type="text" id="modal_item_no" required value="${
+          currentData.item_no || ""
+        }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
       </div>
       <div style="margin-bottom:15px;">
         <label style="display:block; margin-bottom:5px; font-weight:bold;">カテゴリ名</label>
-        <input type="text" id="modal_category_name" value="${currentData.category_name || ""
-      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+        <input type="text" id="modal_category_name" value="${
+          currentData.category_name || ""
+        }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
       </div>
       <div style="margin-bottom:15px;">
         <label style="display:block; margin-bottom:5px; font-weight:bold;">会社名</label>
-        <input type="text" id="modal_company_name" value="${currentData.company_name || ""
-      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+        <input type="text" id="modal_company_name" value="${
+          currentData.company_name || ""
+        }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
       </div>
       <div style="margin-bottom:15px;">
         <label style="display:block; margin-bottom:5px; font-weight:bold;">アイテム名 <span style="color:red;">*</span></label>
-        <input type="text" id="modal_item_name" required value="${currentData.item_name || ""
-      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+        <input type="text" id="modal_item_name" required value="${
+          currentData.item_name || ""
+        }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
       </div>
       <div style="margin-bottom:15px;">
         <label style="display:block; margin-bottom:5px; font-weight:bold;">メーカーコード</label>
-        <input type="text" id="modal_maker_code" value="${currentData.maker_code || ""
-      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+        <input type="text" id="modal_maker_code" value="${
+          currentData.maker_code || ""
+        }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
       </div>
     `;
   } else if (
@@ -889,60 +890,74 @@ function generateEditFormFields(collectionType, currentData) {
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザーID <span style="color:red;">*</span></label>
-          <input type="text" id="modal_user_id" required value="${currentData.user_id || ""
-      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+          <input type="text" id="modal_user_id" required value="${
+            currentData.user_id || ""
+          }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザー名 <span style="color:red;">*</span></label>
-          <input type="text" id="modal_user_name" required value="${currentData.user_name || ""
-      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+          <input type="text" id="modal_user_name" required value="${
+            currentData.user_name || ""
+          }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">メールアドレス</label>
-          <input type="email" id="modal_email" value="${currentData.email || ""
-      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+          <input type="email" id="modal_email" value="${
+            currentData.email || ""
+          }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">電話番号</label>
-          <input type="tel" id="modal_phone" value="${currentData.phone || ""
-      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+          <input type="tel" id="modal_phone" value="${
+            currentData.phone || ""
+          }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">会社名</label>
-          <input type="text" id="modal_company_name" value="${currentData.company_name || ""
-      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+          <input type="text" id="modal_company_name" value="${
+            currentData.company_name || ""
+          }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">ステータス</label>
           <select id="modal_status" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-            <option value="-" ${currentData.status === "-" ? "selected" : ""
-      }>-</option>
-            <option value="入場中" ${currentData.status === "入場中" ? "selected" : ""
-      }>入場中</option>
-            <option value="退場済" ${currentData.status === "退場済" ? "selected" : ""
-      }>退場済</option>
+            <option value="-" ${
+              currentData.status === "-" ? "selected" : ""
+            }>-</option>
+            <option value="入場中" ${
+              currentData.status === "入場中" ? "selected" : ""
+            }>入場中</option>
+            <option value="退場済" ${
+              currentData.status === "退場済" ? "selected" : ""
+            }>退場済</option>
           </select>
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザー権限</label>
           <select id="modal_user_role" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-            <option value="user" ${currentData.user_role === "user" ? "selected" : ""
-      }>User</option>
-            <option value="admin" ${currentData.user_role === "admin" ? "selected" : ""
-      }>Admin</option>
-            <option value="staff" ${currentData.user_role === "staff" ? "selected" : ""
-      }>Staff</option>
-            <option value="maker" ${currentData.user_role === "maker" ? "selected" : ""
-      }>Maker</option>
+            <option value="user" ${
+              currentData.user_role === "user" ? "selected" : ""
+            }>User</option>
+            <option value="admin" ${
+              currentData.user_role === "admin" ? "selected" : ""
+            }>Admin</option>
+            <option value="staff" ${
+              currentData.user_role === "staff" ? "selected" : ""
+            }>Staff</option>
+            <option value="maker" ${
+              currentData.user_role === "maker" ? "selected" : ""
+            }>Maker</option>
           </select>
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">印刷ステータス</label>
           <select id="modal_print_status" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-            <option value="not_printed" ${currentData.print_status === "not_printed" ? "selected" : ""
-      }>未印刷</option>
-            <option value="printed" ${currentData.print_status === "printed" ? "selected" : ""
-      }>印刷済み</option>
+            <option value="not_printed" ${
+              currentData.print_status === "not_printed" ? "selected" : ""
+            }>未印刷</option>
+            <option value="printed" ${
+              currentData.print_status === "printed" ? "selected" : ""
+            }>印刷済み</option>
           </select>
         </div>
       </div>

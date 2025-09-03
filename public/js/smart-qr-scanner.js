@@ -443,7 +443,7 @@ class SmartQRScanner {
       // 現在のユーザー情報を取得（awaitでPromise解決）
       const currentUser = await this.getCurrentUserInfo();
 
-      // scanItemsコレクションに保存するデータを構築
+      // scanItemsコレクションに非正規化データとして保存（効率的クエリ対応）
       const scanData = {
         // QRコード基本情報
         content: itemNo, // item_noをcontentとして保存（後方互換性）
@@ -451,7 +451,7 @@ class SmartQRScanner {
         originalQrCode: qrData, // 元のQRコードデータも保存
         identifier: firstParam, // 識別子も保存
 
-        // アイテム詳細情報（itemsコレクションから取得）
+        // アイテム詳細情報（itemsコレクションから取得して非正規化）
         item_name: itemDetails?.item_name || "",
         category_name: itemDetails?.category_name || "",
         maker_name: itemDetails?.company_name || "", // company_nameをmaker_nameとして保存
@@ -459,16 +459,21 @@ class SmartQRScanner {
 
         // スキャン情報
         timestamp: new Date().toISOString(),
+        scan_time: new Date().toISOString(), // 統一フィールド名
         createdAt: new Date(),
         scannerMode: this.currentMode,
         deviceInfo: this.getDeviceInfo(),
         userAgent: navigator.userAgent.substr(0, 100),
 
-        // ユーザー情報
+        // ユーザー情報（非正規化）
         role: currentUser.role || "",
         user_id: currentUser.user_id || "",
         user_name: currentUser.user_name || "",
         company_name: currentUser.company_name || "",
+
+        // 非正規化データマーク
+        _normalized: true,
+        _note: "非正規化データ: 効率的クエリのためアイテム・ユーザー情報を含む",
       };
 
       const docRef = await addDoc(collection(db, "scanItems"), scanData);
@@ -718,7 +723,7 @@ class SmartQRScanner {
         this.debugLog("🔍 Firestoreクエリ開始", {
           collection: "scanItems",
           user_id: currentUser.user_id,
-          user_id_type: typeof currentUser.user_id
+          user_id_type: typeof currentUser.user_id,
         });
 
         const userQuery = query(
@@ -729,7 +734,7 @@ class SmartQRScanner {
 
         this.debugLog("🔍 文字列クエリ結果", {
           isEmpty: querySnapshot.empty,
-          size: querySnapshot.size
+          size: querySnapshot.size,
         });
 
         if (querySnapshot.empty) {
@@ -744,7 +749,7 @@ class SmartQRScanner {
             this.debugLog("🔍 数値クエリ結果", {
               isEmpty: querySnapshot.empty,
               size: querySnapshot.size,
-              userIdAsNumber
+              userIdAsNumber,
             });
           }
         }
@@ -755,12 +760,14 @@ class SmartQRScanner {
         const allDocs = await getDocs(allDocsQuery);
         this.debugLog("🔍 全scanItemsドキュメント", {
           totalCount: allDocs.size,
-          sample: allDocs.size > 0 ? allDocs.docs.slice(0, 3).map(doc => ({
-            id: doc.id,
-            data: doc.data()
-          })) : []
+          sample:
+            allDocs.size > 0
+              ? allDocs.docs.slice(0, 3).map((doc) => ({
+                  id: doc.id,
+                  data: doc.data(),
+                }))
+              : [],
         });
-
       } catch (error) {
         historyElement.innerHTML =
           '<div class="error">履歴の検索中にエラーが発生しました</div>';
@@ -769,8 +776,9 @@ class SmartQRScanner {
       }
 
       if (querySnapshot.empty) {
-        historyElement.innerHTML = `<div class="no-data">📝 ${currentUser.user_name || "あなた"
-          }のスキャン履歴がありません</div>`;
+        historyElement.innerHTML = `<div class="no-data">📝 ${
+          currentUser.user_name || "あなた"
+        }のスキャン履歴がありません</div>`;
         this.debugLog("該当ユーザーのスキャン履歴なし", currentUser.user_id);
         return;
       }
@@ -855,8 +863,9 @@ class SmartQRScanner {
       html += "</div>";
 
       if (scanData.length > 20) {
-        html += `<div class="history-footer">他 ${scanData.length - 20
-          } 件</div>`;
+        html += `<div class="history-footer">他 ${
+          scanData.length - 20
+        } 件</div>`;
       }
 
       // 総件数表示
@@ -1000,8 +1009,9 @@ class SmartQRScanner {
       html += "</div>";
 
       if (scanData.length > 50) {
-        html += `<div class="history-footer">他 ${scanData.length - 50
-          } 件</div>`;
+        html += `<div class="history-footer">他 ${
+          scanData.length - 50
+        } 件</div>`;
       }
 
       // 総件数表示
