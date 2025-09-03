@@ -570,14 +570,14 @@
     <div class="dashboard-header">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
             <h1 style="margin: 0;">管理者　管理画面</h1>
-            
+
             <div style="display: flex; align-items: center; gap: 10px;">
                 <span id="userInfo" style="color: rgba(255,255,255,0.9); font-size: 14px;"></span>
                 <button id="profileBtn"
                     style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
                     👤 管理者情報
                 </button>
-               
+
                 <button onclick="handleAdminLogout()"
                     style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
                     ログアウト
@@ -637,7 +637,9 @@
             <button onclick="getAllScanItems()" class="action-button">
                 📄 ScanItemsデータベース表示
             </button>
-
+            <button onclick="uketukelogin()" class="action-button">
+                📄 疑似的uketukeログイン
+            </button>
         </div>
 
 
@@ -874,14 +876,14 @@
     <script type="module" src="js/template-utils.js"></script>
     <script type="module" src="js/admin.js"></script>
     <script type="module" src="js/profile.js"></script>
-    
+
     <!-- ログアウト関数の確実な公開 -->
     <script>
         // ES6モジュールの読み込み完了を待ってからログアウト関数を確認
-        window.addEventListener('load', function() {
+        window.addEventListener('load', function () {
             if (!window.handleAdminLogout) {
                 console.warn('handleAdminLogout関数が見つかりません。フォールバック関数を定義します。');
-                window.handleAdminLogout = async function() {
+                window.handleAdminLogout = async function () {
                     try {
                         // Firebase Authの直接呼び出し
                         const { getAuth, signOut } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js');

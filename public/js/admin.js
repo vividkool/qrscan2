@@ -1,8 +1,25 @@
 ﻿// Firebase Index Page Functions (Firebase Auth専用版)
 import {
+  initializeApp,
+  getApps,
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import {
   getAuth,
   onAuthStateChanged,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import {
+  getFirestore,
+  doc,
+  setDoc,
+  collection,
+  query,
+  where,
+  orderBy,
+  getDocs,
+  serverTimestamp,
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import "./auth.js"; // UserSession機能を利用
 import { initializeAdminModal } from "./admin-modal.js"; // モーダル・データ操作機能
 
@@ -115,8 +132,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   console.log(
     "Admin別コレクションパス:",
-    `admin_collections/${currentAdmin.admin_id}/${
-      currentAdmin.event_id || "NO_EVENT_ID"
+    `admin_collections/${currentAdmin.admin_id}/${currentAdmin.event_id || "NO_EVENT_ID"
     }/`
   );
 
@@ -126,25 +142,60 @@ document.addEventListener("DOMContentLoaded", async function () {
   console.log("🔍 userData.admin_id:", userData.admin_id);
   console.log("🔍 userData.event_id:", userData.event_id);
   console.log("🔍 firebaseUser.uid:", firebaseUser.uid);
+
+  // ES6モジュール読み込み完了後に関数をグローバル登録
+  setTimeout(() => {
+    registerGlobalFunctions();
+  }, 100);
 });
 
-import {
-  initializeApp,
-  getApps,
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import {
-  getFirestore,
-  collection,
-  addDoc,
-  getDocs,
-  doc,
-  setDoc,
-  getDoc,
-  deleteDoc,
-  query,
-  orderBy,
-  where,
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+// グローバル関数登録を行う関数
+function registerGlobalFunctions() {
+  console.log("=== グローバル関数登録開始 ===");
+
+  // 関数の存在確認
+  const functions = {
+    getAllItems,
+    getAllUsers,
+    getAllStaff,
+    getAllMaker,
+    getAllScanItems,
+    clearResults,
+    callHelloWorld,
+    uketukelogin,
+    handleAdminLogout,
+    checkAdminAuthentication,
+    getAdminCollection,
+    getAdminDoc
+  };
+
+  // 未定義関数をチェック
+  for (const [name, func] of Object.entries(functions)) {
+    if (typeof func === 'undefined') {
+      console.error(`❌ 関数 ${name} が未定義です`);
+    } else {
+      console.log(`✅ 関数 ${name} が定義されています`);
+    }
+  }
+
+  // グローバル関数として登録
+  window.getAllItems = getAllItems;
+  window.getAllUsers = getAllUsers;
+  window.getAllStaff = getAllStaff;
+  window.getAllMaker = getAllMaker;
+  window.getAllScanItems = getAllScanItems;
+  window.clearResults = clearResults;
+  window.callHelloWorld = callHelloWorld;
+  window.uketukelogin = uketukelogin;
+  window.handleAdminLogout = handleAdminLogout;
+  window.checkAdminAuthentication = checkAdminAuthentication;
+  window.getAdminCollection = getAdminCollection;
+  window.getAdminDoc = getAdminDoc;
+
+  console.log("=== グローバル関数登録完了 ===");
+  console.log("uketukelogin:", typeof window.uketukelogin);
+  console.log("getAllUsers:", typeof window.getAllUsers);
+}
 
 // テンプレート・モーダル・アップロード機能をインポート
 import "./template-utils.js";
@@ -250,16 +301,24 @@ function getAdminCollection(collectionName) {
     };
     console.error("Admin認証またはevent_id が不足:", errorDetail);
     throw new Error(
-      `Admin認証またはevent_id が必要です。admin_id: ${
-        currentAdmin?.admin_id || "なし"
+      `Admin認証またはevent_id が必要です。admin_id: ${currentAdmin?.admin_id || "なし"
       }, event_id: ${currentAdmin?.event_id || "なし"}`
     );
   }
 
-  // 4セグメント構造: admin_collections/{admin_id}/{event_id}_{collectionName}
-  const collectionKey = `${currentAdmin.event_id}_${collectionName}`;
+  // コレクション名の正規化（scanItems -> scanitemsなど）
+  const collectionMapping = {
+    'scanItems': 'scanitems',
+    'items': 'items',
+    'users': 'users'
+  };
+
+  const normalizedCollectionName = collectionMapping[collectionName] || collectionName;
+
+  // 新しい構造: admin_collections/{admin_id}/{event_id}_{collectionName}
+  const collectionKey = `${currentAdmin.event_id}_${normalizedCollectionName}`;
   const adminPath = `admin_collections/${currentAdmin.admin_id}/${collectionKey}`;
-  console.log(`[DEBUG] Admin collection path (4セグメント): ${adminPath}`);
+  console.log(`[DEBUG] Admin collection path (コレクション分離構造): ${adminPath}`);
 
   return collection(
     db,
@@ -279,8 +338,7 @@ function getAdminDoc(collectionName, docId) {
       currentAdmin: currentAdmin,
     });
     throw new Error(
-      `Admin認証またはevent_id が必要です。admin_id: ${
-        currentAdmin?.admin_id || "なし"
+      `Admin認証またはevent_id が必要です。admin_id: ${currentAdmin?.admin_id || "なし"
       }, event_id: ${currentAdmin?.event_id || "なし"}`
     );
   }
@@ -295,8 +353,8 @@ function getAdminDoc(collectionName, docId) {
   );
 }
 
-// 現在表示中のコレクション状態を管理
-let currentCollectionType = null;
+// collection_type廃止により不要
+// let currentCollectionType = null;
 
 // ユーティリティ関数
 function clearResults(elementId) {
@@ -305,10 +363,11 @@ function clearResults(elementId) {
   element.className = "result";
   element.style.display = "none";
 
+  // collection_type廃止により無効化
   // Firestoreの結果をクリアする場合は追加ボタンも非表示
-  if (elementId === "firestoreResult") {
-    updateAddButton(null);
-  }
+  // if (elementId === "firestoreResult") {
+  //   updateAddButton(null);
+  // }
 }
 
 // UUID生成関数
@@ -334,6 +393,13 @@ function extractIndexUrl(errorMessage) {
 }
 
 // 追加ボタンの表示/非表示制御
+// ===============================
+// 廃止: collection_type関連関数
+// 新構造ではコレクション分離により不要
+// ===============================
+
+/* 
+// collection_type廃止により不要
 function updateAddButton(collectionType) {
   currentCollectionType = collectionType;
   // windowオブジェクトにも公開
@@ -360,6 +426,7 @@ function updateAddButton(collectionType) {
     addButton.style.display = "none";
   }
 }
+*/
 
 // ローディング表示関数
 function showLoading(elementId) {
@@ -382,7 +449,7 @@ async function getAllItems() {
   try {
     showLoading("firestoreResult");
 
-    // Admin別の4セグメント構造コレクションから items データを取得
+    // 新しい構造: admin_collections/{admin_id}/{event_id}_items
     const adminCollection = getAdminCollection("items");
 
     const q = query(adminCollection, orderBy("item_no", "asc"));
@@ -391,7 +458,7 @@ async function getAllItems() {
     if (querySnapshot.empty) {
       showResult(
         "firestoreResult",
-        `${currentAdmin.admin_id}の管理するアイテムデータがありません<br><small>📂 参照パス: admin_collections/${currentAdmin.admin_id}/${currentAdmin.event_id}/ (collection_type="items")</small>`,
+        `${currentAdmin.admin_id}の管理するアイテムデータがありません<br><small>📂 参照パス: admin_collections/${currentAdmin.admin_id}/${currentAdmin.event_id}_items/</small>`,
         "info"
       );
       console.log(`Admin ${currentAdmin.admin_id}: アイテムデータなし`);
@@ -427,13 +494,14 @@ async function getAllItems() {
     showResult("firestoreResult", html, "success");
     document.getElementById(
       "firestoreResult-collectionname"
-    ).textContent = `itemsデータベース (admin_collections/${currentAdmin.admin_id}/${currentAdmin.event_id}/)`;
+    ).textContent = `itemsデータベース (admin_collections/${currentAdmin.admin_id}/${currentAdmin.event_id}_items/)`;
     document.getElementById(
       "firestoreResult-count"
     ).textContent = `${querySnapshot.size}件`;
 
+    // collection_type廃止により無効化
     // 追加ボタンを更新
-    updateAddButton("items");
+    // updateAddButton("items");
     console.log("Items retrieved successfully");
   } catch (error) {
     console.error("getAllItems error:", error);
@@ -456,11 +524,10 @@ async function getAllItems() {
             2. 「インデックスを作成」ボタンをクリック<br>
             3. 作成完了後（約1-2分）にページを再読み込み
           </p>
-          ${
-            indexUrl
-              ? `<a href="${indexUrl}" target="_blank" style="background:#007bff; color:white; padding:10px 15px; text-decoration:none; border-radius:5px; display:inline-block; margin:10px 0;">📊 Firestoreインデックスを作成</a>`
-              : ""
-          }
+          ${indexUrl
+          ? `<a href="${indexUrl}" target="_blank" style="background:#007bff; color:white; padding:10px 15px; text-decoration:none; border-radius:5px; display:inline-block; margin:10px 0;">📊 Firestoreインデックスを作成</a>`
+          : ""
+        }
           <br>
           <button onclick="location.reload()" style="background:#28a745; color:white; padding:8px 12px; border:none; border-radius:3px; margin:5px 0;">🔄 ページを再読み込み</button>
         </div>
@@ -477,7 +544,7 @@ async function getAllUsers() {
   try {
     showLoading("firestoreResult");
 
-    // Admin別の4セグメント構造コレクションから users データを取得
+    // 新しい構造: admin_collections/{admin_id}/{event_id}_users
     const adminCollection = getAdminCollection("users");
 
     // user_role が "user" のドキュメントのみを取得
@@ -496,7 +563,7 @@ async function getAllUsers() {
     if (querySnapshot.empty) {
       showResult(
         "firestoreResult",
-        `${currentAdmin.admin_id}の管理するユーザーデータがありません<br><small>📂 参照パス: ${usersQueryPath} (collection_type="users", user_role="user")</small>`,
+        `${currentAdmin.admin_id}の管理するユーザーデータがありません<br><small>📂 参照パス: ${usersQueryPath} (user_role="user")</small>`,
         "info"
       );
       console.log(`Admin ${currentAdmin.admin_id}: ユーザーデータなし`);
@@ -547,8 +614,9 @@ async function getAllUsers() {
       "firestoreResult-count"
     ).textContent = `${sortedDocs.length}件`;
 
+    // collection_type廃止により無効化
     // 追加ボタンを更新
-    updateAddButton("users");
+    // updateAddButton("users");
 
     console.log("Users retrieved successfully");
   } catch (error) {
@@ -562,7 +630,7 @@ async function getAllScanItems() {
   try {
     showLoading("firestoreResult");
 
-    // Admin別の4セグメント構造コレクションから scanItems データを取得
+    // 新しい構造: admin_collections/{admin_id}/{event_id}_scanitems
     const adminCollection = getAdminCollection("scanItems");
 
     // scanItemsデータを取得（非正規化データなので1クエリで関連情報も含む）
@@ -577,7 +645,7 @@ async function getAllScanItems() {
     if (filteredDocs.length === 0) {
       showResult(
         "firestoreResult",
-        `${currentAdmin.admin_id}の管理するスキャンデータがありません<br><small>📂 参照パス: admin_collections/${currentAdmin.admin_id}/${currentAdmin.event_id}/ (collection_type="scanItems")</small>`,
+        `${currentAdmin.admin_id}の管理するスキャンデータがありません<br><small>📂 参照パス: admin_collections/${currentAdmin.admin_id}/${currentAdmin.event_id}_scanitems/</small>`,
         "info"
       );
       console.log(`Admin ${currentAdmin.admin_id}: スキャンデータなし`);
@@ -595,8 +663,8 @@ async function getAllScanItems() {
       const timestamp = data.timestamp || data.createdAt;
       const timeStr = timestamp
         ? new Date(
-            timestamp.seconds ? timestamp.toDate() : timestamp
-          ).toLocaleString("ja-JP")
+          timestamp.seconds ? timestamp.toDate() : timestamp
+        ).toLocaleString("ja-JP")
         : "不明";
       const content = data.content || "データなし";
       const userName = data.user_name || data.user_id || "不明";
@@ -627,12 +695,13 @@ async function getAllScanItems() {
     showResult("firestoreResult", html, "success");
     document.getElementById(
       "firestoreResult-collectionname"
-    ).textContent = `scanItemsデータベース (admin_collections/${currentAdmin.admin_id}/${currentAdmin.event_id}/)`;
+    ).textContent = `scanItemsデータベース (admin_collections/${currentAdmin.admin_id}/${currentAdmin.event_id}_scanitems/)`;
     document.getElementById(
       "firestoreResult-count"
     ).textContent = `${filteredDocs.length}件`;
 
-    updateAddButton(null); // scanItemsには追加ボタンは不要
+    // collection_type廃止により無効化
+    // updateAddButton(null); // scanItemsには追加ボタンは不要
     console.log("Scan items retrieved successfully");
   } catch (error) {
     console.error("getAllScanItems error:", error);
@@ -645,7 +714,7 @@ async function getAllStaff() {
   try {
     showLoading("firestoreResult");
 
-    // Admin別の4セグメント構造コレクションから staff データを取得
+    // 新しい構造: admin_collections/{admin_id}/{event_id}_users
     const adminCollection = getAdminCollection("users");
 
     // user_role が "staff" または "uketuke" のドキュメントを取得
@@ -659,7 +728,7 @@ async function getAllStaff() {
     if (querySnapshot.empty) {
       showResult(
         "firestoreResult",
-        `${currentAdmin.admin_id}の管理するスタッフデータがありません<br><small>📂 参照パス: admin_collections/${currentAdmin.admin_id}/${currentAdmin.event_id}/ (user_role="staff" or "uketuke")</small>`,
+        `${currentAdmin.admin_id}の管理するスタッフデータがありません<br><small>📂 参照パス: admin_collections/${currentAdmin.admin_id}/${currentAdmin.event_id}_users/ (user_role="staff" or "uketuke")</small>`,
         "info"
       );
       console.log(`Admin ${currentAdmin.admin_id}: スタッフデータなし`);
@@ -707,8 +776,9 @@ async function getAllStaff() {
       "firestoreResult-count"
     ).textContent = `${sortedDocs.length}件`;
 
+    // collection_type廃止により無効化
     // 追加ボタンを更新（スタッフ用のボタンテキストにするため"staff"を設定）
-    updateAddButton("staff");
+    // updateAddButton("staff");
 
     console.log("Staff retrieved successfully");
   } catch (error) {
@@ -722,7 +792,7 @@ async function getAllMaker() {
   try {
     showLoading("firestoreResult");
 
-    // Admin別の4セグメント構造コレクションから maker データを取得
+    // 新しい構造: admin_collections/{admin_id}/{event_id}_users
     const adminCollection = getAdminCollection("users");
 
     // user_role が "maker" のドキュメントのみを取得
@@ -736,7 +806,7 @@ async function getAllMaker() {
     if (querySnapshot.empty) {
       showResult(
         "firestoreResult",
-        `${currentAdmin.admin_id}の管理するメーカーデータがありません<br><small>📂 参照パス: admin_collections/${currentAdmin.admin_id}/${currentAdmin.event_id}/ (collection_type="users", user_role="maker")</small>`,
+        `${currentAdmin.admin_id}の管理するメーカーデータがありません<br><small>📂 参照パス: admin_collections/${currentAdmin.admin_id}/${currentAdmin.event_id}_users/ (user_role="maker")</small>`,
         "info"
       );
       console.log(`Admin ${currentAdmin.admin_id}: メーカーデータなし`);
@@ -784,8 +854,9 @@ async function getAllMaker() {
       "firestoreResult-count"
     ).textContent = `${sortedDocs.length}件`;
 
+    // collection_type廃止により無効化
     // 追加ボタンを更新（メーカー用のボタンテキストにするため"maker"を設定）
-    updateAddButton("maker");
+    // updateAddButton("maker");
 
     console.log("Maker retrieved successfully");
   } catch (error) {
@@ -808,6 +879,13 @@ async function callHelloWorld() {
   }
 }
 
+// ===============================
+// 廃止: collection_type編集関連関数
+// 新構造ではコレクション分離により不要
+// ===============================
+
+/* 
+// collection_type廃止により不要
 // 編集モーダルを開く関数
 function openEditDataModal(collectionType, docId, currentData, displayName) {
   const modal = document.getElementById("addDataModal");
@@ -846,39 +924,36 @@ function openEditDataModal(collectionType, docId, currentData, displayName) {
 
 // 編集用フォームフィールドを生成する関数
 function generateEditFormFields(collectionType, currentData) {
+*/
+/*
   let fields = "";
 
   if (collectionType === "items") {
     fields = `
       <div style="margin-bottom:15px;">
         <label style="display:block; margin-bottom:5px; font-weight:bold;">アイテム番号 <span style="color:red;">*</span></label>
-        <input type="text" id="modal_item_no" required value="${
-          currentData.item_no || ""
-        }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+        <input type="text" id="modal_item_no" required value="${currentData.item_no || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
       </div>
       <div style="margin-bottom:15px;">
         <label style="display:block; margin-bottom:5px; font-weight:bold;">カテゴリ名</label>
-        <input type="text" id="modal_category_name" value="${
-          currentData.category_name || ""
-        }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+        <input type="text" id="modal_category_name" value="${currentData.category_name || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
       </div>
       <div style="margin-bottom:15px;">
         <label style="display:block; margin-bottom:5px; font-weight:bold;">会社名</label>
-        <input type="text" id="modal_company_name" value="${
-          currentData.company_name || ""
-        }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+        <input type="text" id="modal_company_name" value="${currentData.company_name || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
       </div>
       <div style="margin-bottom:15px;">
         <label style="display:block; margin-bottom:5px; font-weight:bold;">アイテム名 <span style="color:red;">*</span></label>
-        <input type="text" id="modal_item_name" required value="${
-          currentData.item_name || ""
-        }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+        <input type="text" id="modal_item_name" required value="${currentData.item_name || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
       </div>
       <div style="margin-bottom:15px;">
         <label style="display:block; margin-bottom:5px; font-weight:bold;">メーカーコード</label>
-        <input type="text" id="modal_maker_code" value="${
-          currentData.maker_code || ""
-        }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+        <input type="text" id="modal_maker_code" value="${currentData.maker_code || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
       </div>
     `;
   } else if (
@@ -890,74 +965,60 @@ function generateEditFormFields(collectionType, currentData) {
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザーID <span style="color:red;">*</span></label>
-          <input type="text" id="modal_user_id" required value="${
-            currentData.user_id || ""
-          }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+          <input type="text" id="modal_user_id" required value="${currentData.user_id || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザー名 <span style="color:red;">*</span></label>
-          <input type="text" id="modal_user_name" required value="${
-            currentData.user_name || ""
-          }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+          <input type="text" id="modal_user_name" required value="${currentData.user_name || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">メールアドレス</label>
-          <input type="email" id="modal_email" value="${
-            currentData.email || ""
-          }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+          <input type="email" id="modal_email" value="${currentData.email || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">電話番号</label>
-          <input type="tel" id="modal_phone" value="${
-            currentData.phone || ""
-          }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+          <input type="tel" id="modal_phone" value="${currentData.phone || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">会社名</label>
-          <input type="text" id="modal_company_name" value="${
-            currentData.company_name || ""
-          }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+          <input type="text" id="modal_company_name" value="${currentData.company_name || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">ステータス</label>
           <select id="modal_status" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-            <option value="-" ${
-              currentData.status === "-" ? "selected" : ""
-            }>-</option>
-            <option value="入場中" ${
-              currentData.status === "入場中" ? "selected" : ""
-            }>入場中</option>
-            <option value="退場済" ${
-              currentData.status === "退場済" ? "selected" : ""
-            }>退場済</option>
+            <option value="-" ${currentData.status === "-" ? "selected" : ""
+      }>-</option>
+            <option value="入場中" ${currentData.status === "入場中" ? "selected" : ""
+      }>入場中</option>
+            <option value="退場済" ${currentData.status === "退場済" ? "selected" : ""
+      }>退場済</option>
           </select>
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザー権限</label>
           <select id="modal_user_role" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-            <option value="user" ${
-              currentData.user_role === "user" ? "selected" : ""
-            }>User</option>
-            <option value="admin" ${
-              currentData.user_role === "admin" ? "selected" : ""
-            }>Admin</option>
-            <option value="staff" ${
-              currentData.user_role === "staff" ? "selected" : ""
-            }>Staff</option>
-            <option value="maker" ${
-              currentData.user_role === "maker" ? "selected" : ""
-            }>Maker</option>
+            <option value="user" ${currentData.user_role === "user" ? "selected" : ""
+      }>User</option>
+            <option value="admin" ${currentData.user_role === "admin" ? "selected" : ""
+      }>Admin</option>
+            <option value="staff" ${currentData.user_role === "staff" ? "selected" : ""
+      }>Staff</option>
+            <option value="maker" ${currentData.user_role === "maker" ? "selected" : ""
+      }>Maker</option>
           </select>
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">印刷ステータス</label>
           <select id="modal_print_status" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-            <option value="not_printed" ${
-              currentData.print_status === "not_printed" ? "selected" : ""
-            }>未印刷</option>
-            <option value="printed" ${
-              currentData.print_status === "printed" ? "selected" : ""
-            }>印刷済み</option>
+            <option value="not_printed" ${currentData.print_status === "not_printed" ? "selected" : ""
+      }>未印刷</option>
+            <option value="printed" ${currentData.print_status === "printed" ? "selected" : ""
+      }>印刷済み</option>
           </select>
         </div>
       </div>
@@ -966,21 +1027,117 @@ function generateEditFormFields(collectionType, currentData) {
 
   return fields;
 }
+*/
 
-// グローバル関数として登録（Admin別データ管理版）
-window.getAllItems = getAllItems;
-window.getAllUsers = getAllUsers;
-window.getAllStaff = getAllStaff;
-window.getAllMaker = getAllMaker;
-window.getAllScanItems = getAllScanItems;
-window.clearResults = clearResults;
-window.callHelloWorld = callHelloWorld;
+// 受付ユーザーテストログイン機能
+async function uketukelogin() {
+  try {
+    console.log("=== 受付ユーザーテストログイン開始 ===");
 
-// Admin別データ管理用関数
-window.handleAdminLogout = handleAdminLogout;
-window.checkAdminAuthentication = checkAdminAuthentication;
-window.getAdminCollection = getAdminCollection;
-window.getAdminDoc = getAdminDoc;
+    // 現在の管理者情報を確認
+    if (!currentAdmin || !currentAdmin.admin_id || !currentAdmin.event_id) {
+      alert("管理者情報が不足しています。画面を再読み込みしてください。");
+      return;
+    }
+
+    console.log("現在の管理者:", currentAdmin);
+
+    // 受付ユーザー情報を設定
+    const testUketukeUser = {
+      email: `uketuke-test-${currentAdmin.admin_id}@example.com`,
+      password: "uketuke123", // テスト用固定パスワード
+      user_id: `uketuke_test_${Date.now()}`, // 一意のユーザーID
+      user_name: "受付テストユーザー",
+      user_role: "uketuke",
+      admin_id: currentAdmin.admin_id,
+      event_id: currentAdmin.event_id,
+    };
+
+    console.log("作成する受付ユーザー:", testUketukeUser);
+
+    const auth = getAuth();
+    const db = getFirestore();
+
+    // Firebase Authでテストユーザーを作成または既存ユーザーでサインイン
+    let userCredential;
+    try {
+      // まずはサインインを試行
+      userCredential = await signInWithEmailAndPassword(
+        auth,
+        testUketukeUser.email,
+        testUketukeUser.password
+      );
+      console.log("既存の受付ユーザーでサインイン成功:", userCredential.user.uid);
+    } catch (error) {
+      if (error.code === "auth/user-not-found" || error.code === "auth/wrong-password" || error.code === "auth/invalid-credential") {
+        // ユーザーが存在しない場合は新規作成
+        console.log("受付ユーザーが存在しないため新規作成します");
+        userCredential = await createUserWithEmailAndPassword(
+          auth,
+          testUketukeUser.email,
+          testUketukeUser.password
+        );
+        console.log("受付ユーザー新規作成成功:", userCredential.user.uid);
+      } else {
+        throw error; // その他のエラーは再スロー
+      }
+    }
+
+    // Firestoreの新しい構造に受付ユーザーデータを保存
+    // admin_collections/{admin_id}/{event_id}_users/{user_id}
+    const userDocPath = `admin_collections/${currentAdmin.admin_id}/${currentAdmin.event_id}_users/${userCredential.user.uid}`;
+
+    const userData = {
+      uid: userCredential.user.uid,
+      user_id: testUketukeUser.user_id,
+      user_name: testUketukeUser.user_name,
+      user_role: testUketukeUser.user_role,
+      email: testUketukeUser.email,
+      admin_id: currentAdmin.admin_id,
+      event_id: currentAdmin.event_id,
+      // collection_typeは廃止（コレクション分離のため不要）
+      created_at: serverTimestamp(),
+      updated_at: serverTimestamp(),
+      // 受付ユーザー特有の情報
+      is_test_user: true,
+      login_status: "active",
+    };
+
+    await setDoc(doc(db, userDocPath), userData);
+    console.log("受付ユーザーデータをFirestoreに保存:", userDocPath);
+
+    // 成功メッセージとリダイレクト確認
+    const confirmRedirect = confirm(
+      `受付ユーザーテストログインが完了しました！\n\n` +
+      `ユーザー名: ${testUketukeUser.user_name}\n` +
+      `役割: ${testUketukeUser.user_role}\n` +
+      `UID: ${userCredential.user.uid}\n\n` +
+      `uketuke.htmlにリダイレクトしますか？`
+    );
+
+    if (confirmRedirect) {
+      console.log("uketuke.htmlにリダイレクトします");
+      window.location.href = "uketuke.html";
+    } else {
+      console.log("リダイレクトをキャンセルしました");
+      alert("受付ユーザーでログイン済みです。手動でuketuke.htmlにアクセスできます。");
+    }
+
+  } catch (error) {
+    console.error("受付ユーザーログインエラー:", error);
+
+    let errorMessage = "受付ユーザーログインに失敗しました。";
+    if (error.code === "auth/email-already-in-use") {
+      errorMessage = "このメールアドレスは既に使用されています。";
+    } else if (error.code === "auth/weak-password") {
+      errorMessage = "パスワードが弱すぎます。";
+    } else if (error.code === "auth/invalid-email") {
+      errorMessage = "無効なメールアドレスです。";
+    }
+
+    alert(errorMessage + "\n\n詳細: " + error.message);
+  }
+}
 
 // ログアウト関数を即座に公開（ES6モジュール対応）
 if (typeof window !== "undefined") {

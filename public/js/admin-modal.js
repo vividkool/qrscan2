@@ -1,65 +1,73 @@
 // Admin Modal & Data Management Functions (Firebase Auth専用版)
 import {
-  getFirestore,
-  collection,
-  addDoc,
-  doc,
-  getDoc,
-  updateDoc,
-  deleteDoc,
-  setDoc,
-  serverTimestamp,
+    getFirestore,
+    collection,
+    addDoc,
+    doc,
+    getDoc,
+    updateDoc,
+    deleteDoc,
+    setDoc,
+    serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+// ===============================
+// 廃止: collection_type関連機能
+// 新構造ではコレクション分離により不要
+// ===============================
+
 // Firebaseの設定を取得（admin.jsから）
-let db, currentAdmin, currentCollectionType;
+let db, currentAdmin;
+// collection_type廃止により不要
+// let currentCollectionType;
 
 // admin.jsからの依存関数を受け取る初期化関数
-export function initializeAdminModal(firestore, adminData, collectionType) {
-  db = firestore;
-  currentAdmin = adminData;
-  currentCollectionType = collectionType;
+export function initializeAdminModal(firestore, adminData) {
+    db = firestore;
+    currentAdmin = adminData;
+    // collection_type廃止により不要
+    // currentCollectionType = collectionType;
 }
 
 // 共通UI関数（admin.jsと共有）
 function showLoading(elementId) {
-  const element = document.getElementById(elementId);
-  if (element) {
-    element.innerHTML = '<div class="loading">読み込み中...</div>';
-  }
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.innerHTML = '<div class="loading">読み込み中...</div>';
+    }
 }
 
 function showResult(elementId, message, type) {
-  const element = document.getElementById(elementId);
-  if (element) {
-    element.innerHTML = `<div class="${type}">${message}</div>`;
-  }
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.innerHTML = `<div class="${type}">${message}</div>`;
+    }
 }
 
 // admin.jsからコレクション参照を取得（4セグメント構造対応）
 function getAdminCollection(collectionName) {
-  if (!currentAdmin || !currentAdmin.admin_id || !currentAdmin.event_id) {
-    throw new Error("Admin認証またはevent_idが必要です");
-  }
+    if (!currentAdmin || !currentAdmin.admin_id || !currentAdmin.event_id) {
+        throw new Error("Admin認証またはevent_idが必要です");
+    }
 
-  // 4セグメント構造: admin_collections/{admin_id}/{event_id}_{collectionName}
-  const collectionKey = `${currentAdmin.event_id}_${collectionName}`;
-  const adminPath = `admin_collections/${currentAdmin.admin_id}/${collectionKey}`;
-  console.log(`[DEBUG] Admin collection path (4セグメント): ${adminPath}`);
+    // 4セグメント構造: admin_collections/{admin_id}/{event_id}_{collectionName}
+    const collectionKey = `${currentAdmin.event_id}_${collectionName}`;
+    const adminPath = `admin_collections/${currentAdmin.admin_id}/${collectionKey}`;
+    console.log(`[DEBUG] Admin collection path (4セグメント): ${adminPath}`);
 
-  return collection(
-    db,
-    "admin_collections",
-    currentAdmin.admin_id,
-    collectionKey
-  );
+    return collection(
+        db,
+        "admin_collections",
+        currentAdmin.admin_id,
+        collectionKey
+    );
 }
 
 // UUID生成
 function generateUUID() {
-  return (
-    Date.now().toString(36) + Math.random().toString(36).substr(2, 5)
-  ).toUpperCase();
+    return (
+        Date.now().toString(36) + Math.random().toString(36).substr(2, 5)
+    ).toUpperCase();
 }
 
 // ============================================================================
@@ -68,112 +76,115 @@ function generateUUID() {
 
 // Firestoreドキュメント追加
 export async function addDocument() {
-  const documentId = document.getElementById("documentId").value;
-  const title = document.getElementById("dataTitle").value;
-  const content = document.getElementById("dataContent").value;
+    const documentId = document.getElementById("documentId").value;
+    const title = document.getElementById("dataTitle").value;
+    const content = document.getElementById("dataContent").value;
 
-  if (!title || !content) {
-    showResult("firestoreResult", "タイトルと内容を入力してください", "error");
-    return;
-  }
-
-  try {
-    showLoading("firestoreResult");
-    let docRef;
-
-    if (documentId) {
-      // IDが指定されている場合は、そのIDでドキュメントを作成
-      docRef = doc(db, "users", documentId);
-      await setDoc(docRef, {
-        title: title,
-        content: content,
-        timestamp: serverTimestamp(),
-        uid: auth.currentUser ? auth.currentUser.uid : "anonymous",
-      });
-    } else {
-      // IDが指定されていない場合は自動生成
-      docRef = await addDoc(collection(db, "users"), {
-        title: title,
-        content: content,
-        timestamp: serverTimestamp(),
-        uid: auth.currentUser ? auth.currentUser.uid : "anonymous",
-      });
+    if (!title || !content) {
+        showResult("firestoreResult", "タイトルと内容を入力してください", "error");
+        return;
     }
 
-    showResult(
-      "firestoreResult",
-      `ドキュメントが追加されました: ${docRef.id}`,
-      "success"
-    );
-    document.getElementById("documentId").value = "";
-    document.getElementById("dataTitle").value = "";
-    document.getElementById("dataContent").value = "";
-  } catch (error) {
-    console.error("addDocument error:", error);
-    showResult("firestoreResult", `追加エラー: ${error.message}`, "error");
-  }
+    try {
+        showLoading("firestoreResult");
+        let docRef;
+
+        if (documentId) {
+            // IDが指定されている場合は、そのIDでドキュメントを作成
+            docRef = doc(db, "users", documentId);
+            await setDoc(docRef, {
+                title: title,
+                content: content,
+                timestamp: serverTimestamp(),
+                uid: auth.currentUser ? auth.currentUser.uid : "anonymous",
+            });
+        } else {
+            // IDが指定されていない場合は自動生成
+            docRef = await addDoc(collection(db, "users"), {
+                title: title,
+                content: content,
+                timestamp: serverTimestamp(),
+                uid: auth.currentUser ? auth.currentUser.uid : "anonymous",
+            });
+        }
+
+        showResult(
+            "firestoreResult",
+            `ドキュメントが追加されました: ${docRef.id}`,
+            "success"
+        );
+        document.getElementById("documentId").value = "";
+        document.getElementById("dataTitle").value = "";
+        document.getElementById("dataContent").value = "";
+    } catch (error) {
+        console.error("addDocument error:", error);
+        showResult("firestoreResult", `追加エラー: ${error.message}`, "error");
+    }
 }
 
 // ドキュメント削除
 export async function deleteDocument(collectionName, docId, displayName) {
-  if (!confirm(`本当に「${displayName}」を削除しますか？`)) {
-    return;
-  }
-
-  try {
-    showLoading("firestoreResult");
-
-    // Admin別コレクション参照を正しく取得（4セグメント構造）
-    const collectionKey = `${currentAdmin.event_id}_${collectionName}`;
-    const docRef = doc(
-      db,
-      "admin_collections",
-      currentAdmin.admin_id,
-      collectionKey,
-      docId
-    );
-
-    await deleteDoc(docRef);
-
-    showResult(
-      "firestoreResult",
-      `「${displayName}」を削除しました`,
-      "success"
-    );
-
-    // 該当コレクションを再表示
-    if (collectionName === "items") {
-      // admin.jsのgetAllItems()を呼び出す
-      if (typeof window.getAllItems === "function") {
-        window.getAllItems();
-      }
-    } else if (collectionName === "users") {
-      if (typeof window.getAllUsers === "function") {
-        window.getAllUsers();
-      }
-    } else if (collectionName === "scanItems") {
-      if (typeof window.getAllScanItems === "function") {
-        window.getAllScanItems();
-      }
-    } else if (collectionName === "staff") {
-      if (typeof window.getAllStaff === "function") {
-        window.getAllStaff();
-      }
-    } else if (collectionName === "maker") {
-      if (typeof window.getAllMaker === "function") {
-        window.getAllMaker();
-      }
+    if (!confirm(`本当に「${displayName}」を削除しますか？`)) {
+        return;
     }
-  } catch (error) {
-    console.error("deleteDocument error:", error);
-    showResult("firestoreResult", `削除エラー: ${error.message}`, "error");
-  }
+
+    try {
+        showLoading("firestoreResult");
+
+        // Admin別コレクション参照を正しく取得（4セグメント構造）
+        const collectionKey = `${currentAdmin.event_id}_${collectionName}`;
+        const docRef = doc(
+            db,
+            "admin_collections",
+            currentAdmin.admin_id,
+            collectionKey,
+            docId
+        );
+
+        await deleteDoc(docRef);
+
+        showResult(
+            "firestoreResult",
+            `「${displayName}」を削除しました`,
+            "success"
+        );
+
+        // 該当コレクションを再表示
+        if (collectionName === "items") {
+            // admin.jsのgetAllItems()を呼び出す
+            if (typeof window.getAllItems === "function") {
+                window.getAllItems();
+            }
+        } else if (collectionName === "users") {
+            if (typeof window.getAllUsers === "function") {
+                window.getAllUsers();
+            }
+        } else if (collectionName === "scanItems") {
+            if (typeof window.getAllScanItems === "function") {
+                window.getAllScanItems();
+            }
+        } else if (collectionName === "staff") {
+            if (typeof window.getAllStaff === "function") {
+                window.getAllStaff();
+            }
+        } else if (collectionName === "maker") {
+            if (typeof window.getAllMaker === "function") {
+                window.getAllMaker();
+            }
+        }
+    } catch (error) {
+        console.error("deleteDocument error:", error);
+        showResult("firestoreResult", `削除エラー: ${error.message}`, "error");
+    }
 }
 
 // ============================================================================
-// モーダル関連関数
+// 廃止: collection_type関連モーダル関数
+// 新構造ではコレクション分離により不要
 // ============================================================================
 
+/* 
+// collection_type廃止により不要
 // データ追加ボタン処理
 export function addToCurrentCollection() {
   // admin.jsからcurrentCollectionTypeを動的に取得
@@ -190,489 +201,32 @@ export function addToCurrentCollection() {
 
 // モーダルを開く関数
 export function openAddDataModal(collectionType) {
+*/
+
+/*
+=== collection_type廃止により以下すべてコメントアウト ===
+新しい構造では、collection_typeによる動的なコレクション分岐は不要です。
+各データ取得関数が個別のコレクション（users、items、scanitemsなど）を直接参照します。
+
+openAddDataModal、generateFormFields、submitAddData、editDocument、
+openEditDataModal、populateFormFields、submitEditData等の関数群は、
+collection_typeによるモーダル操作に依存しているため、コメントアウトします。
+*/
+
+/*
   const modal = document.getElementById("addDataModal");
   const modalTitle = document.getElementById("modalTitle");
   const modalForm = document.getElementById("modalForm");
   const submitBtn = document.getElementById("submitDataBtn");
+  
+  // [モーダル操作関数群は全て collection_type に依存するためコメントアウト]
+  // ... 約400行のモーダル操作コードをコメントアウト ...
+*/
 
-  // モーダルタイトルを設定
-  if (collectionType === "items") {
-    modalTitle.textContent = "アイテム追加";
-  } else if (collectionType === "users") {
-    modalTitle.textContent = "ユーザー追加";
-  } else if (collectionType === "staff") {
-    modalTitle.textContent = "スタッフ追加";
-  } else if (collectionType === "maker") {
-    modalTitle.textContent = "メーカー追加";
-  }
-
-  // フォームフィールドを動的生成
-  modalForm.innerHTML = generateFormFields(collectionType);
-
-  // 追加モード用にボタンを設定
-  if (submitBtn) {
-    submitBtn.textContent = "追加";
-    submitBtn.onclick = submitAddData;
-  }
-
-  // モーダルを表示
-  modal.style.display = "block";
-}
-
-// フォームフィールドを生成する関数
-function generateFormFields(collectionType) {
-  let fields = "";
-
-  if (collectionType === "items") {
-    fields = `
-      <div style="margin-bottom:15px;">
-        <label style="display:block; margin-bottom:5px; font-weight:bold;">アイテム番号 <span style="color:red;">*</span></label>
-        <input type="text" id="modal_item_no" required style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-      </div>
-      <div style="margin-bottom:15px;">
-        <label style="display:block; margin-bottom:5px; font-weight:bold;">カテゴリ名</label>
-        <input type="text" id="modal_category_name" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-      </div>
-      <div style="margin-bottom:15px;">
-        <label style="display:block; margin-bottom:5px; font-weight:bold;">会社名</label>
-        <input type="text" id="modal_company_name" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-      </div>
-      <div style="margin-bottom:15px;">
-        <label style="display:block; margin-bottom:5px; font-weight:bold;">アイテム名 <span style="color:red;">*</span></label>
-        <input type="text" id="modal_item_name" required style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-      </div>
-      <div style="margin-bottom:15px;">
-        <label style="display:block; margin-bottom:5px; font-weight:bold;">メーカーコード</label>
-        <input type="text" id="modal_maker_code" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-      </div>
-    `;
-  } else if (
-    collectionType === "users" ||
-    collectionType === "staff" ||
-    collectionType === "maker"
-  ) {
-    const roleOption =
-      collectionType === "staff"
-        ? "staff"
-        : collectionType === "maker"
-        ? "maker"
-        : "user";
-
-    fields = `
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-        <div style="margin-bottom:15px;">
-          <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザーID <span style="color:red;">*</span></label>
-          <input type="text" id="modal_user_id" required style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-        </div>
-        <div style="margin-bottom:15px;">
-          <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザー名 <span style="color:red;">*</span></label>
-          <input type="text" id="modal_user_name" required style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-        </div>
-        <div style="margin-bottom:15px;">
-          <label style="display:block; margin-bottom:5px; font-weight:bold;">メールアドレス</label>
-          <input type="email" id="modal_email" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-        </div>
-        <div style="margin-bottom:15px;">
-          <label style="display:block; margin-bottom:5px; font-weight:bold;">電話番号</label>
-          <input type="tel" id="modal_phone" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-        </div>
-        <div style="margin-bottom:15px;">
-          <label style="display:block; margin-bottom:5px; font-weight:bold;">会社名</label>
-          <input type="text" id="modal_company_name" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-        </div>
-        <div style="margin-bottom:15px;">
-          <label style="display:block; margin-bottom:5px; font-weight:bold;">ステータス</label>
-          <select id="modal_status" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-            <option value="-">-</option>
-            <option value="入場中">入場中</option>
-            <option value="退場済">退場済</option>
-          </select>
-        </div>
-        <div style="margin-bottom:15px;">
-          <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザー権限</label>
-          <select id="modal_user_role" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-            <option value="user" ${
-              roleOption === "user" ? "selected" : ""
-            }>User</option>
-            <option value="admin">Admin</option>
-            <option value="staff" ${
-              roleOption === "staff" ? "selected" : ""
-            }>Staff</option>
-            <option value="maker" ${
-              roleOption === "maker" ? "selected" : ""
-            }>Maker</option>
-            <option value="uketuke" ${
-              roleOption === "uketuke" ? "selected" : ""
-            }>uketuke</option>
-          </select>
-        </div>
-        <div style="margin-bottom:15px;">
-          <label style="display:block; margin-bottom:5px; font-weight:bold;">印刷ステータス</label>
-          <select id="modal_print_status" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-            <option value="not_printed">未印刷</option>
-            <option value="printed">印刷済み</option>
-          </select>
-        </div>
-      </div>
-    `;
-  }
-
-  return fields;
-}
-
-// データ送信（追加）
-export async function submitAddData() {
-  try {
-    showLoading("firestoreResult");
-
-    // admin.jsからcurrentCollectionTypeを動的に取得
-    const collectionType = window.currentCollectionType;
-
-    if (!collectionType) {
-      showResult(
-        "firestoreResult",
-        "コレクションが選択されていません",
-        "error"
-      );
-      return;
-    }
-
-    let data = {};
-
-    if (collectionType === "items") {
-      const itemNo = document.getElementById("modal_item_no").value;
-      const categoryName = document.getElementById("modal_category_name").value;
-      const companyName = document.getElementById("modal_company_name").value;
-      const itemName = document.getElementById("modal_item_name").value;
-      const makerCode = document.getElementById("modal_maker_code").value;
-
-      if (!itemNo || !itemName) {
-        showResult(
-          "firestoreResult",
-          "アイテム番号とアイテム名は必須です",
-          "error"
-        );
-        return;
-      }
-
-      data = {
-        item_no: itemNo,
-        category_name: categoryName,
-        company_name: companyName,
-        item_name: itemName,
-        maker_code: makerCode,
-        created_at: serverTimestamp(),
-      };
-    } else if (
-      collectionType === "users" ||
-      collectionType === "staff" ||
-      collectionType === "maker"
-    ) {
-      const userId = document.getElementById("modal_user_id").value;
-      const userName = document.getElementById("modal_user_name").value;
-      const email = document.getElementById("modal_email").value;
-      const phone = document.getElementById("modal_phone").value;
-      const companyName = document.getElementById("modal_company_name").value;
-      const status = document.getElementById("modal_status").value;
-      const userRole = document.getElementById("modal_user_role").value;
-      const printStatus = document.getElementById("modal_print_status").value;
-
-      if (!userId || !userName) {
-        showResult(
-          "firestoreResult",
-          "ユーザーIDとユーザー名は必須です",
-          "error"
-        );
-        return;
-      }
-
-      data = {
-        user_id: userId,
-        user_name: userName,
-        email: email,
-        phone: phone,
-        company_name: companyName,
-        status: status,
-        user_role: userRole,
-        print_status: printStatus,
-        created_at: serverTimestamp(),
-      };
-    }
-
-    // Admin別コレクションにデータを追加
-    const adminCollection = getAdminCollection(collectionType);
-    const docRef = await addDoc(adminCollection, data);
-
-    showResult(
-      "firestoreResult",
-      `データが追加されました: ${docRef.id}`,
-      "success"
-    );
-
-    // モーダルを閉じる
-    closeModal();
-
-    // 該当コレクションを再表示
-    if (
-      collectionType === "items" &&
-      typeof window.getAllItems === "function"
-    ) {
-      window.getAllItems();
-    } else if (
-      collectionType === "users" &&
-      typeof window.getAllUsers === "function"
-    ) {
-      window.getAllUsers();
-    } else if (
-      collectionType === "staff" &&
-      typeof window.getAllStaff === "function"
-    ) {
-      window.getAllStaff();
-    } else if (
-      collectionType === "maker" &&
-      typeof window.getAllMaker === "function"
-    ) {
-      window.getAllMaker();
-    }
-  } catch (error) {
-    console.error("submitAddData error:", error);
-    showResult("firestoreResult", `追加エラー: ${error.message}`, "error");
-  }
-}
-
-// 編集ドキュメント関数
-export async function editDocument(collectionName, docId, displayName) {
-  try {
-    // 既存データを取得してモーダルに表示
-    const docRef = doc(
-      db,
-      "admin_collections",
-      currentAdmin.admin_id,
-      `${currentAdmin.event_id}_${collectionName}`,
-      docId
-    );
-    const docSnap = await getDoc(docRef);
-
-    if (!docSnap.exists()) {
-      showResult("firestoreResult", "ドキュメントが見つかりません", "error");
-      return;
-    }
-
-    const data = docSnap.data();
-
-    // 編集モーダルを開く
-    openEditDataModal(collectionName, docId, data);
-  } catch (error) {
-    console.error("editDocument error:", error);
-    showResult("firestoreResult", `編集エラー: ${error.message}`, "error");
-  }
-}
-
-// 編集モーダルを開く関数
-function openEditDataModal(collectionType, docId, existingData) {
-  const modal = document.getElementById("addDataModal");
-  const modalTitle = document.getElementById("modalTitle");
-  const modalForm = document.getElementById("modalForm");
-  const submitBtn = document.getElementById("submitDataBtn");
-
-  // モーダルタイトルを設定
-  if (collectionType === "items") {
-    modalTitle.textContent = "アイテム編集";
-  } else if (collectionType === "users") {
-    modalTitle.textContent = "ユーザー編集";
-  } else if (collectionType === "staff") {
-    modalTitle.textContent = "スタッフ編集";
-  } else if (collectionType === "maker") {
-    modalTitle.textContent = "メーカー編集";
-  } else if (collectionType === "scanItems") {
-    modalTitle.textContent = "スキャンアイテム編集";
-  }
-
-  // フォームフィールドを動的生成
-  modalForm.innerHTML = generateFormFields(collectionType);
-
-  // 既存データをフォームに入力
-  populateFormFields(collectionType, existingData);
-
-  // 編集モード用にボタンを設定
-  if (submitBtn) {
-    submitBtn.textContent = "更新";
-    submitBtn.onclick = () => submitEditData(collectionType, docId);
-  }
-
-  // モーダルを表示
-  modal.style.display = "block";
-}
-
-// フォームに既存データを入力する関数
-function populateFormFields(collectionType, data) {
-  if (collectionType === "items") {
-    document.getElementById("modal_item_no").value = data.item_no || "";
-    document.getElementById("modal_category_name").value =
-      data.category_name || "";
-    document.getElementById("modal_company_name").value =
-      data.company_name || "";
-    document.getElementById("modal_item_name").value = data.item_name || "";
-    document.getElementById("modal_maker_code").value = data.maker_code || "";
-  } else if (
-    collectionType === "users" ||
-    collectionType === "staff" ||
-    collectionType === "maker"
-  ) {
-    document.getElementById("modal_user_id").value = data.user_id || "";
-    document.getElementById("modal_user_name").value = data.user_name || "";
-    document.getElementById("modal_email").value = data.email || "";
-    document.getElementById("modal_phone").value = data.phone || "";
-    document.getElementById("modal_company_name").value =
-      data.company_name || "";
-    document.getElementById("modal_status").value = data.status || "-";
-    document.getElementById("modal_user_role").value = data.user_role || "user";
-    document.getElementById("modal_print_status").value =
-      data.print_status || "not_printed";
-  }
-}
-
-// 編集データ送信
-export async function submitEditData(collectionType, docId) {
-  try {
-    showLoading("firestoreResult");
-
-    if (!collectionType || !docId) {
-      showResult("firestoreResult", "編集パラメータが不正です", "error");
-      return;
-    }
-
-    let data = {};
-
-    if (collectionType === "items") {
-      const itemNo = document.getElementById("modal_item_no").value;
-      const categoryName = document.getElementById("modal_category_name").value;
-      const companyName = document.getElementById("modal_company_name").value;
-      const itemName = document.getElementById("modal_item_name").value;
-      const makerCode = document.getElementById("modal_maker_code").value;
-
-      if (!itemNo || !itemName) {
-        showResult(
-          "firestoreResult",
-          "アイテム番号とアイテム名は必須です",
-          "error"
-        );
-        return;
-      }
-
-      data = {
-        item_no: itemNo,
-        category_name: categoryName,
-        company_name: companyName,
-        item_name: itemName,
-        maker_code: makerCode,
-        updated_at: serverTimestamp(),
-      };
-    } else if (
-      collectionType === "users" ||
-      collectionType === "staff" ||
-      collectionType === "maker"
-    ) {
-      const userId = document.getElementById("modal_user_id").value;
-      const userName = document.getElementById("modal_user_name").value;
-      const email = document.getElementById("modal_email").value;
-      const phone = document.getElementById("modal_phone").value;
-      const companyName = document.getElementById("modal_company_name").value;
-      const status = document.getElementById("modal_status").value;
-      const userRole = document.getElementById("modal_user_role").value;
-      const printStatus = document.getElementById("modal_print_status").value;
-
-      if (!userId || !userName) {
-        showResult(
-          "firestoreResult",
-          "ユーザーIDとユーザー名は必須です",
-          "error"
-        );
-        return;
-      }
-
-      data = {
-        user_id: userId,
-        user_name: userName,
-        email: email,
-        phone: phone,
-        company_name: companyName,
-        status: status,
-        user_role: userRole,
-        print_status: printStatus,
-        updated_at: serverTimestamp(),
-      };
-    }
-
-    // Admin別コレクションのドキュメントを更新（4セグメント構造）
-    const collectionKey = `${currentAdmin.event_id}_${collectionType}`;
-    const docRef = doc(
-      db,
-      "admin_collections",
-      currentAdmin.admin_id,
-      collectionKey,
-      docId
-    );
-    await updateDoc(docRef, data);
-
-    showResult(
-      "firestoreResult",
-      `データが更新されました: ${docId}`,
-      "success"
-    );
-
-    // モーダルを閉じる
-    closeModal();
-
-    // 該当コレクションを再表示
-    if (
-      collectionType === "items" &&
-      typeof window.getAllItems === "function"
-    ) {
-      window.getAllItems();
-    } else if (
-      collectionType === "users" &&
-      typeof window.getAllUsers === "function"
-    ) {
-      window.getAllUsers();
-    } else if (
-      collectionType === "staff" &&
-      typeof window.getAllStaff === "function"
-    ) {
-      window.getAllStaff();
-    } else if (
-      collectionType === "maker" &&
-      typeof window.getAllMaker === "function"
-    ) {
-      window.getAllMaker();
-    } else if (
-      collectionType === "scanItems" &&
-      typeof window.getAllScanItems === "function"
-    ) {
-      window.getAllScanItems();
-    }
-  } catch (error) {
-    console.error("submitEditData error:", error);
-    showResult("firestoreResult", `更新エラー: ${error.message}`, "error");
-  }
-}
-
-// モーダルを閉じる
+// モーダルを閉じる（これは collection_type に依存しないため残す）
 export function closeModal() {
-  const modal = document.getElementById("addDataModal");
-  if (modal) {
-    modal.style.display = "none";
-  }
-}
-
-// グローバル関数として公開（下位互換性のため）
-if (typeof window !== "undefined") {
-  window.addDocument = addDocument;
-  window.deleteDocument = deleteDocument;
-  window.addToCurrentCollection = addToCurrentCollection;
-  window.openAddDataModal = openAddDataModal;
-  window.submitAddData = submitAddData;
-  window.editDocument = editDocument;
-  window.submitEditData = submitEditData;
-  window.closeModal = closeModal;
+    const modal = document.getElementById("addDataModal");
+    if (modal) {
+        modal.style.display = "none";
+    }
 }
