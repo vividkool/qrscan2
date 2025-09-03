@@ -278,6 +278,7 @@ class UserSession {
             phone: adminData.phone_number,
             project_name: adminData.project_name,
             event_date: adminData.event_date,
+            event_id: adminData.event_id, // event_id追加
             status: adminData.status,
             plan_type: adminData.plan_type,
             is_active: adminData.is_active,

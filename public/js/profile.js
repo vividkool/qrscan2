@@ -232,7 +232,7 @@ class ProfileManager {
                     width: 100%; padding: 12px 15px; border: 2px solid #e1e5e9; border-radius: 10px; 
                     font-size: 16px; transition: border-color 0.3s ease; background-color: #f8f9fa;
                   " />
-                  <small style="display: block; margin-top: 5px; font-size: 12px; color: #666;">会社名</small>
+                  
                 </div>
               </div>
 
