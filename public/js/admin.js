@@ -93,12 +93,18 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   console.log("✅ 管理者認証成功:", userData);
 
-  // currentAdminをFirebase Authデータで設定
+  // currentAdminをFirebase Authデータ（Firestore admin_settingsを含む）で設定
   currentAdmin = {
-    admin_id: firebaseUser.uid, // Firebase AuthのUIDを直接使用
+    admin_id: userData.admin_id || firebaseUser.uid, // Firestoreのadmin_idを優先、なければUID
     user_name: userData.user_name,
     role: userData.role,
     uid: firebaseUser.uid,
+    // その他のFirestoreデータも含める
+    ...(userData.admin_name && { admin_name: userData.admin_name }),
+    ...(userData.company_name && { company_name: userData.company_name }),
+    ...(userData.email && { email: userData.email }),
+    ...(userData.project_name && { project_name: userData.project_name }),
+    ...(userData.event_date && { event_date: userData.event_date }),
   };
   window.currentAdmin = currentAdmin;
 
@@ -106,6 +112,11 @@ document.addEventListener("DOMContentLoaded", async function () {
     "Admin別コレクションパス:",
     `admin_collections/${currentAdmin.admin_id}/`
   );
+
+  // デバッグ：admin_idの詳細を表示
+  console.log("🔍 currentAdmin.admin_id:", currentAdmin.admin_id);
+  console.log("🔍 userData.admin_id:", userData.admin_id);
+  console.log("🔍 firebaseUser.uid:", firebaseUser.uid);
 });
 
 import {
@@ -175,12 +186,23 @@ async function checkAdminAuthentication() {
 
   // currentAdminデータを更新
   currentAdmin = {
-    admin_id: auth.currentUser.uid, // Firebase AuthのUIDを直接使用
+    admin_id: userData.admin_id || auth.currentUser.uid, // Firestoreのadmin_idを優先、なければUID
     user_name: userData.user_name,
     role: userData.role,
     uid: auth.currentUser.uid,
+    // その他のFirestoreデータも含める
+    ...(userData.admin_name && { admin_name: userData.admin_name }),
+    ...(userData.company_name && { company_name: userData.company_name }),
+    ...(userData.email && { email: userData.email }),
+    ...(userData.project_name && { project_name: userData.project_name }),
+    ...(userData.event_date && { event_date: userData.event_date }),
   };
   window.currentAdmin = currentAdmin;
+
+  // デバッグ：admin_idの詳細を表示
+  console.log("🔍 checkAdminAuth currentAdmin.admin_id:", currentAdmin.admin_id);
+  console.log("🔍 checkAdminAuth userData.admin_id:", userData.admin_id);
+  console.log("🔍 checkAdminAuth auth.currentUser.uid:", auth.currentUser.uid);
 
   return currentAdmin;
 }
@@ -474,8 +496,8 @@ async function getAllScanItems() {
       const timestamp = data.timestamp || data.createdAt;
       const timeStr = timestamp
         ? new Date(
-            timestamp.seconds ? timestamp.toDate() : timestamp
-          ).toLocaleString("ja-JP")
+          timestamp.seconds ? timestamp.toDate() : timestamp
+        ).toLocaleString("ja-JP")
         : "不明";
       const content = data.content || "データなし";
       const userName = data.user_name || data.user_id || "不明";
@@ -1114,8 +1136,8 @@ async function submitAddData() {
           (currentCollectionType === "staff"
             ? "staff"
             : currentCollectionType === "maker"
-            ? "maker"
-            : "user"),
+              ? "maker"
+              : "user"),
         print_status:
           document.getElementById("modal_print_status")?.value || "not_printed",
       };
@@ -1137,16 +1159,14 @@ async function submitAddData() {
 
     showResult(
       "firestoreResult",
-      `${
-        currentCollectionType === "items"
-          ? "アイテム"
-          : currentCollectionType === "users"
+      `${currentCollectionType === "items"
+        ? "アイテム"
+        : currentCollectionType === "users"
           ? "ユーザー"
           : currentCollectionType === "staff"
-          ? "スタッフ"
-          : "メーカー"
-      }「${data.item_name || data.user_name}」を${
-        currentAdmin.admin_id
+            ? "スタッフ"
+            : "メーカー"
+      }「${data.item_name || data.user_name}」を${currentAdmin.admin_id
       }の管理下に追加しました`,
       "success"
     ); // モーダルを閉じる
@@ -1247,33 +1267,28 @@ function generateEditFormFields(collectionType, currentData) {
     fields = `
       <div style="margin-bottom:15px;">
         <label style="display:block; margin-bottom:5px; font-weight:bold;">アイテム番号 <span style="color:red;">*</span></label>
-        <input type="text" id="modal_item_no" required value="${
-          currentData.item_no || ""
-        }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+        <input type="text" id="modal_item_no" required value="${currentData.item_no || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
       </div>
       <div style="margin-bottom:15px;">
         <label style="display:block; margin-bottom:5px; font-weight:bold;">カテゴリ名</label>
-        <input type="text" id="modal_category_name" value="${
-          currentData.category_name || ""
-        }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+        <input type="text" id="modal_category_name" value="${currentData.category_name || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
       </div>
       <div style="margin-bottom:15px;">
         <label style="display:block; margin-bottom:5px; font-weight:bold;">会社名</label>
-        <input type="text" id="modal_company_name" value="${
-          currentData.company_name || ""
-        }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+        <input type="text" id="modal_company_name" value="${currentData.company_name || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
       </div>
       <div style="margin-bottom:15px;">
         <label style="display:block; margin-bottom:5px; font-weight:bold;">アイテム名 <span style="color:red;">*</span></label>
-        <input type="text" id="modal_item_name" required value="${
-          currentData.item_name || ""
-        }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+        <input type="text" id="modal_item_name" required value="${currentData.item_name || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
       </div>
       <div style="margin-bottom:15px;">
         <label style="display:block; margin-bottom:5px; font-weight:bold;">メーカーコード</label>
-        <input type="text" id="modal_maker_code" value="${
-          currentData.maker_code || ""
-        }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+        <input type="text" id="modal_maker_code" value="${currentData.maker_code || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
       </div>
     `;
   } else if (
@@ -1285,74 +1300,60 @@ function generateEditFormFields(collectionType, currentData) {
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザーID <span style="color:red;">*</span></label>
-          <input type="text" id="modal_user_id" required value="${
-            currentData.user_id || ""
-          }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+          <input type="text" id="modal_user_id" required value="${currentData.user_id || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザー名 <span style="color:red;">*</span></label>
-          <input type="text" id="modal_user_name" required value="${
-            currentData.user_name || ""
-          }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+          <input type="text" id="modal_user_name" required value="${currentData.user_name || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">メールアドレス</label>
-          <input type="email" id="modal_email" value="${
-            currentData.email || ""
-          }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+          <input type="email" id="modal_email" value="${currentData.email || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">電話番号</label>
-          <input type="tel" id="modal_phone" value="${
-            currentData.phone || ""
-          }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+          <input type="tel" id="modal_phone" value="${currentData.phone || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">会社名</label>
-          <input type="text" id="modal_company_name" value="${
-            currentData.company_name || ""
-          }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
+          <input type="text" id="modal_company_name" value="${currentData.company_name || ""
+      }" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">ステータス</label>
           <select id="modal_status" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-            <option value="-" ${
-              currentData.status === "-" ? "selected" : ""
-            }>-</option>
-            <option value="入場中" ${
-              currentData.status === "入場中" ? "selected" : ""
-            }>入場中</option>
-            <option value="退場済" ${
-              currentData.status === "退場済" ? "selected" : ""
-            }>退場済</option>
+            <option value="-" ${currentData.status === "-" ? "selected" : ""
+      }>-</option>
+            <option value="入場中" ${currentData.status === "入場中" ? "selected" : ""
+      }>入場中</option>
+            <option value="退場済" ${currentData.status === "退場済" ? "selected" : ""
+      }>退場済</option>
           </select>
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">ユーザー権限</label>
           <select id="modal_user_role" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-            <option value="user" ${
-              currentData.user_role === "user" ? "selected" : ""
-            }>User</option>
-            <option value="admin" ${
-              currentData.user_role === "admin" ? "selected" : ""
-            }>Admin</option>
-            <option value="staff" ${
-              currentData.user_role === "staff" ? "selected" : ""
-            }>Staff</option>
-            <option value="maker" ${
-              currentData.user_role === "maker" ? "selected" : ""
-            }>Maker</option>
+            <option value="user" ${currentData.user_role === "user" ? "selected" : ""
+      }>User</option>
+            <option value="admin" ${currentData.user_role === "admin" ? "selected" : ""
+      }>Admin</option>
+            <option value="staff" ${currentData.user_role === "staff" ? "selected" : ""
+      }>Staff</option>
+            <option value="maker" ${currentData.user_role === "maker" ? "selected" : ""
+      }>Maker</option>
           </select>
         </div>
         <div style="margin-bottom:15px;">
           <label style="display:block; margin-bottom:5px; font-weight:bold;">印刷ステータス</label>
           <select id="modal_print_status" style="width:100%; padding:8px; border:1px solid #ddd; border-radius:4px;">
-            <option value="not_printed" ${
-              currentData.print_status === "not_printed" ? "selected" : ""
-            }>未印刷</option>
-            <option value="printed" ${
-              currentData.print_status === "printed" ? "selected" : ""
-            }>印刷済み</option>
+            <option value="not_printed" ${currentData.print_status === "not_printed" ? "selected" : ""
+      }>未印刷</option>
+            <option value="printed" ${currentData.print_status === "printed" ? "selected" : ""
+      }>印刷済み</option>
           </select>
         </div>
       </div>
@@ -1445,8 +1446,8 @@ async function submitEditData() {
           (collectionType === "staff"
             ? "staff"
             : collectionType === "maker"
-            ? "maker"
-            : "user"),
+              ? "maker"
+              : "user"),
         print_status:
           document.getElementById("modal_print_status")?.value || "not_printed",
       };
@@ -1461,14 +1462,13 @@ async function submitEditData() {
 
     showResult(
       "firestoreResult",
-      `${
-        collectionType === "items"
-          ? "アイテム"
-          : collectionType === "users"
+      `${collectionType === "items"
+        ? "アイテム"
+        : collectionType === "users"
           ? "ユーザー"
           : collectionType === "staff"
-          ? "スタッフ"
-          : "メーカー"
+            ? "スタッフ"
+            : "メーカー"
       }「${data.item_name || data.user_name}」を更新しました`,
       "success"
     );

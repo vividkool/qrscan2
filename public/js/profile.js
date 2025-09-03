@@ -157,9 +157,8 @@ class ProfileManager {
             <p class="subtitle" style="color: #666; margin-bottom: 40px; font-size: 16px; line-height: 1.6;">
               アカウント情報の表示・編集
             </p>
-            <div id="profileAccountStatus" style="font-size: 48px; margin-bottom: 20px;">テストモード</div>
 
-            <form id="profileForm">
+            <form id="profileForm".>
               <!-- 基本情報行 -->
               <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
                 <div class="form-group" style="margin-bottom: 0; text-align: left;">
@@ -229,14 +228,25 @@ class ProfileManager {
                 </div>
                 <div class="form-group" style="margin-bottom: 0; text-align: left;">
                   <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">会社名</label>
-                  <select id="profileCompanyName" name="companyName" disabled style="
+                  <input type="text" id="profileCompanyName" name="companyName" readonly style="
+                    width: 100%; padding: 12px 15px; border: 2px solid #e1e5e9; border-radius: 10px; 
+                    font-size: 16px; transition: border-color 0.3s ease; background-color: #f8f9fa;
+                  " />
+                  <small style="display: block; margin-top: 5px; font-size: 12px; color: #666;">会社名</small>
+                </div>
+              </div>
+
+              <div class="form-row" style="display: grid; grid-template-columns: 1fr; gap: 15px; margin-bottom: 20px;">
+                <div class="form-group" style="margin-bottom: 0; text-align: left;">
+                  <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #333;">アカウントステータス</label>
+                  <select id="profileAccountStatus" name="accountStatus" disabled style="
                     width: 100%; padding: 12px 15px; border: 2px solid #e1e5e9; border-radius: 10px; 
                     font-size: 16px; transition: border-color 0.3s ease; background-color: #f8f9fa;
                   ">
-                    <option value="test">test (テストデータ)</option>
-                    <option value="real">real (本番データ)</option>
+                    <option value="test">🧪 テストモード（データベース30件 30日間使用可能）</option>
+                    <option value="production">🚀 本番モード（無制限）</option>
                   </select>
-                  <small style="display: block; margin-top: 5px; font-size: 12px; color: #666;">データベース種別</small>
+                  <small style="display: block; margin-top: 5px; font-size: 12px; color: #666;">アカウントの使用タイプ</small>
                 </div>
               </div>
 
@@ -298,47 +308,11 @@ class ProfileManager {
     document.getElementById("profilePhoneNumber").value =
       adminData.phone_number || adminData.phoneNumber || "";
     document.getElementById("profileCompanyName").value =
-      adminData.company_name || adminData.companyName || "test";
+      adminData.company_name || adminData.companyName || "";
 
-    // アカウントステータス表示を設定
-    this.setAccountStatusDisplay(adminData.account_status || "test");
-  }
-
-  // アカウントステータス表示を設定
-  setAccountStatusDisplay(accountStatus) {
-    const statusElement = document.getElementById("profileAccountStatus");
-    if (!statusElement) return;
-
-    let statusText = "";
-    let statusColor = "";
-    let statusBgColor = "";
-
-    switch (accountStatus) {
-      case "production":
-      case "prod":
-        statusText = "🚀 本番モード（無制限）";
-        statusColor = "#28a745";
-        statusBgColor = "#d4edda";
-        break;
-      case "test":
-      case "trial":
-      default:
-        statusText = "🧪 テストモード（データベース30件　30日間使用可能）";
-        statusColor = "#ffc107";
-        statusBgColor = "#fff3cd";
-        break;
-    }
-
-    statusElement.innerHTML = statusText;
-    statusElement.style.color = statusColor;
-    statusElement.style.backgroundColor = statusBgColor;
-    statusElement.style.padding = "10px 20px";
-    statusElement.style.borderRadius = "25px";
-    statusElement.style.fontSize = "14px";
-    statusElement.style.fontWeight = "600";
-    statusElement.style.border = `2px solid ${statusColor}`;
-    statusElement.style.display = "inline-block";
-    statusElement.style.marginBottom = "20px";
+    // アカウントステータスをselect要素に設定
+    const accountStatus = adminData.account_status || adminData.accountStatus || "test";
+    document.getElementById("profileAccountStatus").value = accountStatus;
   }
 
   // イベントリスナーを設定
@@ -466,6 +440,7 @@ class ProfileManager {
         admin_name: formData.get("adminName"),
         phone_number: formData.get("phoneNumber"),
         company_name: formData.get("companyName"),
+        account_status: formData.get("accountStatus"),
         updated_at: serverTimestamp(),
       };
 
@@ -526,7 +501,13 @@ class ProfileManager {
 
       editableFields.forEach((fieldId) => {
         const field = document.getElementById(fieldId);
-        field.setAttribute("readonly", "readonly");
+        if (fieldId === "profileAccountStatus") {
+          // selectボックスの場合はdisabled属性を追加
+          field.setAttribute("disabled", "disabled");
+        } else {
+          // input要素の場合はreadonly属性を追加
+          field.setAttribute("readonly", "readonly");
+        }
         field.style.backgroundColor = "#f8f9fa";
         field.style.borderColor = "#e1e5e9";
       });
