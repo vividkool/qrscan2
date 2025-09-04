@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>QR Scan App - ログイン</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        sans-serif;
+      background: linear-gradient(135deg, #4285f4, #34a853);
+      min-height: 100vh;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .login-container {
+      background: white;
+      border-radius: 12px;
+      padding: 40px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      max-width: 400px;
+      width: 100%;
+      text-align: center;
+    }
+
+    .app-logo {
+      font-size: 48px;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 30px;
+      font-size: 24px;
+    }
+
+    .login-form {
+      margin-bottom: 20px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+      text-align: left;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+      color: #555;
+    }
+
+    input[type="text"],
+    input[type="password"] {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 16px;
+      box-sizing: border-box;
+      transition: border-color 0.3s ease;
+    }
+
+    input[type="text"]:focus,
+    input[type="password"]:focus {
+      border-color: #4285f4;
+      outline: none;
+    }
+
+    .login-button {
+      width: 100%;
+      background: #4285f4;
+      color: white;
+      border: none;
+      padding: 14px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    .login-button:hover {
+      background: #3367d6;
+    }
+
+    .login-button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    .error-message {
+      background: #f8d7da;
+      border: 1px solid #f5c6cb;
+      color: #721c24;
+      padding: 12px;
+      border-radius: 8px;
+      margin-top: 15px;
+      display: none;
+    }
+
+    .loading {
+      display: none;
+      margin-top: 15px;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #4285f4;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    .demo-users {
+      margin-top: 30px;
+      padding: 20px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      text-align: left;
+    }
+
+    .demo-users h3 {
+      margin-top: 0;
+      color: #4285f4;
+      text-align: center;
+    }
+
+    .demo-user {
+      margin-bottom: 10px;
+      padding: 8px;
+      background: white;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+
+    .demo-user:hover {
+      background: #e3f0fd;
+    }
+
+    .demo-user strong {
+      color: #4285f4;
+    }
+
+    @media (max-width: 480px) {
+      .login-container {
+        padding: 30px 20px;
+      }
+    }
+
+    /* 招待コード表示 */
+    .invite-info {
+      background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+      border: 2px solid #4285f4;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .invite-badge {
+      background: #4285f4;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+      display: inline-block;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+
+    /* 新規登録ボタン */
+    .register-button {
+      background: #34a853;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+      width: 100%;
+      transition: background-color 0.2s ease;
+    }
+
+    .register-button:hover {
+      background: #2d8f47;
+    }
+
+    /* プロバイダ認証ボタン */
+    .provider-buttons {
+      margin-bottom: 20px;
+    }
+
+    .google-button {
+      background: #4285f4;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 0.2s ease;
+    }
+
+    .google-button:hover {
+      background: #3367d6;
+    }
+
+    .google-button span {
+      margin-right: 8px;
+      font-size: 18px;
+    }
+
+    /* 区切り線 */
+    .divider {
+      text-align: center;
+      margin: 20px 0;
+      position: relative;
+      color: #666;
+    }
+
+    .divider::before {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: #ddd;
+      z-index: 1;
+    }
+
+    .divider {
+      background: white;
+      padding: 0 15px;
+      z-index: 2;
+      position: relative;
+    }
+
+    /* 戻るボタン */
+    .back-button {
+      background: #6c757d;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      margin-top: 15px;
+      transition: background-color 0.2s ease;
+    }
+
+    .back-button:hover {
+      background: #5a6268;
+    }
+
+    /* 区切り線 */
+    .divider-container {
+      position: relative;
+      margin: 20px 0;
+    }
+
+    .divider-line {
+      height: 1px;
+      background: #ddd;
+      z-index: 1;
+    }
+
+    .divider {
+      background: white;
+      padding: 0 15px;
+      z-index: 2;
+      position: relative;
+      display: inline-block;
+      color: #666;
+      font-size: 14px;
+    }
+
+    /* 成功メッセージ */
+    .success-message {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+      border-radius: 6px;
+      padding: 12px;
+      margin-top: 15px;
+      text-align: center;
+    }
+
+    /* トーストメッセージ */
+    .toast {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+      border-radius: 8px;
+      padding: 15px 20px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      z-index: 9999;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+      max-width: 400px;
+      text-align: center;
+      font-weight: 600;
+    }
+
+    .toast.show {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(-50%) translateY(10px);
+    }
+
+    .toast.success {
+      background: #d4edda;
+      color: #155724;
+      border-color: #c3e6cb;
+    }
+
+    .toast.error {
+      background: #f8d7da;
+      color: #721c24;
+      border-color: #f5c6cb;
+    }
+
+    /* 新規管理者登録ボタン */
+    .register-admin-button {
+      background: #34a853;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 15px;
+      transition: background-color 0.3s ease;
+      text-decoration: none;
+      display: inline-block;
+      text-align: center;
+    }
+
+    .register-admin-button:hover {
+      background: #2d8f47;
+      text-decoration: none;
+      color: white;
+    }
+
+    .success-message {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+      border-radius: 6px;
+      padding: 12px;
+      margin-top: 15px;
+      text-align: center;
+    }
+
+    /* 登録フォーム */
+    .register-form {
+      margin-bottom: 20px;
+    }
+
+    .register-form h2 {
+      color: #333;
+      margin-bottom: 20px;
+      font-size: 20px;
+    }
+
+    /* QRコード表示エリア */
+    .qr-section {
+      background: #f8f9fa;
+      border: 2px dashed #4285f4;
+      border-radius: 8px;
+      padding: 30px;
+      margin: 20px 0;
+      text-align: center;
+    }
+
+    .qr-title {
+      color: #4285f4;
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 15px;
+    }
+
+    .qr-description {
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+
+    .qr-display {
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 6px;
+      padding: 20px;
+      margin: 15px 0;
+      min-height: 200px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+    }
+
+    .qr-placeholder {
+      color: #999;
+      font-size: 16px;
+    }
+
+    .qr-url-display {
+      background: #f5f5f5;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 10px;
+      margin-top: 15px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      word-break: break-all;
+      color: #333;
+    }
+
+    .demo-qr-button {
+      background: #34a853;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      margin: 5px;
+    }
+
+    .demo-qr-button:hover {
+      background: #2d8a47;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="login-container">
+    <div class="app-logo">
+      <h1 id="pageTitle">superuser Dashboard</h1>
+    </div>
+
+    <!-- QRコード表示エリア -->
+    <div class="qr-section">
+      <div class="qr-title">🔐 QRコード認証</div>
+      <div class="qr-description">
+        本番環境ではQRコードをスキャンしてアクセスします<br>
+        各ユーザー専用のQRコードが生成されます
+      </div>
+
+      <div class="qr-display" id="qrDisplay">
+        <div class="qr-placeholder">QRコード表示エリア</div>
+      </div>
+
+      <div class="qr-url-display" id="qrUrlDisplay">
+        QRコードURL: https://qrscan2-99ffd.web.app/user.html?uid=xxxxxxxxxxx
+      </div>
+
+      <div style="margin-top: 15px;">
+        <button class="demo-qr-button" id="demoUser">
+          👤 一般ユーザーQR
+        </button>
+        <button class="demo-qr-button" id="demoMaker">
+          🏭 メーカーQR
+        </button>
+        <button class="demo-qr-button" id="demoStaff">
+          👥 スタッフQR
+        </button>
+      </div>
+    </div>
+
+    <!-- 手動ログイン画面 (開発用) -->
+    <div id="loginSection">
+      <div style="text-align: center; margin: 20px 0;">
+        <div class="divider-container">
+          <div class="divider-line"></div>
+          <div class="divider">または開発用手動ログイン</div>
+        </div>
+      </div>
+
+      <form class="login-form" id="loginForm">
+        <div class="form-group">
+          <label for="adminId">adminID</label>
+          <input type="text" id="adminId" name="adminId" placeholder="adminIDを入力してください" required />
+
+          <label for="userId">ユーザーID</label>
+          <input type="text" id="userId" name="userId" placeholder="ユーザーIDを入力してください" required />
+        </div>
+
+        <button type="submit" class="login-button" id="loginButton">
+          手動ログイン
+        </button>
+      </form>
+
+      <!-- 新規管理者登録ボタン -->
+      <button type="button" class="register-admin-button" onclick="goToAdminRegister()">
+        ← 管理者ログイン画面に戻る
+      </button>
+
+      <div id="loading" class="loading">
+        <div class="spinner"></div>
+        <span id="loadingText">処理中...</span>
+      </div>
+      <div id="errorMessage" class="error-message"></div>
+      <div id="successMessage" class="success-message"></div>
+    </div>
+
+  </div>
+
+  <!-- トーストメッセージ -->
+  <div id="toast" class="toast"></div>
+
+  <script type="module" src="./js/login.js"></script>
+</body>
+
+</html>

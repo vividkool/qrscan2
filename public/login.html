@@ -2,119 +2,61 @@
 <html lang="ja">
 
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>QR Scan App - ログイン</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QRログイン - QRスキャンシステム</title>
   <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-        sans-serif;
-      background: linear-gradient(135deg, #4285f4, #34a853);
-      min-height: 100vh;
+    * {
       margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
       display: flex;
-      align-items: center;
       justify-content: center;
+      align-items: center;
       padding: 20px;
     }
 
     .login-container {
       background: white;
-      border-radius: 12px;
+      border-radius: 15px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
       padding: 40px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-      max-width: 400px;
+      max-width: 500px;
       width: 100%;
       text-align: center;
     }
 
-    .app-logo {
-      font-size: 48px;
-      margin-bottom: 20px;
+    .logo {
+      font-size: 2.5em;
+      color: #667eea;
+      margin-bottom: 10px;
+      font-weight: bold;
     }
 
-    h1 {
-      color: #333;
+    .subtitle {
+      color: #666;
       margin-bottom: 30px;
-      font-size: 24px;
-    }
-
-    .login-form {
-      margin-bottom: 20px;
-    }
-
-    .form-group {
-      margin-bottom: 20px;
-      text-align: left;
-    }
-
-    label {
-      display: block;
-      margin-bottom: 8px;
-      font-weight: bold;
-      color: #555;
-    }
-
-    input[type="text"],
-    input[type="password"] {
-      width: 100%;
-      padding: 12px;
-      border: 2px solid #e0e0e0;
-      border-radius: 8px;
-      font-size: 16px;
-      box-sizing: border-box;
-      transition: border-color 0.3s ease;
-    }
-
-    input[type="text"]:focus,
-    input[type="password"]:focus {
-      border-color: #4285f4;
-      outline: none;
-    }
-
-    .login-button {
-      width: 100%;
-      background: #4285f4;
-      color: white;
-      border: none;
-      padding: 14px;
-      border-radius: 8px;
-      font-size: 16px;
-      font-weight: bold;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-    }
-
-    .login-button:hover {
-      background: #3367d6;
-    }
-
-    .login-button:disabled {
-      background: #ccc;
-      cursor: not-allowed;
-    }
-
-    .error-message {
-      background: #f8d7da;
-      border: 1px solid #f5c6cb;
-      color: #721c24;
-      padding: 12px;
-      border-radius: 8px;
-      margin-top: 15px;
-      display: none;
+      font-size: 1.1em;
     }
 
     .loading {
-      display: none;
-      margin-top: 15px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
     }
 
     .spinner {
-      display: inline-block;
-      width: 20px;
-      height: 20px;
-      border: 3px solid #f3f3f3;
-      border-top: 3px solid #4285f4;
+      width: 50px;
+      height: 50px;
+      border: 5px solid #f3f3f3;
+      border-top: 5px solid #667eea;
       border-radius: 50%;
       animation: spin 1s linear infinite;
     }
@@ -129,417 +71,324 @@
       }
     }
 
-    .demo-users {
-      margin-top: 30px;
-      padding: 20px;
-      background: #f8f9fa;
+    .status-message {
+      color: #666;
+      font-size: 1.1em;
+      margin-top: 20px;
+    }
+
+    .error-message {
+      background: #ffe6e6;
+      color: #d63031;
+      padding: 15px;
       border-radius: 8px;
+      margin-top: 20px;
+      border: 1px solid #fdbcbc;
+    }
+
+    .success-message {
+      background: #e8f5e8;
+      color: #00b894;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 20px;
+      border: 1px solid #b8e6b8;
+    }
+
+    .debug-info {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 20px;
+      font-size: 0.9em;
+      color: #6c757d;
       text-align: left;
     }
 
-    .demo-users h3 {
-      margin-top: 0;
-      color: #4285f4;
-      text-align: center;
-    }
-
-    .demo-user {
+    .debug-info h4 {
+      color: #495057;
       margin-bottom: 10px;
-      padding: 8px;
-      background: white;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: background-color 0.2s ease;
     }
 
-    .demo-user:hover {
-      background: #e3f0fd;
+    .debug-info ul {
+      list-style-type: none;
+      padding-left: 0;
     }
 
-    .demo-user strong {
-      color: #4285f4;
-    }
-
-    @media (max-width: 480px) {
-      .login-container {
-        padding: 30px 20px;
-      }
-    }
-
-    /* 招待コード表示 */
-    .invite-info {
-      background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-      border: 2px solid #4285f4;
-      border-radius: 8px;
-      padding: 15px;
-      margin-bottom: 20px;
-      text-align: center;
-    }
-
-    .invite-badge {
-      background: #4285f4;
-      color: white;
-      padding: 8px 16px;
-      border-radius: 20px;
-      display: inline-block;
-      margin-bottom: 10px;
-      font-size: 14px;
-    }
-
-    /* 新規登録ボタン */
-    .register-button {
-      background: #34a853;
-      color: white;
-      border: none;
-      padding: 12px 24px;
-      border-radius: 6px;
-      font-size: 16px;
-      cursor: pointer;
-      width: 100%;
-      transition: background-color 0.2s ease;
-    }
-
-    .register-button:hover {
-      background: #2d8f47;
-    }
-
-    /* プロバイダ認証ボタン */
-    .provider-buttons {
-      margin-bottom: 20px;
-    }
-
-    .google-button {
-      background: #4285f4;
-      color: white;
-      border: none;
-      padding: 12px 24px;
-      border-radius: 6px;
-      font-size: 16px;
-      cursor: pointer;
-      width: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: background-color 0.2s ease;
-    }
-
-    .google-button:hover {
-      background: #3367d6;
-    }
-
-    .google-button span {
-      margin-right: 8px;
-      font-size: 18px;
-    }
-
-    /* 区切り線 */
-    .divider {
-      text-align: center;
-      margin: 20px 0;
-      position: relative;
-      color: #666;
-    }
-
-    .divider::before {
-      content: "";
-      position: absolute;
-      top: 50%;
-      left: 0;
-      right: 0;
-      height: 1px;
-      background: #ddd;
-      z-index: 1;
-    }
-
-    .divider {
-      background: white;
-      padding: 0 15px;
-      z-index: 2;
-      position: relative;
-    }
-
-    /* 戻るボタン */
-    .back-button {
-      background: #6c757d;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 6px;
-      font-size: 14px;
-      cursor: pointer;
-      margin-top: 15px;
-      transition: background-color 0.2s ease;
-    }
-
-    .back-button:hover {
-      background: #5a6268;
-    }
-
-    /* 区切り線 */
-    .divider-container {
-      position: relative;
-      margin: 20px 0;
-    }
-
-    .divider-line {
-      height: 1px;
-      background: #ddd;
-      z-index: 1;
-    }
-
-    .divider {
-      background: white;
-      padding: 0 15px;
-      z-index: 2;
-      position: relative;
-      display: inline-block;
-      color: #666;
-      font-size: 14px;
-    }
-
-    /* 成功メッセージ */
-    .success-message {
-      background: #d4edda;
-      color: #155724;
-      border: 1px solid #c3e6cb;
-      border-radius: 6px;
-      padding: 12px;
-      margin-top: 15px;
-      text-align: center;
-    }
-
-    /* トーストメッセージ */
-    .toast {
-      position: fixed;
-      top: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #f8d7da;
-      color: #721c24;
-      border: 1px solid #f5c6cb;
-      border-radius: 8px;
-      padding: 15px 20px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-      z-index: 9999;
-      opacity: 0;
-      visibility: hidden;
-      transition: all 0.3s ease;
-      max-width: 400px;
-      text-align: center;
-      font-weight: 600;
-    }
-
-    .toast.show {
-      opacity: 1;
-      visibility: visible;
-      transform: translateX(-50%) translateY(10px);
-    }
-
-    .toast.success {
-      background: #d4edda;
-      color: #155724;
-      border-color: #c3e6cb;
-    }
-
-    .toast.error {
-      background: #f8d7da;
-      color: #721c24;
-      border-color: #f5c6cb;
-    }
-
-    /* 新規管理者登録ボタン */
-    .register-admin-button {
-      background: #34a853;
-      color: white;
-      border: none;
-      padding: 12px 24px;
-      border-radius: 8px;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      width: 100%;
-      margin-top: 15px;
-      transition: background-color 0.3s ease;
-      text-decoration: none;
-      display: inline-block;
-      text-align: center;
-    }
-
-    .register-admin-button:hover {
-      background: #2d8f47;
-      text-decoration: none;
-      color: white;
-    }
-
-    .success-message {
-      background: #d4edda;
-      color: #155724;
-      border: 1px solid #c3e6cb;
-      border-radius: 6px;
-      padding: 12px;
-      margin-top: 15px;
-      text-align: center;
-    }
-
-    /* 登録フォーム */
-    .register-form {
-      margin-bottom: 20px;
-    }
-
-    .register-form h2 {
-      color: #333;
-      margin-bottom: 20px;
-      font-size: 20px;
-    }
-
-    /* QRコード表示エリア */
-    .qr-section {
-      background: #f8f9fa;
-      border: 2px dashed #4285f4;
-      border-radius: 8px;
-      padding: 30px;
-      margin: 20px 0;
-      text-align: center;
-    }
-
-    .qr-title {
-      color: #4285f4;
-      font-size: 18px;
-      font-weight: 600;
-      margin-bottom: 15px;
-    }
-
-    .qr-description {
-      color: #666;
-      font-size: 14px;
-      margin-bottom: 20px;
-      line-height: 1.5;
-    }
-
-    .qr-display {
-      background: white;
-      border: 1px solid #e0e0e0;
-      border-radius: 6px;
-      padding: 20px;
-      margin: 15px 0;
-      min-height: 200px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-    }
-
-    .qr-placeholder {
-      color: #999;
-      font-size: 16px;
-    }
-
-    .qr-url-display {
-      background: #f5f5f5;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      padding: 10px;
-      margin-top: 15px;
-      font-family: 'Courier New', monospace;
-      font-size: 12px;
+    .debug-info li {
+      padding: 2px 0;
       word-break: break-all;
-      color: #333;
     }
 
-    .demo-qr-button {
-      background: #34a853;
+    .btn {
+      background: #667eea;
       color: white;
       border: none;
-      padding: 8px 16px;
-      border-radius: 4px;
-      font-size: 14px;
+      padding: 12px 30px;
+      border-radius: 8px;
+      font-size: 1em;
       cursor: pointer;
-      margin: 5px;
+      margin-top: 20px;
+      transition: background 0.3s;
     }
 
-    .demo-qr-button:hover {
-      background: #2d8a47;
+    .btn:hover {
+      background: #5a67d8;
     }
   </style>
 </head>
 
 <body>
   <div class="login-container">
-    <div class="app-logo">
-      <h1 id="pageTitle">superuser Dashboard</h1>
+    <div class="logo">🔐 QRログイン</div>
+    <div class="subtitle">QRコードアクセス認証中...</div>
+
+    <div id="loadingArea" class="loading">
+      <div class="spinner"></div>
+      <div class="status-message" id="statusMessage">URLパラメータを確認中...</div>
     </div>
 
-    <!-- QRコード表示エリア -->
-    <div class="qr-section">
-      <div class="qr-title">🔐 QRコード認証</div>
-      <div class="qr-description">
-        本番環境ではQRコードをスキャンしてアクセスします<br>
-        各ユーザー専用のQRコードが生成されます
-      </div>
-
-      <div class="qr-display" id="qrDisplay">
-        <div class="qr-placeholder">QRコード表示エリア</div>
-      </div>
-
-      <div class="qr-url-display" id="qrUrlDisplay">
-        QRコードURL: https://qrscan2-99ffd.web.app/user.html?uid=xxxxxxxxxxx
-      </div>
-
-      <div style="margin-top: 15px;">
-        <button class="demo-qr-button" id="demoUser">
-          👤 一般ユーザーQR
-        </button>
-        <button class="demo-qr-button" id="demoMaker">
-          🏭 メーカーQR
-        </button>
-        <button class="demo-qr-button" id="demoStaff">
-          👥 スタッフQR
-        </button>
-      </div>
-    </div>
-
-    <!-- 手動ログイン画面 (開発用) -->
-    <div id="loginSection">
-      <div style="text-align: center; margin: 20px 0;">
-        <div class="divider-container">
-          <div class="divider-line"></div>
-          <div class="divider">または開発用手動ログイン</div>
-        </div>
-      </div>
-
-      <form class="login-form" id="loginForm">
-        <div class="form-group">
-          <label for="adminId">adminID</label>
-          <input type="text" id="adminId" name="adminId" placeholder="adminIDを入力してください" required />
-
-          <label for="userId">ユーザーID</label>
-          <input type="text" id="userId" name="userId" placeholder="ユーザーIDを入力してください" required />
-        </div>
-
-        <button type="submit" class="login-button" id="loginButton">
-          手動ログイン
-        </button>
-      </form>
-
-      <!-- 新規管理者登録ボタン -->
-      <button type="button" class="register-admin-button" onclick="goToAdminRegister()">
-        ← 管理者ログイン画面に戻る
-      </button>
-
-      <div id="loading" class="loading">
-        <div class="spinner"></div>
-        <span id="loadingText">処理中...</span>
-      </div>
-      <div id="errorMessage" class="error-message"></div>
-      <div id="successMessage" class="success-message"></div>
-    </div>
-
+    <div id="messageArea"></div>
+    <div id="debugArea"></div>
   </div>
 
-  <!-- トーストメッセージ -->
-  <div id="toast" class="toast"></div>
+  <!-- Firebase SDK -->
+  <script type="module">
+    // Firebase imports
+    import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import {
+      getAuth,
+      signInWithEmailAndPassword,
+      onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import {
+      getFirestore,
+      doc,
+      getDoc
+    } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-  <script type="module" src="./js/login.js"></script>
+    // Firebase設定
+    const firebaseConfig = {
+      apiKey: "AIzaSyCWFL91baSHkjkvU_k-yTUv6QS191YTFlg",
+      authDomain: "qrscan2-99ffd.firebaseapp.com",
+      projectId: "qrscan2-99ffd",
+      storageBucket: "qrscan2-99ffd.firebasestorage.app",
+      messagingSenderId: "1089215781575",
+      appId: "1:1089215781575:web:bf9d05f6930b7123813ce2",
+      measurementId: "G-QZZWT3HW0W",
+    };
+
+    // Firebase初期化
+    const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // DOM要素
+    const loadingArea = document.getElementById('loadingArea');
+    const messageArea = document.getElementById('messageArea');
+    const debugArea = document.getElementById('debugArea');
+    const statusMessage = document.getElementById('statusMessage');
+
+    // URLパラメータ取得
+    const urlParams = new URLSearchParams(window.location.search);
+    const adminId = urlParams.get('admin_id');
+    const eventId = urlParams.get('event_id');
+    const uid = urlParams.get('uid');
+
+    console.log('=== QRログインページ読み込み ===');
+    console.log('URL:', window.location.href);
+    console.log('URLパラメータ:', { adminId, eventId, uid });
+
+    // デバッグ情報表示
+    function showDebugInfo(info) {
+      debugArea.innerHTML = `
+                <div class="debug-info">
+                    <h4>デバッグ情報:</h4>
+                    <ul>
+                        <li><strong>admin_id:</strong> ${info.adminId || '未設定'}</li>
+                        <li><strong>event_id:</strong> ${info.eventId || '未設定'}</li>
+                        <li><strong>uid:</strong> ${info.uid || '未設定'}</li>
+                        <li><strong>取得したrole:</strong> ${info.role || '未設定'}</li>
+                        <li><strong>リダイレクト先:</strong> ${info.redirectUrl || '未設定'}</li>
+                    </ul>
+                </div>
+            `;
+    }
+
+    // エラー表示
+    function showError(message) {
+      loadingArea.style.display = 'none';
+      messageArea.innerHTML = `<div class="error-message">${message}</div>`;
+    }
+
+    // 成功表示
+    function showSuccess(message) {
+      loadingArea.style.display = 'none';
+      messageArea.innerHTML = `<div class="success-message">${message}</div>`;
+    }
+
+    // ステータス更新
+    function updateStatus(message) {
+      statusMessage.textContent = message;
+    }
+
+    // roleに基づくリダイレクト先決定
+    function getRedirectUrl(role, adminId, eventId) {
+      const baseParams = adminId && eventId ? `?admin_id=${adminId}&event_id=${eventId}` : '';
+
+      switch (role) {
+        case 'admin':
+          return `admin.html${baseParams}`;
+        case 'staff':
+          return `staff.html${baseParams}`;
+        case 'maker':
+          return `maker.html${baseParams}`;
+        case 'uketuke':
+          return `uketuke.html${baseParams}`;
+        case 'user':
+          return `user.html${baseParams}`;
+        default:
+          return `superuser.html${baseParams}`;
+      }
+    }
+
+    // admin_settingsからユーザー情報取得
+    async function getUserInfoFromAdminSettings(uid) {
+      try {
+        updateStatus('admin_settingsからユーザー情報を取得中...');
+        const adminDoc = await getDoc(doc(db, "admin_settings", uid));
+        if (adminDoc.exists()) {
+          const data = adminDoc.data();
+          console.log('admin_settingsからデータ取得成功:', data);
+          return data;
+        }
+        console.warn('admin_settingsにドキュメントが見つかりません:', uid);
+        return null;
+      } catch (error) {
+        console.error('admin_settings取得エラー:', error);
+        return null;
+      }
+    }
+
+    // 特定UIDのroleマッピング（テスト用）
+    function getTestUserRole(uid) {
+      const testUsers = {
+        'kF5eX2FYyBUpxeNxfo6Jvlya38P2': 'uketuke',
+        // 必要に応じて他のテストユーザーを追加
+      };
+      return testUsers[uid] || null;
+    }
+
+    // Firebase Authでサインイン（匿名認証または既存セッション利用）
+    async function authenticateUser() {
+      try {
+        updateStatus('Firebase認証を確認中...');
+
+        // 既に認証済みかチェック
+        if (auth.currentUser) {
+          console.log('既にFirebase認証済み:', auth.currentUser.uid);
+          return auth.currentUser;
+        }
+
+        // Firebase認証状態を待機
+        return new Promise((resolve, reject) => {
+          const unsubscribe = onAuthStateChanged(auth, (user) => {
+            unsubscribe();
+            if (user) {
+              console.log('Firebase認証成功:', user.uid);
+              resolve(user);
+            } else {
+              console.warn('Firebase認証なし、匿名認証を試行');
+              // 匿名認証や既存のログイン処理をここで実行
+              reject(new Error('Firebase認証が必要です'));
+            }
+          });
+
+          // タイムアウト処理
+          setTimeout(() => {
+            unsubscribe();
+            reject(new Error('認証タイムアウト'));
+          }, 10000);
+        });
+      } catch (error) {
+        console.error('Firebase認証エラー:', error);
+        throw error;
+      }
+    }
+
+    // メイン処理
+    async function main() {
+      try {
+        // URLパラメータ検証
+        if (!adminId || !eventId || !uid) {
+          throw new Error('必要なURLパラメータが不足しています。QRコードを再度スキャンしてください。');
+        }
+
+        showDebugInfo({ adminId, eventId, uid });
+
+        // Firebase認証
+        updateStatus('Firebase認証中...');
+        const firebaseUser = await authenticateUser();
+
+        // ユーザー情報取得
+        updateStatus('ユーザー情報を取得中...');
+        let userRole = null;
+
+        // 1. admin_settingsから取得を試行
+        const adminData = await getUserInfoFromAdminSettings(uid);
+        if (adminData && adminData.role) {
+          userRole = adminData.role;
+          console.log('admin_settingsからrole取得成功:', userRole);
+        } else {
+          // 2. テストユーザーマッピングを確認
+          userRole = getTestUserRole(uid);
+          if (userRole) {
+            console.log('テストユーザーマッピングからrole取得:', userRole);
+          }
+        }
+
+        if (!userRole) {
+          throw new Error(`UID: ${uid} に対応するroleが見つかりません。管理者にお問い合わせください。`);
+        }
+
+        // リダイレクト先決定
+        const redirectUrl = getRedirectUrl(userRole, adminId, eventId);
+
+        showDebugInfo({ adminId, eventId, uid, role: userRole, redirectUrl });
+
+        // 成功メッセージとリダイレクト
+        showSuccess(`認証成功！${userRole}として${redirectUrl}にリダイレクトします...`);
+
+        // 2秒後にリダイレクト
+        setTimeout(() => {
+          console.log(`リダイレクト実行: ${redirectUrl}`);
+          window.location.href = redirectUrl;
+        }, 2000);
+
+      } catch (error) {
+        console.error('QRログインエラー:', error);
+        showError(error.message);
+
+        showDebugInfo({
+          adminId,
+          eventId,
+          uid,
+          role: 'エラー',
+          redirectUrl: 'なし'
+        });
+
+        // エラーの場合は手動リダイレクトボタンを表示
+        messageArea.innerHTML += `
+                    <button class="btn" onclick="window.location.href='superuser.html'">
+                        ログイン画面に戻る
+                    </button>
+                `;
+      }
+    }
+
+    // ページ読み込み時に実行
+    document.addEventListener('DOMContentLoaded', main);
+  </script>
 </body>
 
 </html>

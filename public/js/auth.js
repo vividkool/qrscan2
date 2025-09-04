@@ -173,8 +173,6 @@ class FirebaseAuthManager {
             return;
           }
 
-          // ※ localStorage保存は削除（Firebase Auth専用システムのため不要）
-          // localStorage.setItem("firebaseSessionData", JSON.stringify(userData));
 
           callback(userData);
         } catch (error) {

@@ -1,14 +1,10 @@
 // Uketuke Page Functions - 受付管理システム
-import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-
-document.addEventListener("DOMContentLoaded", function () {
-  const auth = getAuth();
-  if (!auth.currentUser) {
-    window.location.href = "./superuser.html";
-  }
-});
-
+import {
+  getAuth,
+  onAuthStateChanged,
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import "./auth.js";
+import "./nametag.js";
 
 // Firebase imports
 import {
@@ -24,6 +20,7 @@ import {
   doc,
   updateDoc,
   where,
+  getDoc, // 追加: 管理者データ取得用
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 // Firebase設定
@@ -41,20 +38,274 @@ const firebaseConfig = {
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+// テストユーザー用: currentAdminからadminデータを取得する関数
+function getAvailableAdminData() {
+  // 1. window.currentAdmin（最優先）
+  if (window.currentAdmin && window.currentAdmin.admin_id && window.currentAdmin.event_id) {
+    console.log("✅ window.currentAdminからadminデータ取得:", window.currentAdmin);
+    return {
+      admin_id: window.currentAdmin.admin_id,
+      event_id: window.currentAdmin.event_id,
+      company_name: window.currentAdmin.company_name,
+      project_name: window.currentAdmin.project_name,
+      event_date: window.currentAdmin.event_date,
+    };
+  }
+
+  // 2. URL parameters（admin.htmlから直接遷移の場合）
+  const urlParams = new URLSearchParams(window.location.search);
+  const adminId = urlParams.get('admin_id');
+  const eventId = urlParams.get('event_id');
+  if (adminId && eventId) {
+    console.log("✅ URLパラメータからadminデータ取得:", { admin_id: adminId, event_id: eventId });
+    return { admin_id: adminId, event_id: eventId };
+  }
+
+  console.warn("❌ 利用可能なadminデータが見つかりません");
+  return null;
+}
+
 // グローバル変数
 let allUsers = [];
 let filteredUsers = [];
 let currentAction = null;
 let currentUserId = null;
+let currentAdmin = null; // admin.jsと同様のcurrentAdmin変数を追加
+
+// Firebase Auth認証状態の確定を待機（user.jsと同様）
+async function waitForFirebaseAuth() {
+  const auth = getAuth();
+
+  return new Promise((resolve) => {
+    if (auth.currentUser) {
+      // 既に認証済みの場合
+      resolve(auth.currentUser);
+      return;
+    }
+
+    // 認証状態変更を監視
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      console.log(
+        "Firebase Auth状態変更:",
+        user ? "認証済み" : "未認証",
+        user?.uid
+      );
+      unsubscribe(); // 一度だけ実行
+      resolve(user);
+    });
+
+    // タイムアウト処理（10秒で諦める）
+    setTimeout(() => {
+      console.warn("Firebase Auth認証待機タイムアウト");
+      unsubscribe();
+      resolve(null);
+    }, 10000);
+  });
+}
 
 // ページロード時の初期化
 document.addEventListener("DOMContentLoaded", async function () {
-  console.log("=== uketuke.htmlページ読み込み ===");
+  console.log("=== uketuke.htmlページ読み込み (Firebase Auth版) ===");
   console.log("現在のURL:", window.location.href);
-  console.log("セッション存在確認:", !!localStorage.getItem("currentUser"));
 
-  // 権限チェック
-  if (!checkUketukeRole()) {
+  // Firebase Auth認証待機
+  const firebaseUser = await waitForFirebaseAuth();
+
+  if (!firebaseUser) {
+    console.warn("Firebase Auth認証に失敗、ログイン画面にリダイレクト");
+    window.location.href = "index.html";
+  }
+
+  // ユーザー情報取得と受付権限チェック
+  let userData = null;
+  if (window.UserSession && typeof UserSession.getCurrentUser === "function") {
+    userData = await UserSession.getCurrentUser();
+    console.log("Firebase Auth ユーザーデータ取得:", userData);
+  }
+
+  // デバッグ: userDataとwindow.currentAdminの詳細を表示
+  console.log("🔍 uketuke.js デバッグ情報:");
+  console.log("- userData:", userData);
+  console.log("- userData.role:", userData?.role);
+  console.log("- userData.user_role:", userData?.user_role);
+  console.log("- firebaseUser.uid:", firebaseUser.uid);
+  console.log("- window.currentAdmin存在:", !!window.currentAdmin);
+  console.log("- window.currentAdmin:", window.currentAdmin);
+  console.log("- window.currentAdmin.admin_id:", window.currentAdmin?.admin_id);
+  console.log("- window.currentAdmin.event_id:", window.currentAdmin?.event_id);
+
+  // 一時的なroleマッピング（テストユーザー用）
+  let userRole = userData?.role || userData?.user_role;
+
+  // テストユーザーのUID kF5eX2FYyBUpxeNxfo6Jvlya38P2 に一時的にuketuke権限を付与
+  if (firebaseUser.uid === "kF5eX2FYyBUpxeNxfo6Jvlya38P2" && !userRole) {
+    userRole = "uketuke";
+    console.log("🔧 テストユーザーに一時的にuketuke権限を付与:", userRole);
+  }
+
+  // テストユーザーの場合、window.currentAdminから直接admin_idとevent_idを取得
+  let inheritedAdminData = null;
+  if (firebaseUser.uid === "kF5eX2FYyBUpxeNxfo6Jvlya38P2") {
+    console.log("🔍 テストユーザー用: window.currentAdminをチェック中...");
+
+    // 直接window.currentAdminを確認
+    if (window.currentAdmin && window.currentAdmin.admin_id && window.currentAdmin.event_id) {
+      inheritedAdminData = {
+        admin_id: window.currentAdmin.admin_id,
+        event_id: window.currentAdmin.event_id,
+        company_name: window.currentAdmin.company_name,
+        project_name: window.currentAdmin.project_name,
+        event_date: window.currentAdmin.event_date,
+      };
+      console.log("✅ window.currentAdminから直接取得成功:", inheritedAdminData);
+    } else {
+      // フォールバック: URLパラメータまたは他の方法
+      inheritedAdminData = getAvailableAdminData();
+    }
+
+    if (!inheritedAdminData) {
+      console.warn("⚠️ 利用可能なadminデータが見つかりませんでした");
+      // 管理者に確認を求める
+      if (confirm("受付機能を利用するために管理者の情報が必要です。\n\n管理画面(admin.html)を別タブで開いてログインしてからこのページを再読み込みしてください。\n\n今すぐ管理画面を開きますか？")) {
+        window.open("admin.html", "_blank");
+        return; // 初期化を中断
+      } else {
+        // ユーザーが拒否した場合は警告表示して継続
+        console.warn("⚠️ adminデータなしで継続します（機能制限あり）");
+      }
+    } else {
+      console.log("✅ テストユーザー用adminデータ設定完了:", inheritedAdminData);
+    }
+  }  // 受付権限チェック（uketukeまたはadminを許可、デバッグモード追加）
+  const allowedRoles = ["uketuke", "admin"]; // 一時的にadminも許可
+
+  if (!userData || !allowedRoles.includes(userRole)) {
+    console.warn("受付権限なし:", userRole);
+
+    // 適切なメッセージを表示
+    if (userRole) {
+      alert(`このページは受付担当者専用です。\n現在のロール: ${userRole}\n\nログイン画面に戻ります。`);
+    } else {
+      alert(`認証が必要です。roleが設定されていません。\n\nUID: ${firebaseUser.uid}\n\n管理者にお問い合わせください。`);
+    }
+
+    // auth.jsのgetRedirectUrlを使用して統一的にリダイレクト
+    const redirectUrl =
+      window.UserSession?.getRedirectUrl?.(userRole) || "index.html";
+    console.log(
+      `${userRole || "未認証"}ユーザーを${redirectUrl}にリダイレクト`
+    );
+    window.location.href = redirectUrl;
+    return;
+  }
+
+  console.log("✅ 受付認証成功 - userRole:", userRole);
+
+  // admin.jsと同様に、Firestoreから管理者データを直接取得
+  let adminData = null;
+  try {
+    console.log("🔍 admin_settingsからデータ取得を試行中...");
+    const adminDoc = await getDoc(doc(db, "admin_settings", firebaseUser.uid));
+    if (adminDoc.exists()) {
+      adminData = adminDoc.data();
+      console.log("✅ admin_settingsからデータ取得成功:", adminData);
+    } else {
+      if (firebaseUser.uid === "kF5eX2FYyBUpxeNxfo6Jvlya38P2") {
+        console.log("ℹ️ テストユーザーのため admin_settingsスキップ（正常動作）");
+      } else {
+        console.warn("⚠️ admin_settingsにドキュメントが見つかりません:", firebaseUser.uid);
+      }
+    }
+  } catch (error) {
+    console.error("❌ admin_settingsデータ取得エラー:", error);
+  }
+
+  // currentAdminをFirebase Authデータ + admin_settingsデータ + 継承adminデータで設定
+  currentAdmin = {
+    // テストユーザーの場合は継承したadmin_idとevent_idを優先使用
+    admin_id: (firebaseUser.uid === "kF5eX2FYyBUpxeNxfo6Jvlya38P2" && inheritedAdminData?.admin_id)
+      ? inheritedAdminData.admin_id
+      : (adminData?.admin_id || userData?.admin_id || firebaseUser.uid),
+
+    user_name: adminData?.admin_name || userData?.user_name || userData?.user_id || firebaseUser.uid,
+    role: userRole, // 上で処理したuserRoleを使用
+    uid: firebaseUser.uid,
+
+    // テストユーザーの場合は継承したevent_idを優先使用
+    event_id: (firebaseUser.uid === "kF5eX2FYyBUpxeNxfo6Jvlya38P2" && inheritedAdminData?.event_id)
+      ? inheritedAdminData.event_id
+      : (adminData?.event_id || userData?.event_id),
+
+    // admin_settingsから取得したデータを優先的に使用
+    ...(adminData && {
+      admin_name: adminData.admin_name,
+      company_name: adminData.company_name,
+      email: adminData.email,
+      phone: adminData.phone_number,
+      project_name: adminData.project_name,
+      event_date: adminData.event_date,
+      status: adminData.status,
+      plan_type: adminData.plan_type,
+      is_active: adminData.is_active,
+    }),
+
+    // 継承したadminデータから追加情報を取得（テストユーザーの場合）
+    ...(firebaseUser.uid === "kF5eX2FYyBUpxeNxfo6Jvlya38P2" && inheritedAdminData && {
+      ...(inheritedAdminData.company_name && { company_name: inheritedAdminData.company_name }),
+      ...(inheritedAdminData.project_name && { project_name: inheritedAdminData.project_name }),
+      ...(inheritedAdminData.event_date && { event_date: inheritedAdminData.event_date }),
+    }),
+
+    // userDataからのフォールバック（admin_settingsが無い場合）
+    ...(!adminData && userData && {
+      ...(userData.admin_name && { admin_name: userData.admin_name }),
+      ...(userData.company_name && { company_name: userData.company_name }),
+      ...(userData.email && { email: userData.email }),
+      ...(userData.project_name && { project_name: userData.project_name }),
+      ...(userData.event_date && { event_date: userData.event_date }),
+    }),
+  };
+  window.currentAdmin = currentAdmin;
+
+  console.log("🔍 currentAdmin設定完了:");
+  console.log("- admin_id:", currentAdmin.admin_id);
+  console.log("- event_id:", currentAdmin.event_id);
+  console.log("- role:", currentAdmin.role);
+  console.log("- user_name:", currentAdmin.user_name);
+  console.log("- admin_settingsから取得:", !!adminData);
+  console.log("- 継承adminデータから取得:", !!inheritedAdminData);
+
+  console.log(
+    "Admin別コレクションパス:",
+    `admin_collections/${currentAdmin.admin_id}/${currentAdmin.event_id || "NO_EVENT_ID"
+    }/`
+  );
+
+  // event_idが無い場合の警告とユーザーデータ読み込みスキップ
+  if (!currentAdmin.event_id) {
+    console.error("❌ event_idが設定されていません。ユーザー一覧を表示できません。");
+    const container = document.getElementById("usersTableContainer");
+    if (container) {
+      container.innerHTML = `
+        <div class="error">
+          <h3>⚠️ イベント設定エラー</h3>
+          <p>event_idが設定されていないため、ユーザー一覧を表示できません。</p>
+          <p><strong>管理者情報:</strong></p>
+          <ul style="text-align: left;">
+            <li>UID: ${firebaseUser.uid}</li>
+            <li>admin_id: ${currentAdmin.admin_id}</li>
+            <li>event_id: ${currentAdmin.event_id || "未設定"}</li>
+            <li>admin_settingsからデータ取得: ${!!adminData ? "成功" : "失敗"}</li>
+          </ul>
+          <p>管理者にadmin_settingsコレクションの設定をご確認ください。</p>
+        </div>
+      `;
+    }
+
+    // 検索機能とモーダルの設定は継続
+    setupSearch();
+    setupModal();
+    console.log("受付管理システム初期化完了（event_idエラーのため一部機能制限）");
     return;
   }
 
@@ -70,37 +321,8 @@ document.addEventListener("DOMContentLoaded", async function () {
   console.log("受付管理システム初期化完了");
 });
 
-// 受付権限チェック
-function checkUketukeRole() {
-  try {
-    const sessionData = localStorage.getItem("currentUser");
-    if (!sessionData) {
-      alert("セッション情報が見つかりません。再ログインしてください。");
-      window.location.href = "superuser.html";
-      return false;
-    }
 
-    const user = JSON.parse(sessionData);
-
-    if (user.role !== "uketuke") {
-      alert(
-        `このページは受付担当者専用です。\n現在のロール: ${user.role}\n\nログイン画面に戻ります。`
-      );
-      window.location.href = "superuser.html";
-      return false;
-    }
-
-    console.log("受付権限確認完了:", user.user_name);
-    return true;
-  } catch (error) {
-    console.error("権限チェックエラー:", error);
-    alert("権限チェック中にエラーが発生しました。再ログインしてください。");
-    window.location.href = "superuser.html";
-    return false;
-  }
-}
-
-// ユーザー一覧の読み込み
+// ユーザー一覧の読み込み（admin.jsと同様のfetchロジックに更新）
 async function loadUsersList() {
   const container = document.getElementById("usersTableContainer");
 
@@ -108,10 +330,18 @@ async function loadUsersList() {
     container.innerHTML =
       '<div class="loading">ユーザー一覧を読み込み中...</div>';
 
-    // usersコレクションからrole:userのユーザーのみを取得
+    // currentAdminが設定されているかチェック
+    if (!currentAdmin || !currentAdmin.admin_id || !currentAdmin.event_id) {
+      throw new Error("管理者情報またはイベントIDが設定されていません");
+    }
+
+    // admin.jsと同様のadmin_collections構造でusersコレクションから取得
+    const usersCollectionPath = `admin_collections/${currentAdmin.admin_id}/${currentAdmin.event_id}_users`;
+    console.log("ユーザーコレクションパス:", usersCollectionPath);
+
     const usersQuery = query(
-      collection(db, "users"),
-      where("role", "==", "user"),
+      collection(db, usersCollectionPath),
+      where("user_role", "==", "user"), // user_roleでフィルタ
       orderBy("user_id")
     );
 
@@ -121,6 +351,7 @@ async function loadUsersList() {
       container.innerHTML = `
         <div class="error">
           <p>ユーザーが登録されていません。</p>
+          <p style="font-size: 12px;">コレクションパス: ${usersCollectionPath}</p>
         </div>
       `;
       return;
@@ -149,6 +380,8 @@ async function loadUsersList() {
       <div class="error">
         <p>ユーザー一覧の読み込み中にエラーが発生しました。</p>
         <p style="font-size: 12px;">${error.message}</p>
+        <p style="font-size: 10px;">Admin ID: ${currentAdmin?.admin_id || "未設定"}</p>
+        <p style="font-size: 10px;">Event ID: ${currentAdmin?.event_id || "未設定"}</p>
       </div>
     `;
   }
@@ -170,7 +403,7 @@ function displayUsersTable() {
   let html = `
     <div class="users-table-container">
       <table class="users-table">
-        <thead style="position: sticky; top: 100px; z-index: 999; background-color: #007bff;">
+        <thead style="background-color: #007bff;">
           <tr>
             
             <th>ユーザーID</th>
@@ -207,36 +440,32 @@ function displayUsersTable() {
         <td>
           <button 
             class="action-btn btn-success" 
-            onclick="changeStatus('${userData.docId}', '${
-      userData.user_name
-    }', '入場中')"
+            onclick="changeStatus('${userData.docId}', '${userData.user_name
+      }', '入場中')"
             ${status === "入場中" ? "disabled" : ""}
           >
             入場
           </button>
           <button 
             class="action-btn btn-danger" 
-            onclick="changeStatus('${userData.docId}', '${
-      userData.user_name
-    }', '退場済')"
+            onclick="changeStatus('${userData.docId}', '${userData.user_name
+      }', '退場済')"
             ${status === "退場済" ? "disabled" : ""}
           >
             退場
           </button>
           <button 
             class="action-btn btn-warning" 
-            onclick="changePrintStatus('${userData.docId}', '${
-      userData.user_name
-    }', '済')"
+            onclick="changePrintStatus('${userData.docId}', '${userData.user_name
+      }', '済')"
             ${printStatus === "済" ? "disabled" : ""}
           >
             印刷済
           </button>
           <button 
             class="action-btn btn-secondary" 
-            onclick="changePrintStatus('${userData.docId}', '${
-      userData.user_name
-    }', '未')"
+            onclick="changePrintStatus('${userData.docId}', '${userData.user_name
+      }', '未')"
             ${printStatus === "未" ? "disabled" : ""}
           >
             印刷取消
@@ -333,12 +562,20 @@ async function changePrintStatus(docId, userName, newPrintStatus) {
   );
 }
 
-// ステータス変更実行
+// ステータス変更実行（admin.jsと同様のfetchロジックに更新）
 async function executeStatusChange() {
   if (!currentAction) return;
 
   try {
-    const userRef = doc(db, "users", currentAction.docId);
+    // currentAdminが設定されているかチェック
+    if (!currentAdmin || !currentAdmin.admin_id || !currentAdmin.event_id) {
+      throw new Error("管理者情報またはイベントIDが設定されていません");
+    }
+
+    // admin.jsと同様のadmin_collections構造でドキュメントを更新
+    const usersCollectionPath = `admin_collections/${currentAdmin.admin_id}/${currentAdmin.event_id}_users`;
+    const userRef = doc(db, usersCollectionPath, currentAction.docId);
+
     await updateDoc(userRef, {
       status: currentAction.newValue,
       updated_at: new Date(),
@@ -350,6 +587,15 @@ async function executeStatusChange() {
     );
     if (userIndex !== -1) {
       allUsers[userIndex].status = currentAction.newValue;
+    }
+
+    // 名札作成：ステータスが「入場中」になった場合
+    if (currentAction.newValue === "入場中" && userIndex !== -1) {
+      const userData = allUsers[userIndex];
+      if (window.createNametag && typeof window.createNametag === 'function') {
+        // currentAdminデータも一緒に渡す
+        window.createNametag(userData, currentAdmin);
+      }
     }
 
     showSuccessMessage(
@@ -367,12 +613,20 @@ async function executeStatusChange() {
   currentAction = null;
 }
 
-// 印刷ステータス変更実行
+// 印刷ステータス変更実行（admin.jsと同様のfetchロジックに更新）
 async function executePrintStatusChange() {
   if (!currentAction) return;
 
   try {
-    const userRef = doc(db, "users", currentAction.docId);
+    // currentAdminが設定されているかチェック
+    if (!currentAdmin || !currentAdmin.admin_id || !currentAdmin.event_id) {
+      throw new Error("管理者情報またはイベントIDが設定されていません");
+    }
+
+    // admin.jsと同様のadmin_collections構造でドキュメントを更新
+    const usersCollectionPath = `admin_collections/${currentAdmin.admin_id}/${currentAdmin.event_id}_users`;
+    const userRef = doc(db, usersCollectionPath, currentAction.docId);
+
     await updateDoc(userRef, {
       print_status: currentAction.newValue,
       updated_at: new Date(),
@@ -516,11 +770,23 @@ function exportUsersList() {
   }
 }
 
-// ログアウト処理
+// ログアウト処理（Firebase Authベースに更新）
 function handleLogout() {
   if (confirm("ログアウトしますか？")) {
+    // レガシーlocalStorageデータを削除
     localStorage.removeItem("currentUser");
     localStorage.removeItem("firebaseSessionData");
+
+    // Firebase Authからサインアウト
+    const auth = getAuth();
+    if (auth.currentUser) {
+      auth.signOut().then(() => {
+        console.log("Firebase Authからサインアウト完了");
+      }).catch((error) => {
+        console.error("Firebase Authサインアウトエラー:", error);
+      });
+    }
+
     window.location.href = "superuser.html";
   }
 }
