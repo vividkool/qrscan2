@@ -483,6 +483,82 @@
             margin-top: 3px;
         }
 
+        /* 詳細設定モーダル用スタイル */
+        #detailSettingsModal .modal-content {
+            max-width: 800px;
+            width: 90%;
+        }
+
+        .setting-group {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #e9ecef;
+        }
+
+        .setting-group h3 {
+            color: #495057;
+            margin: 0 0 15px 0;
+            font-size: 16px;
+            border-bottom: 2px solid #dee2e6;
+            padding-bottom: 8px;
+        }
+
+        .toggle-container {
+            display: flex;
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .toggle-option {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            padding: 10px 15px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            background: white;
+            transition: all 0.3s ease;
+            flex: 1;
+            justify-content: center;
+        }
+
+        .toggle-option:hover {
+            border-color: #4285f4;
+            background: #f8f9ff;
+        }
+
+        .toggle-option input[type="radio"] {
+            margin-right: 8px;
+            transform: scale(1.2);
+        }
+
+        .toggle-option input[type="radio"]:checked + .toggle-label {
+            font-weight: bold;
+            color: #4285f4;
+        }
+
+        .toggle-option:has(input[type="radio"]:checked) {
+            border-color: #4285f4;
+            background: #e3f2fd;
+            box-shadow: 0 2px 8px rgba(66, 133, 244, 0.2);
+        }
+
+        .toggle-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #495057;
+            transition: all 0.3s ease;
+        }
+
+        .setting-description {
+            color: #6c757d;
+            font-size: 13px;
+            margin: 10px 0 0 0;
+            line-height: 1.4;
+        }
+
         /* パスワード表示切り替えボタン */
         .password-container {
             position: relative;
@@ -577,7 +653,10 @@
                     style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
                     👤 管理者情報
                 </button>
-
+                <button onclick="setting()"
+                    style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
+                    詳細設定
+                </button>
                 <button onclick="handleAdminLogout()"
                     style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 8px 16px; border-radius: 4px; cursor: pointer;">
                     ログアウト
@@ -638,14 +717,10 @@
                 📄 ScanItemsデータベース表示
             </button>
             <a href="uketuke.html?admin_id=bbbbbb&event_id=EXPO20250903&uid=kF5eX2FYyBUpxeNxfo6Jvlya38P2"
-                target="_blank" class="action-button" style="text-decoration: none;">
-                🏷️ 受付テストページ
+                target="_blank" class="action-button" style="text-decoration: none; width: 15em;">
+                🏷️ 受付ページ(テスト)
             </a>
         </div>
-
-
-
-
     </div>
 
     <!-- ファイルアップロードモーダル -->
@@ -812,6 +887,123 @@
         </div>
     </div>
 
+    <!-- 詳細設定モーダル -->
+    <div id="detailSettingsModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <span class="close" onclick="closeDetailSettingsModal()">&times;</span>
+            <h2>⚙️ 詳細設定</h2>
+            
+            <div style="margin: 20px 0;">
+                <!-- 名札印刷タイミング設定 -->
+                <div class="setting-group" style="display: grid; grid-template-columns: 250px 1fr; gap: 30px; align-items: start;">
+                    <div>
+                        <h3>🏷️ 名札印刷タイミング</h3>
+                        <p class="setting-description">名札をいつ印刷するかを設定します</p>
+                    </div>
+                    <div>
+                        <div class="toggle-container">
+                            <label class="toggle-option">
+                                <input type="radio" name="nametagTiming" value="onLogin" checked>
+                                <span class="toggle-label">ログイン時</span>
+                            </label>
+                            <label class="toggle-option">
+                                <input type="radio" name="nametagTiming" value="preIssue">
+                                <span class="toggle-label">事前発行</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 来場者スキャンデータ印刷設定 -->
+                <div class="setting-group" style="display: grid; grid-template-columns: 250px 1fr; gap: 30px; align-items: start;">
+                    <div>
+                        <h3>📄 スキャンデータ控え印刷</h3>
+                        <p class="setting-description">来場者のスキャンデータ控えを印刷するかを設定します</p>
+                    </div>
+                    <div>
+                        <div class="toggle-container">
+                            <label class="toggle-option">
+                                <input type="radio" name="scanDataPrint" value="enabled" checked>
+                                <span class="toggle-label">印刷する</span>
+                            </label>
+                            <label class="toggle-option">
+                                <input type="radio" name="scanDataPrint" value="disabled">
+                                <span class="toggle-label">印刷しない</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- スタッフ通知方法設定 -->
+                <div class="setting-group" style="display: grid; grid-template-columns: 250px 1fr; gap: 30px; align-items: start;">
+                    <div>
+                        <h3>📢 スタッフ通知方法</h3>
+                        <p class="setting-description">スタッフへの通知方法を選択します</p>
+                    </div>
+                    <div>
+                        <div class="toggle-container">
+                            <label class="toggle-option">
+                                <input type="radio" name="staffNotification" value="lineworks" checked>
+                                <span class="toggle-label">LINEWORKS</span>
+                            </label>
+                            <label class="toggle-option">
+                                <input type="radio" name="staffNotification" value="cmail">
+                                <span class="toggle-label">Cmail</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 名札印刷サイズ設定 -->
+                <div class="setting-group" style="display: grid; grid-template-columns: 250px 1fr; gap: 30px; align-items: start;">
+                    <div>
+                        <h3>📏 名札印刷サイズ</h3>
+                        <p class="setting-description">名札の印刷サイズを選択します</p>
+                    </div>
+                    <div>
+                        <div class="toggle-container">
+                            <label class="toggle-option">
+                                <input type="radio" name="nametagSize" value="a6" checked>
+                                <span class="toggle-label">A6サイズ</span>
+                            </label>
+                            <label class="toggle-option">
+                                <input type="radio" name="nametagSize" value="a4">
+                                <span class="toggle-label">A4サイズ</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 設定の説明 -->
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                <h4 style="color: #495057; margin: 0 0 15px 0;">💡 設定について</h4>
+                <ul style="margin: 0; color: #6c757d; font-size: 14px;">
+                    <li><strong>名札印刷タイミング:</strong> ログイン時は来場者がログインした際に自動印刷、事前発行は管理者が事前に印刷</li>
+                    <li><strong>スキャンデータ控え:</strong> 来場者がQRコードをスキャンした際の控えレシート印刷の有無</li>
+                    <li><strong>スタッフ通知:</strong> 重要な通知をスタッフに送信する際の連絡手段</li>
+                    <li><strong>名札サイズ:</strong> 印刷する名札の用紙サイズ（A6は標準、A4は大型イベント用）</li>
+                </ul>
+            </div>
+
+            <!-- ボタン -->
+            <div style="margin-top: 50px; text-align: right; border-top: 2px solid #e0e0e0; padding-top: 30px;">
+                <button onclick="resetDetailSettings()" 
+                    style="background-color: #6c757d; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; margin-right: 15px;">
+                    🔄 リセット
+                </button>
+                <button onclick="saveDetailSettings()" 
+                    style="background-color: #28a745; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; margin-right: 15px;">
+                    💾 保存
+                </button>
+                <button onclick="closeDetailSettingsModal()" 
+                    style="background-color: #dc3545; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer;">
+                    閉じる
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- 設定モーダル -->
     <div id="settingsModal" class="modal">
         <div class="modal-content">
@@ -880,6 +1072,93 @@
 
     <!-- ログアウト関数の確実な公開 -->
     <script>
+        // 詳細設定モーダル関連の関数
+        function setting() {
+            console.log('詳細設定モーダルを開きます');
+            const modal = document.getElementById('detailSettingsModal');
+            if (modal) {
+                // 現在の設定値を読み込み（将来的にFirestoreから取得）
+                loadDetailSettings();
+                modal.style.display = 'block';
+            } else {
+                console.error('詳細設定モーダルが見つかりません');
+            }
+        }
+
+        function closeDetailSettingsModal() {
+            const modal = document.getElementById('detailSettingsModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        function loadDetailSettings() {
+            // TODO: Firestoreから管理者固有の設定を読み込み
+            console.log('設定を読み込み中...');
+            
+            // デフォルト値を設定（将来的にはFirestoreから取得）
+            const defaultSettings = {
+                nametagTiming: 'onLogin',
+                scanDataPrint: 'enabled',
+                staffNotification: 'lineworks',
+                nametagSize: 'a6'
+            };
+
+            // ラジオボタンに値を設定
+            Object.keys(defaultSettings).forEach(settingName => {
+                const radioButton = document.querySelector(`input[name="${settingName}"][value="${defaultSettings[settingName]}"]`);
+                if (radioButton) {
+                    radioButton.checked = true;
+                }
+            });
+        }
+
+        function saveDetailSettings() {
+            // 現在の設定値を取得
+            const settings = {
+                nametagTiming: document.querySelector('input[name="nametagTiming"]:checked')?.value,
+                scanDataPrint: document.querySelector('input[name="scanDataPrint"]:checked')?.value,
+                staffNotification: document.querySelector('input[name="staffNotification"]:checked')?.value,
+                nametagSize: document.querySelector('input[name="nametagSize"]:checked')?.value
+            };
+
+            console.log('保存する設定:', settings);
+
+            // TODO: Firestoreに設定を保存
+            // 現在はコンソールに出力のみ
+            alert('設定が保存されました\n（実装予定：Firestoreに保存）');
+
+            // モーダルを閉じる
+            closeDetailSettingsModal();
+        }
+
+        function resetDetailSettings() {
+            if (confirm('設定をデフォルト値にリセットしますか？')) {
+                // デフォルト値にリセット
+                document.querySelector('input[name="nametagTiming"][value="onLogin"]').checked = true;
+                document.querySelector('input[name="scanDataPrint"][value="enabled"]').checked = true;
+                document.querySelector('input[name="staffNotification"][value="lineworks"]').checked = true;
+                document.querySelector('input[name="nametagSize"][value="a6"]').checked = true;
+                
+                console.log('設定をデフォルト値にリセットしました');
+            }
+        }
+
+        // モーダル外クリックで閉じる
+        document.addEventListener('click', function(event) {
+            const modal = document.getElementById('detailSettingsModal');
+            if (modal && event.target === modal) {
+                closeDetailSettingsModal();
+            }
+        });
+
+        // ESCキーでモーダルを閉じる
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeDetailSettingsModal();
+            }
+        });
+
         // ES6モジュールの読み込み完了を待ってからログアウト関数を確認
         window.addEventListener('load', function () {
             if (!window.handleAdminLogout) {
