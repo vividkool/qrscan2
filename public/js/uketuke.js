@@ -592,6 +592,11 @@ async function executeStatusChange() {
     // 名札作成：ステータスが「入場中」になった場合
     if (currentAction.newValue === "入場中" && userIndex !== -1) {
       const userData = allUsers[userIndex];
+
+      // 担当者メール送信
+      await sendTantouNotification(userData);
+
+      // 名札作成
       if (window.createNametag && typeof window.createNametag === 'function') {
         // currentAdminデータも一緒に渡す
         window.createNametag(userData, currentAdmin);
@@ -788,6 +793,148 @@ function handleLogout() {
     }
 
     window.location.href = "superuser.html";
+  }
+}
+
+// 担当者メール通知機能
+async function sendTantouNotification(userData) {
+  try {
+    console.log("=== 担当者メール通知開始 ===");
+    console.log("来場者データ:", userData);
+
+    const tantou = userData.tantou;
+    if (!tantou) {
+      console.log("担当者が設定されていません。メール送信をスキップします。");
+      return;
+    }
+
+    console.log("担当者:", tantou);
+
+    // スタッフコレクションから担当者のメールアドレスを取得
+    const staffEmail = await findStaffEmail(tantou);
+    if (!staffEmail) {
+      console.warn(`担当者「${tantou}」のメールアドレスが見つかりません。`);
+      return;
+    }
+
+    console.log("担当者メールアドレス:", staffEmail);
+
+    // メール送信データ準備
+    const emailData = {
+      to: staffEmail,
+      subject: "来場しました",
+      body: `${userData.company_name || ""}の${userData.user_name || ""}様が来場しました。\n\n` +
+        `詳細情報:\n` +
+        `- ユーザーID: ${userData.user_id || ""}\n` +
+        `- 会社名: ${userData.company_name || ""}\n` +
+        `- 担当者: ${tantou}\n` +
+        `- 入場時刻: ${new Date().toLocaleString("ja-JP")}\n\n` +
+        `受付システムより自動送信`
+    };
+
+    // メール送信実行
+    await sendEmail(emailData);
+    console.log("担当者メール送信完了:", staffEmail);
+
+  } catch (error) {
+    console.error("担当者メール送信エラー:", error);
+    // エラーが発生してもシステム全体は継続
+  }
+}
+
+// スタッフコレクションから担当者のメールアドレスを検索
+async function findStaffEmail(tantouName) {
+  try {
+    if (!currentAdmin || !currentAdmin.admin_id || !currentAdmin.event_id) {
+      throw new Error("管理者情報が設定されていません");
+    }
+
+    // スタッフコレクションを検索
+    const usersCollectionPath = `admin_collections/${currentAdmin.admin_id}/${currentAdmin.event_id}_users`;
+    console.log("スタッフ検索パス:", usersCollectionPath);
+
+    const staffQuery = query(
+      collection(db, usersCollectionPath),
+      where("user_role", "==", "staff"),
+      where("tantou", "==", tantouName)
+    );
+
+    const querySnapshot = await getDocs(staffQuery);
+
+    if (querySnapshot.empty) {
+      // tantouフィールドでの検索で見つからない場合、user_nameでも検索
+      const nameQuery = query(
+        collection(db, usersCollectionPath),
+        where("user_role", "==", "staff"),
+        where("user_name", "==", tantouName)
+      );
+
+      const nameSnapshot = await getDocs(nameQuery);
+
+      if (nameSnapshot.empty) {
+        console.warn(`担当者「${tantouName}」がスタッフコレクションに見つかりません`);
+        return null;
+      }
+
+      const staffDoc = nameSnapshot.docs[0];
+      const staffData = staffDoc.data();
+      console.log("担当者データ（user_name検索）:", staffData);
+      return staffData.email || null;
+    }
+
+    const staffDoc = querySnapshot.docs[0];
+    const staffData = staffDoc.data();
+    console.log("担当者データ（tantou検索）:", staffData);
+    return staffData.email || null;
+
+  } catch (error) {
+    console.error("スタッフメールアドレス検索エラー:", error);
+    return null;
+  }
+}
+
+// メール送信機能（Cloud Functions経由）
+async function sendEmail(emailData) {
+  try {
+    console.log("メール送信開始:", emailData);
+
+    // Firebase Cloud Functionsのメール送信エンドポイントを呼び出し
+    const response = await fetch('https://sendnotificationemail-ijui6cxhzq-an.a.run.app', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        to: emailData.to,
+        subject: emailData.subject,
+        text: emailData.body,
+        // 管理者情報も送信（認証用）
+        adminId: currentAdmin.admin_id,
+        eventId: currentAdmin.event_id
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`メール送信API エラー: ${response.status} ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    console.log("メール送信成功:", result);
+
+    // 成功メッセージを表示（オプション）
+    showSuccessMessage(`担当者（${emailData.to}）にメール通知を送信しました。`);
+
+  } catch (error) {
+    console.error("メール送信エラー:", error);
+
+    // フォールバック: ブラウザのmailtoリンクを使用
+    const mailtoLink = `mailto:${emailData.to}?subject=${encodeURIComponent(emailData.subject)}&body=${encodeURIComponent(emailData.body)}`;
+    console.log("フォールバック: mailtoリンク生成", mailtoLink);
+
+    // 担当者へのメール送信をユーザーに促す
+    if (confirm(`メール送信サービスが利用できません。\n\n担当者「${emailData.to}」に手動でメールを送信しますか？\n\n「OK」をクリックするとメールクライアントが開きます。`)) {
+      window.open(mailtoLink);
+    }
   }
 }
 
