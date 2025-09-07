@@ -21,6 +21,8 @@ import {
   updateDoc,
   where,
   getDoc, // 追加: 管理者データ取得用
+  addDoc, // 追加: Firebase Extensions用
+  serverTimestamp, // 追加: Firebase Extensions用
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 // Firebase設定
@@ -41,8 +43,15 @@ const db = getFirestore(app);
 // テストユーザー用: currentAdminからadminデータを取得する関数
 function getAvailableAdminData() {
   // 1. window.currentAdmin（最優先）
-  if (window.currentAdmin && window.currentAdmin.admin_id && window.currentAdmin.event_id) {
-    console.log("✅ window.currentAdminからadminデータ取得:", window.currentAdmin);
+  if (
+    window.currentAdmin &&
+    window.currentAdmin.admin_id &&
+    window.currentAdmin.event_id
+  ) {
+    console.log(
+      "✅ window.currentAdminからadminデータ取得:",
+      window.currentAdmin
+    );
     return {
       admin_id: window.currentAdmin.admin_id,
       event_id: window.currentAdmin.event_id,
@@ -54,10 +63,13 @@ function getAvailableAdminData() {
 
   // 2. URL parameters（admin.htmlから直接遷移の場合）
   const urlParams = new URLSearchParams(window.location.search);
-  const adminId = urlParams.get('admin_id');
-  const eventId = urlParams.get('event_id');
+  const adminId = urlParams.get("admin_id");
+  const eventId = urlParams.get("event_id");
   if (adminId && eventId) {
-    console.log("✅ URLパラメータからadminデータ取得:", { admin_id: adminId, event_id: eventId });
+    console.log("✅ URLパラメータからadminデータ取得:", {
+      admin_id: adminId,
+      event_id: eventId,
+    });
     return { admin_id: adminId, event_id: eventId };
   }
 
@@ -149,7 +161,11 @@ document.addEventListener("DOMContentLoaded", async function () {
     console.log("🔍 テストユーザー用: window.currentAdminをチェック中...");
 
     // 直接window.currentAdminを確認
-    if (window.currentAdmin && window.currentAdmin.admin_id && window.currentAdmin.event_id) {
+    if (
+      window.currentAdmin &&
+      window.currentAdmin.admin_id &&
+      window.currentAdmin.event_id
+    ) {
       inheritedAdminData = {
         admin_id: window.currentAdmin.admin_id,
         event_id: window.currentAdmin.event_id,
@@ -157,7 +173,10 @@ document.addEventListener("DOMContentLoaded", async function () {
         project_name: window.currentAdmin.project_name,
         event_date: window.currentAdmin.event_date,
       };
-      console.log("✅ window.currentAdminから直接取得成功:", inheritedAdminData);
+      console.log(
+        "✅ window.currentAdminから直接取得成功:",
+        inheritedAdminData
+      );
     } else {
       // フォールバック: URLパラメータまたは他の方法
       inheritedAdminData = getAvailableAdminData();
@@ -166,7 +185,11 @@ document.addEventListener("DOMContentLoaded", async function () {
     if (!inheritedAdminData) {
       console.warn("⚠️ 利用可能なadminデータが見つかりませんでした");
       // 管理者に確認を求める
-      if (confirm("受付機能を利用するために管理者の情報が必要です。\n\n管理画面(admin.html)を別タブで開いてログインしてからこのページを再読み込みしてください。\n\n今すぐ管理画面を開きますか？")) {
+      if (
+        confirm(
+          "受付機能を利用するために管理者の情報が必要です。\n\n管理画面(admin.html)を別タブで開いてログインしてからこのページを再読み込みしてください。\n\n今すぐ管理画面を開きますか？"
+        )
+      ) {
         window.open("admin.html", "_blank");
         return; // 初期化を中断
       } else {
@@ -174,9 +197,12 @@ document.addEventListener("DOMContentLoaded", async function () {
         console.warn("⚠️ adminデータなしで継続します（機能制限あり）");
       }
     } else {
-      console.log("✅ テストユーザー用adminデータ設定完了:", inheritedAdminData);
+      console.log(
+        "✅ テストユーザー用adminデータ設定完了:",
+        inheritedAdminData
+      );
     }
-  }  // 受付権限チェック（uketukeまたはadminを許可、デバッグモード追加）
+  } // 受付権限チェック（uketukeまたはadminを許可、デバッグモード追加）
   const allowedRoles = ["uketuke", "admin"]; // 一時的にadminも許可
 
   if (!userData || !allowedRoles.includes(userRole)) {
@@ -184,9 +210,13 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     // 適切なメッセージを表示
     if (userRole) {
-      alert(`このページは受付担当者専用です。\n現在のロール: ${userRole}\n\nログイン画面に戻ります。`);
+      alert(
+        `このページは受付担当者専用です。\n現在のロール: ${userRole}\n\nログイン画面に戻ります。`
+      );
     } else {
-      alert(`認証が必要です。roleが設定されていません。\n\nUID: ${firebaseUser.uid}\n\n管理者にお問い合わせください。`);
+      alert(
+        `認証が必要です。roleが設定されていません。\n\nUID: ${firebaseUser.uid}\n\n管理者にお問い合わせください。`
+      );
     }
 
     // auth.jsのgetRedirectUrlを使用して統一的にリダイレクト
@@ -211,9 +241,14 @@ document.addEventListener("DOMContentLoaded", async function () {
       console.log("✅ admin_settingsからデータ取得成功:", adminData);
     } else {
       if (firebaseUser.uid === "kF5eX2FYyBUpxeNxfo6Jvlya38P2") {
-        console.log("ℹ️ テストユーザーのため admin_settingsスキップ（正常動作）");
+        console.log(
+          "ℹ️ テストユーザーのため admin_settingsスキップ（正常動作）"
+        );
       } else {
-        console.warn("⚠️ admin_settingsにドキュメントが見つかりません:", firebaseUser.uid);
+        console.warn(
+          "⚠️ admin_settingsにドキュメントが見つかりません:",
+          firebaseUser.uid
+        );
       }
     }
   } catch (error) {
@@ -223,18 +258,26 @@ document.addEventListener("DOMContentLoaded", async function () {
   // currentAdminをFirebase Authデータ + admin_settingsデータ + 継承adminデータで設定
   currentAdmin = {
     // テストユーザーの場合は継承したadmin_idとevent_idを優先使用
-    admin_id: (firebaseUser.uid === "kF5eX2FYyBUpxeNxfo6Jvlya38P2" && inheritedAdminData?.admin_id)
-      ? inheritedAdminData.admin_id
-      : (adminData?.admin_id || userData?.admin_id || firebaseUser.uid),
+    admin_id:
+      firebaseUser.uid === "kF5eX2FYyBUpxeNxfo6Jvlya38P2" &&
+      inheritedAdminData?.admin_id
+        ? inheritedAdminData.admin_id
+        : adminData?.admin_id || userData?.admin_id || firebaseUser.uid,
 
-    user_name: adminData?.admin_name || userData?.user_name || userData?.user_id || firebaseUser.uid,
+    user_name:
+      adminData?.admin_name ||
+      userData?.user_name ||
+      userData?.user_id ||
+      firebaseUser.uid,
     role: userRole, // 上で処理したuserRoleを使用
     uid: firebaseUser.uid,
 
     // テストユーザーの場合は継承したevent_idを優先使用
-    event_id: (firebaseUser.uid === "kF5eX2FYyBUpxeNxfo6Jvlya38P2" && inheritedAdminData?.event_id)
-      ? inheritedAdminData.event_id
-      : (adminData?.event_id || userData?.event_id),
+    event_id:
+      firebaseUser.uid === "kF5eX2FYyBUpxeNxfo6Jvlya38P2" &&
+      inheritedAdminData?.event_id
+        ? inheritedAdminData.event_id
+        : adminData?.event_id || userData?.event_id,
 
     // admin_settingsから取得したデータを優先的に使用
     ...(adminData && {
@@ -250,20 +293,28 @@ document.addEventListener("DOMContentLoaded", async function () {
     }),
 
     // 継承したadminデータから追加情報を取得（テストユーザーの場合）
-    ...(firebaseUser.uid === "kF5eX2FYyBUpxeNxfo6Jvlya38P2" && inheritedAdminData && {
-      ...(inheritedAdminData.company_name && { company_name: inheritedAdminData.company_name }),
-      ...(inheritedAdminData.project_name && { project_name: inheritedAdminData.project_name }),
-      ...(inheritedAdminData.event_date && { event_date: inheritedAdminData.event_date }),
-    }),
+    ...(firebaseUser.uid === "kF5eX2FYyBUpxeNxfo6Jvlya38P2" &&
+      inheritedAdminData && {
+        ...(inheritedAdminData.company_name && {
+          company_name: inheritedAdminData.company_name,
+        }),
+        ...(inheritedAdminData.project_name && {
+          project_name: inheritedAdminData.project_name,
+        }),
+        ...(inheritedAdminData.event_date && {
+          event_date: inheritedAdminData.event_date,
+        }),
+      }),
 
     // userDataからのフォールバック（admin_settingsが無い場合）
-    ...(!adminData && userData && {
-      ...(userData.admin_name && { admin_name: userData.admin_name }),
-      ...(userData.company_name && { company_name: userData.company_name }),
-      ...(userData.email && { email: userData.email }),
-      ...(userData.project_name && { project_name: userData.project_name }),
-      ...(userData.event_date && { event_date: userData.event_date }),
-    }),
+    ...(!adminData &&
+      userData && {
+        ...(userData.admin_name && { admin_name: userData.admin_name }),
+        ...(userData.company_name && { company_name: userData.company_name }),
+        ...(userData.email && { email: userData.email }),
+        ...(userData.project_name && { project_name: userData.project_name }),
+        ...(userData.event_date && { event_date: userData.event_date }),
+      }),
   };
   window.currentAdmin = currentAdmin;
 
@@ -277,13 +328,16 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   console.log(
     "Admin別コレクションパス:",
-    `admin_collections/${currentAdmin.admin_id}/${currentAdmin.event_id || "NO_EVENT_ID"
+    `admin_collections/${currentAdmin.admin_id}/${
+      currentAdmin.event_id || "NO_EVENT_ID"
     }/`
   );
 
   // event_idが無い場合の警告とユーザーデータ読み込みスキップ
   if (!currentAdmin.event_id) {
-    console.error("❌ event_idが設定されていません。ユーザー一覧を表示できません。");
+    console.error(
+      "❌ event_idが設定されていません。ユーザー一覧を表示できません。"
+    );
     const container = document.getElementById("usersTableContainer");
     if (container) {
       container.innerHTML = `
@@ -295,7 +349,9 @@ document.addEventListener("DOMContentLoaded", async function () {
             <li>UID: ${firebaseUser.uid}</li>
             <li>admin_id: ${currentAdmin.admin_id}</li>
             <li>event_id: ${currentAdmin.event_id || "未設定"}</li>
-            <li>admin_settingsからデータ取得: ${!!adminData ? "成功" : "失敗"}</li>
+            <li>admin_settingsからデータ取得: ${
+              !!adminData ? "成功" : "失敗"
+            }</li>
           </ul>
           <p>管理者にadmin_settingsコレクションの設定をご確認ください。</p>
         </div>
@@ -305,7 +361,9 @@ document.addEventListener("DOMContentLoaded", async function () {
     // 検索機能とモーダルの設定は継続
     setupSearch();
     setupModal();
-    console.log("受付管理システム初期化完了（event_idエラーのため一部機能制限）");
+    console.log(
+      "受付管理システム初期化完了（event_idエラーのため一部機能制限）"
+    );
     return;
   }
 
@@ -320,7 +378,6 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   console.log("受付管理システム初期化完了");
 });
-
 
 // ユーザー一覧の読み込み（admin.jsと同様のfetchロジックに更新）
 async function loadUsersList() {
@@ -380,8 +437,12 @@ async function loadUsersList() {
       <div class="error">
         <p>ユーザー一覧の読み込み中にエラーが発生しました。</p>
         <p style="font-size: 12px;">${error.message}</p>
-        <p style="font-size: 10px;">Admin ID: ${currentAdmin?.admin_id || "未設定"}</p>
-        <p style="font-size: 10px;">Event ID: ${currentAdmin?.event_id || "未設定"}</p>
+        <p style="font-size: 10px;">Admin ID: ${
+          currentAdmin?.admin_id || "未設定"
+        }</p>
+        <p style="font-size: 10px;">Event ID: ${
+          currentAdmin?.event_id || "未設定"
+        }</p>
       </div>
     `;
   }
@@ -440,32 +501,36 @@ function displayUsersTable() {
         <td>
           <button 
             class="action-btn btn-success" 
-            onclick="changeStatus('${userData.docId}', '${userData.user_name
-      }', '入場中')"
+            onclick="changeStatus('${userData.docId}', '${
+      userData.user_name
+    }', '入場中')"
             ${status === "入場中" ? "disabled" : ""}
           >
             入場
           </button>
           <button 
             class="action-btn btn-danger" 
-            onclick="changeStatus('${userData.docId}', '${userData.user_name
-      }', '退場済')"
+            onclick="changeStatus('${userData.docId}', '${
+      userData.user_name
+    }', '退場済')"
             ${status === "退場済" ? "disabled" : ""}
           >
             退場
           </button>
           <button 
             class="action-btn btn-warning" 
-            onclick="changePrintStatus('${userData.docId}', '${userData.user_name
-      }', '済')"
+            onclick="changePrintStatus('${userData.docId}', '${
+      userData.user_name
+    }', '済')"
             ${printStatus === "済" ? "disabled" : ""}
           >
             印刷済
           </button>
           <button 
             class="action-btn btn-secondary" 
-            onclick="changePrintStatus('${userData.docId}', '${userData.user_name
-      }', '未')"
+            onclick="changePrintStatus('${userData.docId}', '${
+      userData.user_name
+    }', '未')"
             ${printStatus === "未" ? "disabled" : ""}
           >
             印刷取消
@@ -597,7 +662,7 @@ async function executeStatusChange() {
       await sendTantouNotification(userData);
 
       // 名札作成
-      if (window.createNametag && typeof window.createNametag === 'function') {
+      if (window.createNametag && typeof window.createNametag === "function") {
         // currentAdminデータも一緒に渡す
         window.createNametag(userData, currentAdmin);
       }
@@ -785,64 +850,115 @@ function handleLogout() {
     // Firebase Authからサインアウト
     const auth = getAuth();
     if (auth.currentUser) {
-      auth.signOut().then(() => {
-        console.log("Firebase Authからサインアウト完了");
-      }).catch((error) => {
-        console.error("Firebase Authサインアウトエラー:", error);
-      });
+      auth
+        .signOut()
+        .then(() => {
+          console.log("Firebase Authからサインアウト完了");
+        })
+        .catch((error) => {
+          console.error("Firebase Authサインアウトエラー:", error);
+        });
     }
 
     window.location.href = "superuser.html";
   }
 }
 
-// 担当者メール通知機能
+// 担当者通知機能（Firebase Extensions版）
 async function sendTantouNotification(userData) {
   try {
-    console.log("=== 担当者メール通知開始 ===");
+    console.log("=== 担当者通知処理開始（Firebase Extensions版） ===");
     console.log("来場者データ:", userData);
 
     const tantou = userData.tantou;
     if (!tantou) {
-      console.log("担当者が設定されていません。メール送信をスキップします。");
+      console.log("担当者が設定されていません。通知送信をスキップします。");
       return;
     }
 
     console.log("担当者:", tantou);
 
-    // スタッフコレクションから担当者のメールアドレスを取得
+    // スタッフのメールアドレスを取得
     const staffEmail = await findStaffEmail(tantou);
     if (!staffEmail) {
       console.warn(`担当者「${tantou}」のメールアドレスが見つかりません。`);
+      showSuccessMessage(
+        `${userData.user_name}様の入場を記録しました。担当者「${tantou}」のメールアドレスが未設定です。`
+      );
       return;
     }
 
     console.log("担当者メールアドレス:", staffEmail);
 
-    // メール送信データ準備
+    // Firebase Extensions用のメールドキュメントを作成
     const emailData = {
-      to: staffEmail,
-      subject: "来場しました",
-      body: `${userData.company_name || ""}の${userData.user_name || ""}様が来場しました。\n\n` +
-        `詳細情報:\n` +
-        `- ユーザーID: ${userData.user_id || ""}\n` +
-        `- 会社名: ${userData.company_name || ""}\n` +
-        `- 担当者: ${tantou}\n` +
-        `- 入場時刻: ${new Date().toLocaleString("ja-JP")}\n\n` +
-        `受付システムより自動送信`
+      to: [staffEmail], // 配列形式で指定（複数宛先も可能）
+      message: {
+        subject: "来場者到着通知",
+        html: `
+          <h2>来場者到着のお知らせ</h2>
+          <p><strong>${userData.company_name || ""}の${
+          userData.user_name || ""
+        }様</strong>が来場されました。</p>
+          <hr>
+          <h3>詳細情報</h3>
+          <ul>
+            <li><strong>ユーザーID:</strong> ${userData.user_id || ""}</li>
+            <li><strong>会社名:</strong> ${userData.company_name || ""}</li>
+            <li><strong>担当者:</strong> ${tantou}</li>
+            <li><strong>入場時刻:</strong> ${new Date().toLocaleString(
+              "ja-JP"
+            )}</li>
+          </ul>
+          <hr>
+          <p><small>受付システムより自動送信</small></p>
+        `,
+        text:
+          `${userData.company_name || ""}の${
+            userData.user_name || ""
+          }様が来場しました。\n\n` +
+          `詳細情報:\n` +
+          `- ユーザーID: ${userData.user_id || ""}\n` +
+          `- 会社名: ${userData.company_name || ""}\n` +
+          `- 担当者: ${tantou}\n` +
+          `- 入場時刻: ${new Date().toLocaleString("ja-JP")}\n\n` +
+          `受付システムより自動送信`,
+      },
+      // メタデータ（ログ用）
+      metadata: {
+        admin_id: currentAdmin.admin_id,
+        event_id: currentAdmin.event_id,
+        visitor_user_id: userData.user_id,
+        tantou: tantou,
+        type: "visitor_arrival",
+      },
+      timestamp: serverTimestamp(),
     };
 
-    // メール送信実行
-    await sendEmail(emailData);
-    console.log("担当者メール送信完了:", staffEmail);
+    // mailコレクションにドキュメントを追加（Firebase Extensionsが自動処理）
+    await addDoc(collection(db, "mail"), emailData);
 
+    console.log(
+      "🔔 Firebase Extensions経由でメール送信ドキュメントを作成しました:"
+    );
+    console.log(`- 宛先: ${staffEmail}`);
+    console.log(`- 担当者: ${tantou}`);
+    console.log(`- 来場者: ${userData.user_name || ""}`);
+
+    // 成功メッセージを表示
+    showSuccessMessage(
+      `${userData.user_name}様の入場を記録し、担当者「${tantou}」にメール通知を送信しました。`
+    );
   } catch (error) {
-    console.error("担当者メール送信エラー:", error);
+    console.error("担当者通知処理エラー:", error);
     // エラーが発生してもシステム全体は継続
+    showSuccessMessage(
+      `${userData.user_name}様の入場を記録しました。メール通知の送信中にエラーが発生しました。`
+    );
   }
 }
 
-// スタッフコレクションから担当者のメールアドレスを検索
+// スタッフコレクションから担当者のメールアドレスを検索（Firebase Extensions対応版）
 async function findStaffEmail(tantouName) {
   try {
     if (!currentAdmin || !currentAdmin.admin_id || !currentAdmin.event_id) {
@@ -872,7 +988,9 @@ async function findStaffEmail(tantouName) {
       const nameSnapshot = await getDocs(nameQuery);
 
       if (nameSnapshot.empty) {
-        console.warn(`担当者「${tantouName}」がスタッフコレクションに見つかりません`);
+        console.warn(
+          `担当者「${tantouName}」がスタッフコレクションに見つかりません`
+        );
         return null;
       }
 
@@ -886,14 +1004,14 @@ async function findStaffEmail(tantouName) {
     const staffData = staffDoc.data();
     console.log("担当者データ（tantou検索）:", staffData);
     return staffData.email || null;
-
   } catch (error) {
     console.error("スタッフメールアドレス検索エラー:", error);
     return null;
   }
 }
 
-// メール送信機能（Cloud Functions経由）
+// メール送信機能（Firebase Extensions実装時に復活予定）
+/*
 async function sendEmail(emailData) {
   try {
     console.log("メール送信開始:", emailData);
@@ -937,6 +1055,7 @@ async function sendEmail(emailData) {
     }
   }
 }
+*/
 
 // グローバル関数として公開
 window.changeStatus = changeStatus;
