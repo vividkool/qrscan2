@@ -83,8 +83,10 @@ document.addEventListener("DOMContentLoaded", async function () {
   let retryCount = 0;
   const maxRetries = 20; // 最大2秒待機
   while (!window.UserSession && retryCount < maxRetries) {
-    console.log(`UserSession読み込み待機中... (${retryCount + 1}/${maxRetries})`);
-    await new Promise(resolve => setTimeout(resolve, 100));
+    console.log(
+      `UserSession読み込み待機中... (${retryCount + 1}/${maxRetries})`
+    );
+    await new Promise((resolve) => setTimeout(resolve, 100));
     retryCount++;
   }
 
@@ -98,13 +100,19 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   // ユーザー情報取得と管理者権限チェック
   let userData = null;
-  if (window.UserSession && typeof window.UserSession.getCurrentUser === "function") {
+  if (
+    window.UserSession &&
+    typeof window.UserSession.getCurrentUser === "function"
+  ) {
     userData = await window.UserSession.getCurrentUser();
     console.log("Firebase Auth ユーザーデータ取得:", userData);
   } else {
     console.warn("❌ window.UserSession.getCurrentUserが利用できません");
     console.log("- window.UserSession存在:", !!window.UserSession);
-    console.log("- UserSession.getCurrentUser存在:", typeof window.UserSession?.getCurrentUser);
+    console.log(
+      "- UserSession.getCurrentUser存在:",
+      typeof window.UserSession?.getCurrentUser
+    );
   }
 
   // 管理者権限チェック（adminのみ許可）
@@ -153,7 +161,8 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   console.log(
     "Admin別コレクションパス:",
-    `admin_collections/${currentAdmin.admin_id}/${currentAdmin.event_id || "NO_EVENT_ID"
+    `admin_collections/${currentAdmin.admin_id}/${
+      currentAdmin.event_id || "NO_EVENT_ID"
     }/`
   );
 
@@ -187,12 +196,12 @@ function registerGlobalFunctions() {
     handleAdminLogout,
     checkAdminAuthentication,
     getAdminCollection,
-    getAdminDoc
+    getAdminDoc,
   };
 
   // 未定義関数をチェック
   for (const [name, func] of Object.entries(functions)) {
-    if (typeof func === 'undefined') {
+    if (typeof func === "undefined") {
       console.error(`❌ 関数 ${name} が未定義です`);
     } else {
       console.log(`✅ 関数 ${name} が定義されています`);
@@ -322,24 +331,28 @@ function getAdminCollection(collectionName) {
     };
     console.error("Admin認証またはevent_id が不足:", errorDetail);
     throw new Error(
-      `Admin認証またはevent_id が必要です。admin_id: ${currentAdmin?.admin_id || "なし"
+      `Admin認証またはevent_id が必要です。admin_id: ${
+        currentAdmin?.admin_id || "なし"
       }, event_id: ${currentAdmin?.event_id || "なし"}`
     );
   }
 
   // コレクション名の正規化（scanItems -> scanitemsなど）
   const collectionMapping = {
-    'scanItems': 'scanitems',
-    'items': 'items',
-    'users': 'users'
+    scanItems: "scanitems",
+    items: "items",
+    users: "users",
   };
 
-  const normalizedCollectionName = collectionMapping[collectionName] || collectionName;
+  const normalizedCollectionName =
+    collectionMapping[collectionName] || collectionName;
 
   // 新しい構造: admin_collections/{admin_id}/{event_id}_{collectionName}
   const collectionKey = `${currentAdmin.event_id}_${normalizedCollectionName}`;
   const adminPath = `admin_collections/${currentAdmin.admin_id}/${collectionKey}`;
-  console.log(`[DEBUG] Admin collection path (コレクション分離構造): ${adminPath}`);
+  console.log(
+    `[DEBUG] Admin collection path (コレクション分離構造): ${adminPath}`
+  );
 
   return collection(
     db,
@@ -359,7 +372,8 @@ function getAdminDoc(collectionName, docId) {
       currentAdmin: currentAdmin,
     });
     throw new Error(
-      `Admin認証またはevent_id が必要です。admin_id: ${currentAdmin?.admin_id || "なし"
+      `Admin認証またはevent_id が必要です。admin_id: ${
+        currentAdmin?.admin_id || "なし"
       }, event_id: ${currentAdmin?.event_id || "なし"}`
     );
   }
@@ -374,14 +388,12 @@ function getAdminDoc(collectionName, docId) {
   );
 }
 
-
 // ユーティリティ関数
 function clearResults(elementId) {
   const element = document.getElementById(elementId);
   element.textContent = "";
   element.className = "result";
   element.style.display = "none";
-
 }
 
 // UUID生成関数
@@ -405,8 +417,6 @@ function extractIndexUrl(errorMessage) {
     return null;
   }
 }
-
-
 
 // ローディング表示関数
 function showLoading(elementId) {
@@ -479,7 +489,6 @@ async function getAllItems() {
       "firestoreResult-count"
     ).textContent = `${querySnapshot.size}件`;
 
-
     console.log("Items retrieved successfully");
   } catch (error) {
     console.error("getAllItems error:", error);
@@ -502,10 +511,11 @@ async function getAllItems() {
             2. 「インデックスを作成」ボタンをクリック<br>
             3. 作成完了後（約1-2分）にページを再読み込み
           </p>
-          ${indexUrl
-          ? `<a href="${indexUrl}" target="_blank" style="background:#007bff; color:white; padding:10px 15px; text-decoration:none; border-radius:5px; display:inline-block; margin:10px 0;">📊 Firestoreインデックスを作成</a>`
-          : ""
-        }
+          ${
+            indexUrl
+              ? `<a href="${indexUrl}" target="_blank" style="background:#007bff; color:white; padding:10px 15px; text-decoration:none; border-radius:5px; display:inline-block; margin:10px 0;">📊 Firestoreインデックスを作成</a>`
+              : ""
+          }
           <br>
           <button onclick="location.reload()" style="background:#28a745; color:white; padding:8px 12px; border:none; border-radius:3px; margin:5px 0;">🔄 ページを再読み込み</button>
         </div>
@@ -592,8 +602,6 @@ async function getAllUsers() {
       "firestoreResult-count"
     ).textContent = `${sortedDocs.length}件`;
 
-
-
     console.log("Users retrieved successfully");
   } catch (error) {
     console.error("getAllUsers error:", error);
@@ -639,8 +647,8 @@ async function getAllScanItems() {
       const timestamp = data.timestamp || data.createdAt;
       const timeStr = timestamp
         ? new Date(
-          timestamp.seconds ? timestamp.toDate() : timestamp
-        ).toLocaleString("ja-JP")
+            timestamp.seconds ? timestamp.toDate() : timestamp
+          ).toLocaleString("ja-JP")
         : "不明";
       const content = data.content || "データなし";
       const userName = data.user_name || data.user_id || "不明";
@@ -883,9 +891,16 @@ async function uketukelogin() {
         testUketukeUser.email,
         testUketukeUser.password
       );
-      console.log("既存の受付ユーザーでサインイン成功:", userCredential.user.uid);
+      console.log(
+        "既存の受付ユーザーでサインイン成功:",
+        userCredential.user.uid
+      );
     } catch (error) {
-      if (error.code === "auth/user-not-found" || error.code === "auth/wrong-password" || error.code === "auth/invalid-credential") {
+      if (
+        error.code === "auth/user-not-found" ||
+        error.code === "auth/wrong-password" ||
+        error.code === "auth/invalid-credential"
+      ) {
         // ユーザーが存在しない場合は新規作成
         console.log("受付ユーザーが存在しないため新規作成します");
         userCredential = await createUserWithEmailAndPassword(
@@ -924,10 +939,10 @@ async function uketukelogin() {
     // 成功メッセージとリダイレクト確認
     const confirmRedirect = confirm(
       `受付ユーザーテストログインが完了しました！\n\n` +
-      `ユーザー名: ${testUketukeUser.user_name}\n` +
-      `役割: ${testUketukeUser.user_role}\n` +
-      `UID: ${userCredential.user.uid}\n\n` +
-      `uketuke.htmlにリダイレクトしますか？`
+        `ユーザー名: ${testUketukeUser.user_name}\n` +
+        `役割: ${testUketukeUser.user_role}\n` +
+        `UID: ${userCredential.user.uid}\n\n` +
+        `uketuke.htmlにリダイレクトしますか？`
     );
 
     if (confirmRedirect) {
@@ -935,9 +950,10 @@ async function uketukelogin() {
       window.location.href = "uketuke.html";
     } else {
       console.log("リダイレクトをキャンセルしました");
-      alert("受付ユーザーでログイン済みです。手動でuketuke.htmlにアクセスできます。");
+      alert(
+        "受付ユーザーでログイン済みです。手動でuketuke.htmlにアクセスできます。"
+      );
     }
-
   } catch (error) {
     console.error("受付ユーザーログインエラー:", error);
 
@@ -954,8 +970,53 @@ async function uketukelogin() {
   }
 }
 
+// ドキュメント編集関数
+function editDocument(collectionType, docId, displayName) {
+  console.log(`編集開始: ${collectionType}/${docId} - ${displayName}`);
+
+  if (!currentAdmin || !currentAdmin.admin_id || !currentAdmin.event_id) {
+    alert("管理者情報が設定されていません。");
+    return;
+  }
+
+  // admin-modal.js の関数を呼び出し
+  if (window.openEditModal && typeof window.openEditModal === "function") {
+    window.openEditModal(collectionType, docId);
+  } else {
+    alert("編集機能を読み込み中です。しばらくお待ちください。");
+  }
+}
+
+// ドキュメント削除関数
+function deleteDocument(collectionType, docId, displayName) {
+  console.log(`削除確認: ${collectionType}/${docId} - ${displayName}`);
+
+  if (!currentAdmin || !currentAdmin.admin_id || !currentAdmin.event_id) {
+    alert("管理者情報が設定されていません。");
+    return;
+  }
+
+  if (
+    confirm(`「${displayName}」を削除しますか？\n\nこの操作は元に戻せません。`)
+  ) {
+    // admin-modal.js の関数を呼び出し
+    if (
+      window.deleteDocumentById &&
+      typeof window.deleteDocumentById === "function"
+    ) {
+      window.deleteDocumentById(collectionType, docId);
+    } else {
+      alert("削除機能を読み込み中です。しばらくお待ちください。");
+    }
+  }
+}
+
 // ログアウト関数を即座に公開（ES6モジュール対応）
 if (typeof window !== "undefined") {
   window.handleAdminLogout = handleAdminLogout;
-  console.log("handleAdminLogout関数をグローバルスコープに公開しました");
+  window.editDocument = editDocument;
+  window.deleteDocument = deleteDocument;
+  console.log(
+    "handleAdminLogout, editDocument, deleteDocument 関数をグローバルスコープに公開しました"
+  );
 }

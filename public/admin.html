@@ -486,8 +486,48 @@
 
         /* 詳細設定モーダル用スタイル */
         #detailSettingsModal .modal-content {
-            max-width: 800px;
-            width: 90%;
+            max-width: 1200px;
+            width: 95%;
+            max-height: 90vh;
+            overflow-y: auto;
+            margin: 20px auto;
+        }
+
+        /* 設定全体をグリッドレイアウトに */
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 25px;
+            margin: 20px 0;
+        }
+
+        /* タブレット・小画面用の調整 */
+        @media (max-width: 1024px) {
+            .settings-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            #detailSettingsModal .modal-content {
+                max-width: 95%;
+                margin: 10px auto;
+                max-height: 95vh;
+            }
+        }
+
+        /* スマートフォン用の調整 */
+        @media (max-width: 768px) {
+            .setting-group {
+                padding: 15px;
+            }
+            
+            .setting-group h3 {
+                font-size: 14px;
+            }
+            
+            .toggle-container {
+                flex-direction: column;
+                gap: 10px;
+            }
         }
 
         .setting-group {
@@ -617,6 +657,116 @@
             border-bottom: 2px solid #4285f4;
             padding-bottom: 5px;
             margin: 20px 0 15px 0;
+        }
+
+        /* 編集モーダル用スタイル */
+        #editDataModal .modal-content {
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        #editDataModal .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #4285f4;
+            margin-bottom: 20px;
+        }
+
+        #editDataModal .modal-header h2 {
+            margin: 0;
+            color: #4285f4;
+        }
+
+        #editDataModal .close {
+            font-size: 28px;
+            font-weight: bold;
+            color: #aaa;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+
+        #editDataModal .close:hover {
+            color: #f44336;
+        }
+
+        #editDataModal .form-group {
+            margin-bottom: 20px;
+        }
+
+        #editDataModal .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        #editDataModal .form-group input,
+        #editDataModal .form-group textarea,
+        #editDataModal .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+        }
+
+        #editDataModal .form-group input:focus,
+        #editDataModal .form-group textarea:focus,
+        #editDataModal .form-group select:focus {
+            outline: none;
+            border-color: #4285f4;
+            box-shadow: 0 0 5px rgba(66, 133, 244, 0.3);
+        }
+
+        #editDataModal .form-group textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        #editDataModal .form-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+
+        #editDataModal .save-btn {
+            background-color: #4285f4;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+
+        #editDataModal .save-btn:hover {
+            background-color: #3367d6;
+        }
+
+        #editDataModal .cancel-btn {
+            background-color: #f5f5f5;
+            color: #333;
+            border: 1px solid #ddd;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+
+        #editDataModal .cancel-btn:hover {
+            background-color: #e0e0e0;
         }
 
         /* 現在のユーザー情報表示セクション用スタイル */
@@ -890,131 +1040,112 @@
 
     <!-- 詳細設定モーダル -->
     <div id="detailSettingsModal" class="modal">
-        <div class="modal-content" style="max-width: 800px;">
+        <div class="modal-content">
             <span class="close" onclick="closeDetailSettingsModal()">&times;</span>
             <h2>⚙️ 詳細設定</h2>
 
-            <div style="margin: 20px 0;">
+            <!-- 設定項目をグリッドレイアウトで配置 -->
+            <div class="settings-grid">
                 <!-- 名札印刷タイミング設定 -->
-                <div class="setting-group"
-                    style="display: grid; grid-template-columns: 250px 1fr; gap: 30px; align-items: start;">
-                    <div>
-                        <h3>🏷️ 名札印刷タイミング</h3>
-                        <p class="setting-description">名札をいつ印刷するかを設定します</p>
-                    </div>
-                    <div>
-                        <div class="toggle-container">
-                            <label class="toggle-option">
-                                <input type="radio" name="nametagTiming" value="onLogin" checked>
-                                <span class="toggle-label">ログイン時</span>
-                            </label>
-                            <label class="toggle-option">
-                                <input type="radio" name="nametagTiming" value="preIssue">
-                                <span class="toggle-label">事前発行</span>
-                            </label>
-                        </div>
+                <div class="setting-group">
+                    <h3>🏷️ 名札印刷タイミング</h3>
+                    <p class="setting-description">名札をいつ印刷するかを設定します</p>
+                    <div class="toggle-container">
+                        <label class="toggle-option">
+                            <input type="radio" name="nametagTiming" value="onLogin" checked>
+                            <span class="toggle-label">ログイン時</span>
+                        </label>
+                        <label class="toggle-option">
+                            <input type="radio" name="nametagTiming" value="preIssue">
+                            <span class="toggle-label">事前発行</span>
+                        </label>
                     </div>
                 </div>
 
                 <!-- 来場者スキャンデータ印刷設定 -->
-                <div class="setting-group"
-                    style="display: grid; grid-template-columns: 250px 1fr; gap: 30px; align-items: start;">
-                    <div>
-                        <h3>📄 スキャンデータ控え印刷</h3>
-                        <p class="setting-description">来場者のスキャンデータ控えを印刷するかを設定します</p>
-                    </div>
-                    <div>
-                        <div class="toggle-container">
-                            <label class="toggle-option">
-                                <input type="radio" name="scanDataPrint" value="enabled" checked>
-                                <span class="toggle-label">印刷する</span>
-                            </label>
-                            <label class="toggle-option">
-                                <input type="radio" name="scanDataPrint" value="disabled">
-                                <span class="toggle-label">印刷しない</span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- スタッフ通知方法設定 -->
-                <div class="setting-group"
-                    style="display: grid; grid-template-columns: 250px 1fr; gap: 30px; align-items: start;">
-                    <div>
-                        <h3>📢 スタッフ通知方法</h3>
-                        <p class="setting-description">スタッフへの通知方法を選択します</p>
-                    </div>
-                    <div>
-                        <div class="toggle-container">
-                            <label class="toggle-option">
-                                <input type="radio" name="staffNotification" value="lineworks" checked>
-                                <span class="toggle-label">LINEWORKS</span>
-                            </label>
-                            <label class="toggle-option">
-                                <input type="radio" name="staffNotification" value="cmail">
-                                <span class="toggle-label">mail</span>
-                            </label>
-                        </div>
-
-                        <!-- LINEWORKS詳細設定 -->
-                        <div id="lineworksSettings"
-                            style="margin-top: 20px; padding: 20px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #28a745;">
-                            <h4 style="color: #28a745; margin: 0 0 15px 0;">🔧 LINEWORKS設定</h4>
-                            <div style="display: grid; gap: 15px;">
-                                <div>
-                                    <label style="display: block; font-weight: bold; margin-bottom: 5px;">テナントID (API
-                                        ID):</label>
-                                    <input type="text" id="lineworksApiId" placeholder="例: 1234567890"
-                                        style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                                    <small style="color: #6c757d;">LINEWORKS Developer Consoleで取得</small>
-                                </div>
-                                <div>
-                                    <label
-                                        style="display: block; font-weight: bold; margin-bottom: 5px;">アクセストークン:</label>
-                                    <input type="password" id="lineworksAccessToken"
-                                        placeholder="例: aBcDeFgHiJkL1234567890"
-                                        style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                                    <small style="color: #6c757d;">Server API用アクセストークン</small>
-                                </div>
-                                <div>
-                                    <label
-                                        style="display: block; font-weight: bold; margin-bottom: 5px;">ボットトークン:</label>
-                                    <input type="password" id="lineworksBotToken" placeholder="例: xYzAbC123456789"
-                                        style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                                    <small style="color: #6c757d;">Bot用トークン</small>
-                                </div>
-                                <div>
-                                    <label
-                                        style="display: block; font-weight: bold; margin-bottom: 5px;">チャンネルID:</label>
-                                    <input type="text" id="lineworksChannelId" placeholder="例: ch-987654321"
-                                        style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                                    <small style="color: #6c757d;">通知送信先チャンネル</small>
-                                </div>
-                            </div>
-                            <div style="margin-top: 15px; padding: 15px; background: #fff3cd; border-radius: 4px;">
-                                <strong>⚠️ 注意:</strong> これらの情報は暗号化して保存されます。LINEWORKS管理者にお問い合わせください。
-                            </div>
-                        </div>
+                <div class="setting-group">
+                    <h3>📄 スキャンデータ控え印刷</h3>
+                    <p class="setting-description">来場者のスキャンデータ控えを印刷するかを設定します</p>
+                    <div class="toggle-container">
+                        <label class="toggle-option">
+                            <input type="radio" name="scanDataPrint" value="enabled" checked>
+                            <span class="toggle-label">印刷する</span>
+                        </label>
+                        <label class="toggle-option">
+                            <input type="radio" name="scanDataPrint" value="disabled">
+                            <span class="toggle-label">印刷しない</span>
+                        </label>
                     </div>
                 </div>
 
                 <!-- 名札印刷サイズ設定 -->
-                <div class="setting-group"
-                    style="display: grid; grid-template-columns: 250px 1fr; gap: 30px; align-items: start;">
-                    <div>
-                        <h3>📏 名札印刷サイズ</h3>
-                        <p class="setting-description">名札の印刷サイズを選択します</p>
+                <div class="setting-group">
+                    <h3>📏 名札印刷サイズ</h3>
+                    <p class="setting-description">名札の印刷サイズを選択します</p>
+                    <div class="toggle-container">
+                        <label class="toggle-option">
+                            <input type="radio" name="nametagSize" value="a6" checked>
+                            <span class="toggle-label">A6サイズ</span>
+                        </label>
+                        <label class="toggle-option">
+                            <input type="radio" name="nametagSize" value="a4">
+                            <span class="toggle-label">A4サイズ</span>
+                        </label>
                     </div>
-                    <div>
-                        <div class="toggle-container">
-                            <label class="toggle-option">
-                                <input type="radio" name="nametagSize" value="a6" checked>
-                                <span class="toggle-label">A6サイズ</span>
-                            </label>
-                            <label class="toggle-option">
-                                <input type="radio" name="nametagSize" value="a4">
-                                <span class="toggle-label">A4サイズ</span>
-                            </label>
+                </div>
+
+                <!-- スタッフ通知方法設定 - フル幅で配置 -->
+                <div class="setting-group" style="grid-column: 1 / -1;">
+                    <h3>📢 スタッフ通知方法</h3>
+                    <p class="setting-description">スタッフへの通知方法を選択します</p>
+                    <div class="toggle-container">
+                        <label class="toggle-option">
+                            <input type="radio" name="staffNotification" value="lineworks" checked>
+                            <span class="toggle-label">LINEWORKS</span>
+                        </label>
+                        <label class="toggle-option">
+                            <input type="radio" name="staffNotification" value="cmail">
+                            <span class="toggle-label">mail</span>
+                        </label>
+                    </div>
+
+                    <!-- LINEWORKS詳細設定 -->
+                    <div id="lineworksSettings"
+                        style="margin-top: 20px; padding: 20px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #28a745;">
+                        <h4 style="color: #28a745; margin: 0 0 15px 0;">🔧 LINEWORKS設定</h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px;">
+                            <div>
+                                <label style="display: block; font-weight: bold; margin-bottom: 5px;">テナントID (API
+                                    ID):</label>
+                                <input type="text" id="lineworksApiId" placeholder="例: 1234567890"
+                                    style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                <small style="color: #6c757d;">LINEWORKS Developer Consoleで取得</small>
+                            </div>
+                            <div>
+                                <label
+                                    style="display: block; font-weight: bold; margin-bottom: 5px;">アクセストークン:</label>
+                                <input type="password" id="lineworksAccessToken"
+                                    placeholder="例: aBcDeFgHiJkL1234567890"
+                                    style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                <small style="color: #6c757d;">Server API用アクセストークン</small>
+                            </div>
+                            <div>
+                                <label
+                                    style="display: block; font-weight: bold; margin-bottom: 5px;">ボットトークン:</label>
+                                <input type="password" id="lineworksBotToken" placeholder="例: xYzAbC123456789"
+                                    style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                <small style="color: #6c757d;">Bot用トークン</small>
+                            </div>
+                            <div>
+                                <label
+                                    style="display: block; font-weight: bold; margin-bottom: 5px;">チャンネルID:</label>
+                                <input type="text" id="lineworksChannelId" placeholder="例: ch-987654321"
+                                    style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                <small style="color: #6c757d;">通知送信先チャンネル</small>
+                            </div>
+                        </div>
+                        <div style="margin-top: 15px; padding: 15px; background: #fff3cd; border-radius: 4px;">
+                            <strong>⚠️ 注意:</strong> これらの情報は暗号化して保存されます。LINEWORKS管理者にお問い合わせください。
                         </div>
                     </div>
                 </div>
@@ -1023,16 +1154,24 @@
             <!-- 設定の説明 -->
             <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
                 <h4 style="color: #495057; margin: 0 0 15px 0;">💡 設定について</h4>
-                <ul style="margin: 0; color: #6c757d; font-size: 14px;">
-                    <li><strong>名札印刷タイミング:</strong> ログイン時は来場者がログインした際に自動印刷、事前発行は管理者が事前に印刷</li>
-                    <li><strong>スキャンデータ控え:</strong> 来場者がQRコードをスキャンした際の控えレシート印刷の有無</li>
-                    <li><strong>スタッフ通知:</strong> 重要な通知をスタッフに送信する際の連絡手段</li>
-                    <li><strong>名札サイズ:</strong> 印刷する名札の用紙サイズ（A6は標準、A4は大型イベント用）</li>
-                </ul>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px;">
+                    <div>
+                        <ul style="margin: 0; color: #6c757d; font-size: 14px;">
+                            <li><strong>名札印刷タイミング:</strong> ログイン時は来場者がログインした際に自動印刷、事前発行は管理者が事前に印刷</li>
+                            <li><strong>スキャンデータ控え:</strong> 来場者がQRコードをスキャンした際の控えレシート印刷の有無</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <ul style="margin: 0; color: #6c757d; font-size: 14px;">
+                            <li><strong>スタッフ通知:</strong> 重要な通知をスタッフに送信する際の連絡手段</li>
+                            <li><strong>名札サイズ:</strong> 印刷する名札の用紙サイズ（A6は標準、A4は大型イベント用）</li>
+                        </ul>
+                    </div>
+                </div>
             </div>
 
             <!-- ボタン -->
-            <div style="margin-top: 50px; text-align: right; border-top: 2px solid #e0e0e0; padding-top: 30px;">
+            <div style="margin-top: 30px; text-align: right; border-top: 2px solid #e0e0e0; padding-top: 20px;">
                 <button onclick="resetDetailSettings()"
                     style="background-color: #6c757d; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; margin-right: 15px;">
                     🔄 リセット
