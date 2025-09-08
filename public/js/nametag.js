@@ -1,45 +1,45 @@
 // Nametag Creation Module - 名札作成機能
 console.log("nametag.js loaded");
 
-// A6サイズの設定（mm）
-const A6_SIZE = {
-  width: 105, // mm
-  height: 148, // mm
+// A5サイズの設定（mm）- より大きく印刷されるように変更
+const A5_SIZE = {
+    width: 148, // mm
+    height: 210, // mm
 };
 
 // 名札データクラス
 class NametagData {
-  constructor(userData, projectName = "", adminData = null) {
-    this.userName = userData.user_name || "未設定";
-    this.companyName = userData.company_name || "未設定";
-    this.userId = userData.user_id || "未設定";
-    this.projectName = projectName || currentAdmin?.project_name || "イベント";
-    this.status = userData.status || "未設定";
-    this.userRole = userData.user_role || "user";
+    constructor(userData, projectName = "", adminData = null) {
+        this.userName = userData.user_name || "未設定";
+        this.companyName = userData.company_name || "未設定";
+        this.userId = userData.user_id || "未設定";
+        this.projectName = projectName || currentAdmin?.project_name || "イベント";
+        this.status = userData.status || "未設定";
+        this.userRole = userData.user_role || "user";
 
-    // QRコード用データ
-    this.adminId =
-      adminData?.admin_id || window.currentAdmin?.admin_id || "unknown";
-    this.eventId =
-      adminData?.event_id || window.currentAdmin?.event_id || "unknown";
-    this.docId = userData.docId || userData.uid || this.userId; // uidの代替としてuser_idを使用
-  }
+        // QRコード用データ
+        this.adminId =
+            adminData?.admin_id || window.currentAdmin?.admin_id || "unknown";
+        this.eventId =
+            adminData?.event_id || window.currentAdmin?.event_id || "unknown";
+        this.docId = userData.docId || userData.uid || this.userId; // uidの代替としてuser_idを使用
+    }
 
-  // QRコード用URL生成
-  generateQRUrl() {
-    const baseUrl = "https://qrscan2-99ffd.web.app/login.html";
-    const params = new URLSearchParams({
-      admin_id: this.adminId,
-      event_id: this.eventId,
-      uid: this.docId, // uidの代替としてdocIdを使用
-    });
-    return `${baseUrl}?${params.toString()}`;
-  }
+    // QRコード用URL生成
+    generateQRUrl() {
+        const baseUrl = "https://qrscan2-99ffd.web.app/login.html";
+        const params = new URLSearchParams({
+            admin_id: this.adminId,
+            event_id: this.eventId,
+            uid: this.docId, // uidの代替としてdocIdを使用
+        });
+        return `${baseUrl}?${params.toString()}`;
+    }
 }
 
 // 名札モーダルHTML生成
 function createNametagModalHTML() {
-  return `
+    return `
     <div id="nametagModal" class="nametag-modal" style="display: none;">
       <div class="nametag-modal-content">
         <div class="nametag-modal-header">
@@ -64,7 +64,7 @@ function createNametagModalHTML() {
 
 // 名札CSS生成
 function createNametagCSS() {
-  return `
+    return `
     <style id="nametagCSS">
       /* 名札モーダルスタイル */
       .nametag-modal {
@@ -131,14 +131,14 @@ function createNametagCSS() {
         padding: 25px;
       }
 
-      /* A6サイズ名札スタイル（105mm × 148mm） */
+      /* A5サイズ名札スタイル（148mm × 210mm） */
       .nametag-preview {
-        width: 315px; /* 105mm × 3 */
-        height: 444px; /* 148mm × 3 */
+        width: 444px; /* 148mm × 3 */
+        height: 630px; /* 210mm × 3 */
         border: 2px solid #007bff;
         margin: 0 auto 20px;
         background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-        border-radius: 8px;
+        //border-radius: 8px;
         overflow: hidden;
         box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
         position: relative;
@@ -149,13 +149,13 @@ function createNametagCSS() {
       .nametag-header {
         background: linear-gradient(135deg, #007bff, #0056b3);
         color: white;
-        padding: 15px;
+        padding: 50px;
         text-align: center;
         position: relative;
       }
 
       .nametag-project {
-        font-size: 16px;
+        font-size: 32px;
         font-weight: 600;
         letter-spacing: 1px;
         margin-bottom: 5px;
@@ -178,7 +178,7 @@ function createNametagCSS() {
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 18px;
+        font-size: 33px;
         color: #34495e;
         font-weight: 500;
         line-height: 1.3;
@@ -193,8 +193,8 @@ function createNametagCSS() {
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 28px;
-        font-weight: 700;
+        font-size: 33px;
+        font-weight: 500;
         color: #2c3e50;
         line-height: 1.2;
         word-wrap: break-word;
@@ -209,13 +209,13 @@ function createNametagCSS() {
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        padding: 10px 0;
-        max-height: 20%;
+        padding: 5px 0;
+        max-height: 50px;
       }
 
       .nametag-qr-code {
-        width: 80px;
-        height: 80px;
+        width: 200px;
+        height: 200px;
         border: 1px solid #dee2e6;
         border-radius: 4px;
         background: white;
@@ -223,23 +223,23 @@ function createNametagCSS() {
       }
 
       .nametag-id {
-        font-size: 14px;
-        color: #7f8c8d;
-        font-family: 'Courier New', monospace;
+        font-size: 28px;
+        color: #000000ff;
+        //font-family: 'Courier New', monospace;
         background: #f8f9fa;
-        padding: 6px 10px;
-        border-radius: 6px;
-        border: 1px solid #e9ecef;
+        padding: 6px 5px;
+        //border-radius: 6px;
+        //border: 1px solid #e9ecef;
       }
 
       /* フッター部分 */
       .nametag-footer {
-        background: #f8f9fa;
-        padding: 8px;
+        background: #2084e8ff;
+        padding: 10px;
         text-align: center;
-        border-top: 1px solid #e9ecef;
+        //border-top: 1px solid #e9ecef;
         position: absolute;
-        bottom: 0;
+        bottom: 5px;
         width: 100%;
         box-sizing: border-box;
         display: flex;
@@ -249,21 +249,23 @@ function createNametagCSS() {
       }
 
       .nametag-project {
-        font-size: 16px;
-        font-weight: 300;
+        font-size: 32px;
+        font-weight: 500;
         text-align: center;
         letter-spacing: 1px;
         margin-bottom: 5px;
+        word-wrap: break-word;
+        align-items: center;
         text-transform: uppercase;
       }
       
 
       /* QRコード生成時のサイズ調整 */
       .nametag-qr-code {
-        width: 80px;
-        height: 80px;
+        width: 200px;
+        height: 200px;
         border: 1px solid #dee2e6;
-        border-radius: 4px;
+        //border-radius: 4px;
         background: white;
         margin-bottom: 8px;
       }
@@ -322,7 +324,7 @@ function createNametagCSS() {
 
 // 名札HTML生成
 function generateNametagHTML(nametagData) {
-  return `
+    return `
     <div class="nametag-header">
       <div class="nametag-role">${nametagData.userRole}</div>
     </div>
@@ -331,7 +333,7 @@ function generateNametagHTML(nametagData) {
       <div class="nametag-company">${nametagData.companyName}</div>
       <div class="nametag-name">${nametagData.userName}</div>
       <div class="nametag-qr-section">
-        <canvas id="qrCanvas" class="nametag-qr-code" width="80" height="80"></canvas>
+        <canvas id="qrCanvas" class="nametag-qr-code" width="160" height="160"></canvas>
         <div class="nametag-id">ID: ${nametagData.userId}</div>
       </div>
     </div>
@@ -344,90 +346,90 @@ function generateNametagHTML(nametagData) {
 
 // 名札モーダル表示
 function showNametagModal(userData, adminData = null) {
-  console.log("名札モーダル表示:", userData);
-  console.log("管理者データ:", adminData);
+    console.log("名札モーダル表示:", userData);
+    console.log("管理者データ:", adminData);
 
-  // CSSが未追加の場合は追加
-  if (!document.getElementById("nametagCSS")) {
-    document.head.insertAdjacentHTML("beforeend", createNametagCSS());
-  }
+    // CSSが未追加の場合は追加
+    if (!document.getElementById("nametagCSS")) {
+        document.head.insertAdjacentHTML("beforeend", createNametagCSS());
+    }
 
-  // モーダルが未作成の場合は作成
-  let modal = document.getElementById("nametagModal");
-  if (!modal) {
-    document.body.insertAdjacentHTML("beforeend", createNametagModalHTML());
-    modal = document.getElementById("nametagModal");
-  }
+    // モーダルが未作成の場合は作成
+    let modal = document.getElementById("nametagModal");
+    if (!modal) {
+        document.body.insertAdjacentHTML("beforeend", createNametagModalHTML());
+        modal = document.getElementById("nametagModal");
+    }
 
-  // 名札データ作成（adminDataを渡す）
-  const nametagData = new NametagData(userData, "", adminData);
+    // 名札データ作成（adminDataを渡す）
+    const nametagData = new NametagData(userData, "", adminData);
 
-  // 名札プレビュー更新
-  const previewElement = document.getElementById("nametagPreview");
-  previewElement.innerHTML = generateNametagHTML(nametagData);
+    // 名札プレビュー更新
+    const previewElement = document.getElementById("nametagPreview");
+    previewElement.innerHTML = generateNametagHTML(nametagData);
 
-  // QRコード生成（HTMLが挿入された後に実行）
-  setTimeout(() => generateQRCode(nametagData), 100);
+    // QRコード生成（HTMLが挿入された後に実行）
+    setTimeout(() => generateQRCode(nametagData), 100);
 
-  // モーダル表示
-  modal.style.display = "flex";
+    // モーダル表示
+    modal.style.display = "flex";
 
-  // 現在の名札データを保存（印刷用）
-  window.currentNametagData = nametagData;
+    // 現在の名札データを保存（印刷用）
+    window.currentNametagData = nametagData;
 }
 
 // QRコード生成関数
 function generateQRCode(nametagData) {
-  try {
-    const qrCanvas = document.getElementById("qrCanvas");
-    if (!qrCanvas) {
-      console.warn("QRコードキャンバスが見つかりません");
-      return;
+    try {
+        const qrCanvas = document.getElementById("qrCanvas");
+        if (!qrCanvas) {
+            console.warn("QRコードキャンバスが見つかりません");
+            return;
+        }
+
+        if (typeof QRious === "undefined") {
+            console.warn("QRious ライブラリが読み込まれていません");
+            return;
+        }
+
+        const qrUrl = nametagData.generateQRUrl();
+        console.log("QRコード URL:", qrUrl);
+
+        const qr = new QRious({
+            element: qrCanvas,
+            value: qrUrl,
+            size: 100,
+            level: "M",
+            backgroundAlpha: 1,
+            foreground: "#000",
+            background: "#fff",
+        });
+
+        console.log("QRコード生成完了");
+    } catch (error) {
+        console.error("QRコード生成エラー:", error);
     }
-
-    if (typeof QRious === "undefined") {
-      console.warn("QRious ライブラリが読み込まれていません");
-      return;
-    }
-
-    const qrUrl = nametagData.generateQRUrl();
-    console.log("QRコード URL:", qrUrl);
-
-    const qr = new QRious({
-      element: qrCanvas,
-      value: qrUrl,
-      size: 100,
-      level: "M",
-      backgroundAlpha: 1,
-      foreground: "#000",
-      background: "#fff",
-    });
-
-    console.log("QRコード生成完了");
-  } catch (error) {
-    console.error("QRコード生成エラー:", error);
-  }
 }
 
 // 名札モーダル閉じる
 function closeNametagModal() {
-  const modal = document.getElementById("nametagModal");
-  if (modal) {
-    modal.style.display = "none";
-  }
-  window.currentNametagData = null;
+    const modal = document.getElementById("nametagModal");
+    if (modal) {
+        modal.style.display = "none";
+    }
+    window.currentNametagData = null;
 }
 
 // 印刷機能
 function printNametag() {
-  if (!window.currentNametagData) {
-    alert("印刷するデータがありません。");
-    return;
-  }
+    if (!window.currentNametagData) {
+        alert("印刷するデータがありません。");
+        return;
+    }
 
-  try {
-    // 印刷用のスタイルを追加
-    const printStyles = `
+    try {
+        // 印刷用のスタイルを追加
+        const printStyles = `
             <style>
                 @media print {
                     body * { visibility: hidden; }
@@ -436,80 +438,91 @@ function printNametag() {
                         position: absolute;
                         left: 0;
                         top: 0;
-                        width: 105mm !important;
-                        height: 148mm !important;
+                        width: 148mm !important;
+                        height: 210mm !important;
                         page-break-after: always;
                         margin: 0;
                         padding: 0;
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                        color-adjust: exact !important;
                     }
                     .nametag-modal { display: none !important; }
                     @page {
-                        size: A6;
+                        size: A5;
                         margin: 0;
+                        -webkit-print-color-adjust: exact;
+                        print-color-adjust: exact;
+                        color-adjust: exact;
+                    }
+                    * {
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                        color-adjust: exact !important;
                     }
                 }
             </style>
         `;
 
-    // 印刷用要素を作成
-    const printElement = document.createElement("div");
-    printElement.className = "print-nametag";
-    printElement.innerHTML = generateNametagHTML(window.currentNametagData);
+        // 印刷用要素を作成
+        const printElement = document.createElement("div");
+        printElement.className = "print-nametag";
+        printElement.innerHTML = generateNametagHTML(window.currentNametagData);
 
-    // 印刷用スタイルを追加
-    if (!document.getElementById("printStyles")) {
-      const styleElement = document.createElement("div");
-      styleElement.id = "printStyles";
-      styleElement.innerHTML = printStyles;
-      document.head.appendChild(styleElement);
-    }
+        // 印刷用スタイルを追加
+        if (!document.getElementById("printStyles")) {
+            const styleElement = document.createElement("div");
+            styleElement.id = "printStyles";
+            styleElement.innerHTML = printStyles;
+            document.head.appendChild(styleElement);
+        }
 
-    // body に一時的に追加
-    document.body.appendChild(printElement);
+        // body に一時的に追加
+        document.body.appendChild(printElement);
 
-    // QRコードを再生成（印刷用）
-    setTimeout(() => {
-      const printQRCanvas = printElement.querySelector("#qrCanvas");
-      if (printQRCanvas && typeof QRious !== "undefined") {
-        const qrUrl = window.currentNametagData.generateQRUrl();
-        new QRious({
-          element: printQRCanvas,
-          value: qrUrl,
-          size: 80,
-          level: "M",
-        });
-      }
-
-      // 印刷実行
-      setTimeout(() => {
-        window.print();
-        // 印刷後に一時要素を削除
+        // QRコードを再生成（印刷用）
         setTimeout(() => {
-          document.body.removeChild(printElement);
-        }, 1000);
-      }, 500);
-    }, 200);
+            const printQRCanvas = printElement.querySelector("#qrCanvas");
+            if (printQRCanvas && typeof QRious !== "undefined") {
+                const qrUrl = window.currentNametagData.generateQRUrl();
+                new QRious({
+                    element: printQRCanvas,
+                    value: qrUrl,
+                    size: 80,
+                    level: "M",
+                });
+            }
 
-    console.log("名札印刷開始:", window.currentNametagData);
-  } catch (error) {
-    console.error("印刷エラー:", error);
-    alert("印刷中にエラーが発生しました: " + error.message);
-  }
+            // 印刷実行
+            setTimeout(() => {
+                window.print();
+                // 印刷後に一時要素を削除
+                setTimeout(() => {
+                    document.body.removeChild(printElement);
+                }, 1000);
+            }, 500);
+        }, 200);
+
+        console.log("名札印刷開始:", window.currentNametagData);
+    } catch (error) {
+        console.error("印刷エラー:", error);
+        alert("印刷中にエラーが発生しました: " + error.message);
+    }
 }
 
 // ESC キーでモーダルを閉じる
 document.addEventListener("keydown", function (event) {
-  if (event.key === "Escape") {
-    closeNametagModal();
-  }
+    if (event.key === "Escape") {
+        closeNametagModal();
+    }
 });
 
 // モーダル外クリックで閉じる
 document.addEventListener("click", function (event) {
-  const modal = document.getElementById("nametagModal");
-  if (modal && event.target === modal) {
-    closeNametagModal();
-  }
+    const modal = document.getElementById("nametagModal");
+    if (modal && event.target === modal) {
+        closeNametagModal();
+    }
 });
 
 // グローバル関数として公開
@@ -521,27 +534,27 @@ console.log("名札作成機能が初期化されました");
 
 // テスト用データ生成関数
 function generateTestNametagData() {
-  return {
-    user_name: "山田 太郎",
-    company_name: "株式会社サンプル",
-    user_id: "U001",
-    status: "入場中",
-    user_role: "user",
-  };
+    return {
+        user_name: "山田 太郎",
+        company_name: "株式会社サンプル",
+        user_id: "U001",
+        status: "入場中",
+        user_role: "user",
+    };
 }
 
 // デバッグ用：テスト表示関数
 window.showTestNametag = function () {
-  const testAdminData = {
-    admin_id: "bbbbbb",
-    event_id: "EXPO20250903",
-  };
-  showNametagModal(generateTestNametagData(), testAdminData);
+    const testAdminData = {
+        admin_id: "bbbbbb",
+        event_id: "EXPO20250903",
+    };
+    showNametagModal(generateTestNametagData(), testAdminData);
 };
 
 // uketuke.jsから呼び出される関数
 window.createNametag = function (userData, adminData = null) {
-  console.log("名札作成リクエスト:", userData);
-  console.log("管理者データ:", adminData);
-  showNametagModal(userData, adminData);
+    console.log("名札作成リクエスト:", userData);
+    console.log("管理者データ:", adminData);
+    showNametagModal(userData, adminData);
 };
