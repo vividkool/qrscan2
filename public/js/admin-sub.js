@@ -242,8 +242,77 @@ function openMakerPage() {
   window.open("maker.html", "_blank");
 }
 
+// ユーザーリストのCSVエクスポート機能（管理者専用）
+function exportUsersList() {
+  try {
+    // filteredUsersがグローバルに定義されているかチェック
+    if (typeof filteredUsers === 'undefined' || !filteredUsers) {
+      throw new Error('ユーザーデータが読み込まれていません。');
+    }
+
+    let csvContent =
+      "ユーザー名,ユーザーID,会社名,部署,ロール,入退場ステータス,印刷ステータス,担当者\n";
+
+    filteredUsers.forEach((user) => {
+      const row = [
+        user.user_name || "",
+        user.user_id || "",
+        user.company_name || "",
+        user.department || "",
+        user.role || user.user_role || "",
+        user.status || "未設定",
+        user.print_status || "未",
+        user.tantou || "",
+      ]
+        .map((field) => `"${field.replace(/"/g, '""')}"`) // CSVエスケープ処理を改善
+        .join(",");
+
+      csvContent += row + "\n";
+    });
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+
+    // ファイル名にイベントIDを含める
+    const eventId = window.currentAdmin?.event_id || 'event';
+    const timestamp = new Date().toISOString().split("T")[0];
+    const filename = `users_list_${eventId}_${timestamp}.csv`;
+
+    link.setAttribute("href", url);
+    link.setAttribute("download", filename);
+    link.style.visibility = "hidden";
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // URLオブジェクトを解放
+    URL.revokeObjectURL(url);
+
+    console.log(`ユーザーリストエクスポート完了: ${filename}`);
+
+    // 成功メッセージ表示
+    if (typeof showSuccessMessage === 'function') {
+      showSuccessMessage(`ユーザー一覧をCSVファイル（${filename}）でエクスポートしました。`);
+    } else {
+      alert(`ユーザー一覧をCSVファイル（${filename}）でエクスポートしました。`);
+    }
+  } catch (error) {
+    console.error("エクスポートエラー:", error);
+
+    // エラーメッセージ表示
+    if (typeof showErrorMessage === 'function') {
+      showErrorMessage(`エクスポートに失敗しました: ${error.message}`);
+    } else {
+      alert(`エクスポートに失敗しました: ${error.message}`);
+    }
+  }
+}
+
 // グローバル関数として公開
 window.openMakerPage = openMakerPage;
+window.exportUsersList = exportUsersList;
 window.showFileUploadModal = showFileUploadModal;
 window.closeFileUploadModal = closeFileUploadModal;
 window.clearSelectedFile = clearSelectedFile;

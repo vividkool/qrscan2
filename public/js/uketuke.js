@@ -787,51 +787,6 @@ async function refreshUsersList() {
   showSuccessMessage("ユーザー一覧を更新しました。");
 }
 
-// CSV エクスポート
-function exportUsersList() {
-  try {
-    let csvContent =
-      "ユーザー名,ユーザーID,会社名,部署,ロール,入退場ステータス,印刷ステータス,担当者\n";
-
-    filteredUsers.forEach((user) => {
-      const row = [
-        user.user_name || "",
-        user.user_id || "",
-        user.company_name || "",
-        user.department || "",
-        user.role || user.user_role || "",
-        user.status || "未設定",
-        user.print_status || "未",
-        user.tantou || "",
-      ]
-        .map((field) => `"${field}"`)
-        .join(",");
-
-      csvContent += row + "\n";
-    });
-
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-
-    link.setAttribute("href", url);
-    link.setAttribute(
-      "download",
-      `users_list_${new Date().toISOString().split("T")[0]}.csv`
-    );
-    link.style.visibility = "hidden";
-
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    showSuccessMessage("ユーザー一覧をCSVファイルでエクスポートしました。");
-  } catch (error) {
-    console.error("エクスポートエラー:", error);
-    showErrorMessage("エクスポート中にエラーが発生しました。");
-  }
-}
-
 // ログアウト処理（Firebase Authベースに更新）
 function handleLogout() {
   if (confirm("ログアウトしますか？")) {
@@ -1048,52 +1003,7 @@ async function findStaffEmail(tantouName) {
   }
 }
 
-// メール送信機能（Firebase Extensions実装時に復活予定）
-/*
-async function sendEmail(emailData) {
-  try {
-    console.log("メール送信開始:", emailData);
 
-    // Firebase Cloud Functionsのメール送信エンドポイントを呼び出し
-    const response = await fetch('https://sendnotificationemail-ijui6cxhzq-an.a.run.app', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        to: emailData.to,
-        subject: emailData.subject,
-        text: emailData.body,
-        // 管理者情報も送信（認証用）
-        adminId: currentAdmin.admin_id,
-        eventId: currentAdmin.event_id
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`メール送信API エラー: ${response.status} ${response.statusText}`);
-    }
-
-    const result = await response.json();
-    console.log("メール送信成功:", result);
-
-    // 成功メッセージを表示（オプション）
-    showSuccessMessage(`担当者（${emailData.to}）にメール通知を送信しました。`);
-
-  } catch (error) {
-    console.error("メール送信エラー:", error);
-
-    // フォールバック: ブラウザのmailtoリンクを使用
-    const mailtoLink = `mailto:${emailData.to}?subject=${encodeURIComponent(emailData.subject)}&body=${encodeURIComponent(emailData.body)}`;
-    console.log("フォールバック: mailtoリンク生成", mailtoLink);
-
-    // 担当者へのメール送信をユーザーに促す
-    if (confirm(`メール送信サービスが利用できません。\n\n担当者「${emailData.to}」に手動でメールを送信しますか？\n\n「OK」をクリックするとメールクライアントが開きます。`)) {
-      window.open(mailtoLink);
-    }
-  }
-}
-*/
 
 // グローバル関数として公開
 window.changeStatus = changeStatus;
