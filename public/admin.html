@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QR Scan App</title>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script type="module" src="js/admin-settings.js"></script>
     <style>
         /* Excelファイルアップロード用のスタイル */
         .upload-option-btn:hover {
@@ -534,7 +535,7 @@
             transform: scale(1.2);
         }
 
-        .toggle-option input[type="radio"]:checked + .toggle-label {
+        .toggle-option input[type="radio"]:checked+.toggle-label {
             font-weight: bold;
             color: #4285f4;
         }
@@ -892,10 +893,11 @@
         <div class="modal-content" style="max-width: 800px;">
             <span class="close" onclick="closeDetailSettingsModal()">&times;</span>
             <h2>⚙️ 詳細設定</h2>
-            
+
             <div style="margin: 20px 0;">
                 <!-- 名札印刷タイミング設定 -->
-                <div class="setting-group" style="display: grid; grid-template-columns: 250px 1fr; gap: 30px; align-items: start;">
+                <div class="setting-group"
+                    style="display: grid; grid-template-columns: 250px 1fr; gap: 30px; align-items: start;">
                     <div>
                         <h3>🏷️ 名札印刷タイミング</h3>
                         <p class="setting-description">名札をいつ印刷するかを設定します</p>
@@ -915,7 +917,8 @@
                 </div>
 
                 <!-- 来場者スキャンデータ印刷設定 -->
-                <div class="setting-group" style="display: grid; grid-template-columns: 250px 1fr; gap: 30px; align-items: start;">
+                <div class="setting-group"
+                    style="display: grid; grid-template-columns: 250px 1fr; gap: 30px; align-items: start;">
                     <div>
                         <h3>📄 スキャンデータ控え印刷</h3>
                         <p class="setting-description">来場者のスキャンデータ控えを印刷するかを設定します</p>
@@ -935,7 +938,8 @@
                 </div>
 
                 <!-- スタッフ通知方法設定 -->
-                <div class="setting-group" style="display: grid; grid-template-columns: 250px 1fr; gap: 30px; align-items: start;">
+                <div class="setting-group"
+                    style="display: grid; grid-template-columns: 250px 1fr; gap: 30px; align-items: start;">
                     <div>
                         <h3>📢 スタッフ通知方法</h3>
                         <p class="setting-description">スタッフへの通知方法を選択します</p>
@@ -948,14 +952,15 @@
                             </label>
                             <label class="toggle-option">
                                 <input type="radio" name="staffNotification" value="cmail">
-                                <span class="toggle-label">Cmail</span>
+                                <span class="toggle-label">mail</span>
                             </label>
                         </div>
                     </div>
                 </div>
 
                 <!-- 名札印刷サイズ設定 -->
-                <div class="setting-group" style="display: grid; grid-template-columns: 250px 1fr; gap: 30px; align-items: start;">
+                <div class="setting-group"
+                    style="display: grid; grid-template-columns: 250px 1fr; gap: 30px; align-items: start;">
                     <div>
                         <h3>📏 名札印刷サイズ</h3>
                         <p class="setting-description">名札の印刷サイズを選択します</p>
@@ -988,15 +993,15 @@
 
             <!-- ボタン -->
             <div style="margin-top: 50px; text-align: right; border-top: 2px solid #e0e0e0; padding-top: 30px;">
-                <button onclick="resetDetailSettings()" 
+                <button onclick="resetDetailSettings()"
                     style="background-color: #6c757d; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; margin-right: 15px;">
                     🔄 リセット
                 </button>
-                <button onclick="saveDetailSettings()" 
+                <button onclick="saveDetailSettings()"
                     style="background-color: #28a745; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; margin-right: 15px;">
                     💾 保存
                 </button>
-                <button onclick="closeDetailSettingsModal()" 
+                <button onclick="closeDetailSettingsModal()"
                     style="background-color: #dc3545; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer;">
                     閉じる
                 </button>
@@ -1093,24 +1098,9 @@
         }
 
         function loadDetailSettings() {
-            // TODO: Firestoreから管理者固有の設定を読み込み
+            // Firestoreから管理者固有の設定を読み込み
             console.log('設定を読み込み中...');
-            
-            // デフォルト値を設定（将来的にはFirestoreから取得）
-            const defaultSettings = {
-                nametagTiming: 'onLogin',
-                scanDataPrint: 'enabled',
-                staffNotification: 'lineworks',
-                nametagSize: 'a6'
-            };
-
-            // ラジオボタンに値を設定
-            Object.keys(defaultSettings).forEach(settingName => {
-                const radioButton = document.querySelector(`input[name="${settingName}"][value="${defaultSettings[settingName]}"]`);
-                if (radioButton) {
-                    radioButton.checked = true;
-                }
-            });
+            loadAdminSettings();
         }
 
         function saveDetailSettings() {
@@ -1124,12 +1114,8 @@
 
             console.log('保存する設定:', settings);
 
-            // TODO: Firestoreに設定を保存
-            // 現在はコンソールに出力のみ
-            alert('設定が保存されました\n（実装予定：Firestoreに保存）');
-
-            // モーダルを閉じる
-            closeDetailSettingsModal();
+            // Firestoreに設定を保存
+            saveAdminSettings(settings);
         }
 
         function resetDetailSettings() {
@@ -1139,13 +1125,13 @@
                 document.querySelector('input[name="scanDataPrint"][value="enabled"]').checked = true;
                 document.querySelector('input[name="staffNotification"][value="lineworks"]').checked = true;
                 document.querySelector('input[name="nametagSize"][value="a6"]').checked = true;
-                
+
                 console.log('設定をデフォルト値にリセットしました');
             }
         }
 
         // モーダル外クリックで閉じる
-        document.addEventListener('click', function(event) {
+        document.addEventListener('click', function (event) {
             const modal = document.getElementById('detailSettingsModal');
             if (modal && event.target === modal) {
                 closeDetailSettingsModal();
@@ -1153,7 +1139,7 @@
         });
 
         // ESCキーでモーダルを閉じる
-        document.addEventListener('keydown', function(event) {
+        document.addEventListener('keydown', function (event) {
             if (event.key === 'Escape') {
                 closeDetailSettingsModal();
             }
@@ -1161,6 +1147,23 @@
 
         // ES6モジュールの読み込み完了を待ってからログアウト関数を確認
         window.addEventListener('load', function () {
+            // 管理者設定を自動読み込み
+            if (window.loadAdminSettings) {
+                console.log('管理者設定を自動読み込み中...');
+                window.loadAdminSettings();
+            } else {
+                console.warn('loadAdminSettings関数がまだ利用できません。');
+                // 少し遅延して再試行
+                setTimeout(() => {
+                    if (window.loadAdminSettings) {
+                        console.log('管理者設定を遅延読み込み中...');
+                        window.loadAdminSettings();
+                    } else {
+                        console.error('loadAdminSettings関数が読み込まれませんでした。');
+                    }
+                }, 1000);
+            }
+
             if (!window.handleAdminLogout) {
                 console.warn('handleAdminLogout関数が見つかりません。フォールバック関数を定義します。');
                 window.handleAdminLogout = async function () {

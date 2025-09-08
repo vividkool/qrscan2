@@ -178,50 +178,7 @@ export async function deleteDocument(collectionName, docId, displayName) {
     }
 }
 
-// ============================================================================
-// 廃止: collection_type関連モーダル関数
-// 新構造ではコレクション分離により不要
-// ============================================================================
 
-/* 
-// collection_type廃止により不要
-// データ追加ボタン処理
-export function addToCurrentCollection() {
-  // admin.jsからcurrentCollectionTypeを動的に取得
-  const collectionType = window.currentCollectionType;
-
-  if (!collectionType) {
-    showResult("firestoreResult", "コレクションを選択してください", "error");
-    return;
-  }
-
-  // モーダルを開く
-  openAddDataModal(collectionType);
-}
-
-// モーダルを開く関数
-export function openAddDataModal(collectionType) {
-*/
-
-/*
-=== collection_type廃止により以下すべてコメントアウト ===
-新しい構造では、collection_typeによる動的なコレクション分岐は不要です。
-各データ取得関数が個別のコレクション（users、items、scanitemsなど）を直接参照します。
-
-openAddDataModal、generateFormFields、submitAddData、editDocument、
-openEditDataModal、populateFormFields、submitEditData等の関数群は、
-collection_typeによるモーダル操作に依存しているため、コメントアウトします。
-*/
-
-/*
-  const modal = document.getElementById("addDataModal");
-  const modalTitle = document.getElementById("modalTitle");
-  const modalForm = document.getElementById("modalForm");
-  const submitBtn = document.getElementById("submitDataBtn");
-  
-  // [モーダル操作関数群は全て collection_type に依存するためコメントアウト]
-  // ... 約400行のモーダル操作コードをコメントアウト ...
-*/
 
 // モーダルを閉じる（これは collection_type に依存しないため残す）
 export function closeModal() {

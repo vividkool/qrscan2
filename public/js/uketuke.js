@@ -862,6 +862,30 @@ async function sendTantouNotification(userData) {
     console.log("=== 担当者通知処理開始（Firebase Extensions版） ===");
     console.log("来場者データ:", userData);
 
+    // 管理者設定からスタッフ通知方法を確認
+    let staffNotificationMethod = 'lineworks'; // デフォルト値
+
+    try {
+      if (window.getAdminSetting) {
+        staffNotificationMethod = await window.getAdminSetting('staffNotification');
+        console.log("スタッフ通知設定:", staffNotificationMethod);
+      } else {
+        console.warn('getAdminSetting関数が利用できません。デフォルト設定を使用します。');
+      }
+    } catch (settingError) {
+      console.warn('設定取得エラー:', settingError);
+      console.log('デフォルト設定（LINEWORKS）を使用します。');
+    }
+
+    // LINEWORKSが設定されている場合は通知をスキップ
+    if (staffNotificationMethod === 'lineworks') {
+      console.log('スタッフ通知方法がLINEWORKSに設定されています。メール通知をスキップします。');
+      showSuccessMessage(
+        `${userData.user_name}様の入場を記録しました。担当者通知はLINEWORKS経由で行われます。`
+      );
+      return;
+    }
+
     const tantou = userData.tantou;
     if (!tantou) {
       console.log("担当者が設定されていません。通知送信をスキップします。");
@@ -869,6 +893,7 @@ async function sendTantouNotification(userData) {
     }
 
     console.log("担当者:", tantou);
+    console.log("メール通知を実行します。");
 
     // スタッフのメールアドレスを取得
     const staffEmail = await findStaffEmail(tantou);
