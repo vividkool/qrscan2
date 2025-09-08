@@ -2,15 +2,94 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // testtemplateコレクションはrole:adminのみアクセス可
-    match /admin_collections/testtemplate/{subCollection}/{docId} {
-      allow read, write: if
-        request.auth != null &&
-        get(/databases/$(database)/documents/admin_settings/$(request.auth.uid)).data.role == "admin";
+    
+    // ヘルパー関数：ユーザーのロールを取得
+    function getUserRole() {
+      return get(/databases/$(database)/documents/admin_settings/$(request.auth.uid)).data.role;
     }
-    // その他は認証必須
+    
+    // ヘルパー関数：管理者かどうかを判定
+    function isAdmin() {
+      return request.auth != null && getUserRole() == "admin";
+    }
+    
+    // ヘルパー関数：認証済みかつ指定されたロールかどうかを判定
+    function hasRole(role) {
+      return request.auth != null && getUserRole() == role;
+    }
+    
+    // ヘルパー関数：認証済みかつ許可されたロールのいずれかかどうかを判定
+    function hasAnyRole(roles) {
+      return request.auth != null && getUserRole() in roles;
+    }
+    
+    // 管理者設定：管理者のみアクセス可能
+    match /admin_settings/{adminId} {
+      allow read, write: if isAdmin();
+    }
+    
+    // 管理者コレクション：管理者のみアクセス可能
+    match /admin_collections/{adminId}/{collectionName}/{docId} {
+      allow read, write: if isAdmin();
+    }
+    
+    // テストテンプレート：管理者のみアクセス可能
+    match /admin_collections/testtemplate/{subCollection}/{docId} {
+      allow read, write: if isAdmin();
+    }
+    
+    // ユーザーデータ：ロール別アクセス制御
+    // users ロール：users関連データの読み書き
+    match /users_data/{docId} {
+      allow read, write: if isAdmin() || hasRole("users");
+    }
+    
+    // staff ロール：staff関連データの読み書き
+    match /staff_data/{docId} {
+      allow read, write: if isAdmin() || hasRole("staff");
+    }
+    
+    // maker ロール：maker関連データの読み書き
+    match /maker_data/{docId} {
+      allow read, write: if isAdmin() || hasRole("maker");
+    }
+    
+    // uketuke ロール：uketuke関連データの読み書き
+    match /uketuke_data/{docId} {
+      allow read, write: if isAdmin() || hasRole("uketuke");
+    }
+    
+    // 共通データ：認証済みユーザーなら読み取り可能、管理者なら書き込み可能
+    match /common_data/{docId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+    
+    // イベントデータ：認証済みユーザーなら読み取り可能、管理者と関連ロールなら書き込み可能
+    match /events/{eventId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin() || hasAnyRole(["users", "staff", "uketuke"]);
+    }
+    
+    // QRコードアクセスログ：管理者のみ
+    match /qr_access_logs/{docId} {
+      allow read, write: if isAdmin();
+    }
+    
+    // ユーザーセッション：本人と管理者のみ
+    match /user_sessions/{sessionId} {
+      allow read, write: if isAdmin() || (request.auth != null && request.auth.uid == sessionId);
+    }
+    
+    // ロール別ファイルアクセス制御のためのメタデータ
+    match /role_permissions/{roleId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+    
+    // デフォルトルール：明示的に許可されていないものは拒否
     match /{document=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isAdmin();
     }
   }
 }

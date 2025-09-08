@@ -4,8 +4,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QR Scan App</title>
+    <title>QR Scan App - 管理者専用</title>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+    <!-- 認証ライブラリを最初に読み込み -->
+    <script src="js/rbac-auth.js"></script>
+
     <script type="module" src="js/admin-settings.js"></script>
     <style>
         /* Excelファイルアップロード用のスタイル */
@@ -506,7 +510,7 @@
             .settings-grid {
                 grid-template-columns: 1fr;
             }
-            
+
             #detailSettingsModal .modal-content {
                 max-width: 95%;
                 margin: 10px auto;
@@ -519,11 +523,11 @@
             .setting-group {
                 padding: 15px;
             }
-            
+
             .setting-group h3 {
                 font-size: 14px;
             }
-            
+
             .toggle-container {
                 flex-direction: column;
                 gap: 10px;
@@ -1113,7 +1117,8 @@
                     <div id="lineworksSettings"
                         style="margin-top: 20px; padding: 20px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #28a745;">
                         <h4 style="color: #28a745; margin: 0 0 15px 0;">🔧 LINEWORKS設定</h4>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px;">
+                        <div
+                            style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px;">
                             <div>
                                 <label style="display: block; font-weight: bold; margin-bottom: 5px;">テナントID (API
                                     ID):</label>
@@ -1122,23 +1127,19 @@
                                 <small style="color: #6c757d;">LINEWORKS Developer Consoleで取得</small>
                             </div>
                             <div>
-                                <label
-                                    style="display: block; font-weight: bold; margin-bottom: 5px;">アクセストークン:</label>
-                                <input type="password" id="lineworksAccessToken"
-                                    placeholder="例: aBcDeFgHiJkL1234567890"
+                                <label style="display: block; font-weight: bold; margin-bottom: 5px;">アクセストークン:</label>
+                                <input type="password" id="lineworksAccessToken" placeholder="例: aBcDeFgHiJkL1234567890"
                                     style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
                                 <small style="color: #6c757d;">Server API用アクセストークン</small>
                             </div>
                             <div>
-                                <label
-                                    style="display: block; font-weight: bold; margin-bottom: 5px;">ボットトークン:</label>
+                                <label style="display: block; font-weight: bold; margin-bottom: 5px;">ボットトークン:</label>
                                 <input type="password" id="lineworksBotToken" placeholder="例: xYzAbC123456789"
                                     style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
                                 <small style="color: #6c757d;">Bot用トークン</small>
                             </div>
                             <div>
-                                <label
-                                    style="display: block; font-weight: bold; margin-bottom: 5px;">チャンネルID:</label>
+                                <label style="display: block; font-weight: bold; margin-bottom: 5px;">チャンネルID:</label>
                                 <input type="text" id="lineworksChannelId" placeholder="例: ch-987654321"
                                     style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
                                 <small style="color: #6c757d;">通知送信先チャンネル</small>

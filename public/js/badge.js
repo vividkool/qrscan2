@@ -47,29 +47,31 @@ function showBadgePreview(badgeData) {
   window.showBadgePreview = showBadgePreview;
   window.printBadge = printBadge;
 
-  // QRコード生成テスト
-  function generateTestQRCodes() {
+  // QRコード生成テスト（固定トークン対応）
+  async function generateTestQRCodes() {
     const baseUrl = window.location.origin;
     const adminId = window.currentAdmin?.admin_id || "ADMIN001";
+    const eventId = window.currentEvent?.event_id || "EVENT001";
     const testData = { user_id: "TEST001", admin_id: adminId };
 
-    function simpleEncrypt(text) {
-      const rot13 = text.replace(/[a-zA-Z]/g, function (c) {
-        return String.fromCharCode(
-          (c <= "Z" ? 90 : 122) >= (c = c.charCodeAt(0) + 13) ? c : c - 26
-        );
-      });
-      return btoa(rot13).replace(/[+/=]/g, function (c) {
-        return { "+": `-`, "/": "_", "=": "" }[c];
-      });
-    }
-
+    // 従来のURL（比較用）
     const normalUrl = `${baseUrl}/?user_id=${testData.user_id}&admin_id=${testData.admin_id}`;
-    const encryptedUrl = `${baseUrl}/?d=${simpleEncrypt(
-      JSON.stringify(testData)
-    )}`;
 
-    // モーダルで表示
+    // 新しい固定暗号化トークンURL
+    let encryptedUrl = normalUrl; // フォールバック
+    try {
+      if (typeof window.getOrCreateFixedQRToken === 'function') {
+        const token = await window.getOrCreateFixedQRToken(eventId);
+        encryptedUrl = `${baseUrl}/users.html?token=${token}&id=${testData.user_id}`;
+        console.log('固定QRトークンテスト用URL生成:', { eventId, tokenPreview: token.substring(0, 10) + '...' });
+      } else if (typeof window.generateQRCodeToken === 'function') {
+        const token = await window.generateQRCodeToken(eventId);
+        encryptedUrl = `${baseUrl}/users.html?token=${token}&id=${testData.user_id}`;
+        console.log('通常QRトークンテスト用URL生成');
+      }
+    } catch (error) {
+      console.warn('暗号化トークン生成に失敗:', error);
+    }    // モーダルで表示
     const modalHtml = `
     <div id="qrTestModal" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 2000; display: flex; justify-content: center; align-items: center;">
       <div style="background: white; padding: 30px; border-radius: 12px; max-width: 700px; max-height: 90vh; overflow-y: auto;">
@@ -87,7 +89,7 @@ function showBadgePreview(badgeData) {
           </div>
           
           <div style="text-align: center;">
-            <h4 style="color: #28a745; margin-bottom: 15px;">🔒 暗号化URL</h4>
+            <h4 style="color: #28a745; margin-bottom: 15px;">🔒 暗号化トークンURL</h4>
             <div style="border: 2px solid #28a745; border-radius: 8px; padding: 15px; background: #f8fff8;">
               <canvas id="encryptedQR" width="200" height="200" style="border-radius: 4px;"></canvas>
             </div>
@@ -108,12 +110,13 @@ function showBadgePreview(badgeData) {
         </div>
         
         <div style="background: #fff3e0; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-          <p style="margin: 0 0 10px 0; font-size: 14px;"><strong>🏷️ 名札印刷用途:</strong></p>
+          <p style="margin: 0 0 10px 0; font-size: 14px;"><strong>🏷️ 新しいセキュリティ機能:</strong></p>
           <ul style="margin: 0 0 0 20px; font-size: 13px;">
-            <li>来場者ごとに個別のQRコードを生成</li>
-            <li>名札テンプレートにQRコードを組み込み</li>
-            <li>PDF生成で一括印刷対応</li>
-            <li>暗号化URLでセキュリティ確保</li>
+            <li>XOR暗号化による admin_id/event_id の保護</li>
+            <li>Base64 URL-safe エンコーディング</li>
+            <li>タイムスタンプ付きトークンで有効期限管理</li>
+            <li>短縮URLによるQRコードの複雑さ軽減</li>
+            <li>暗号化キーは admin_settings に自動保存</li>
           </ul>
         </div>
         
@@ -196,11 +199,11 @@ function showBadgePreview(badgeData) {
           <h4 style="color: #28a745; margin: 0 0 8px 0; font-size: 14px;">🔒 暗号化URL（推奨）</h4>
           <div style="font-family: monospace; font-size: 11px; line-height: 1.6; color: #6c757d; background: #f8f9fa; padding: 10px; border-radius: 4px; border-left: 4px solid #28a745;">
             ${encryptedUrls
-              .map(
-                (url) =>
-                  `<div style="margin-bottom: 5px; word-break: break-all;">${url}</div>`
-              )
-              .join("")}
+        .map(
+          (url) =>
+            `<div style="margin-bottom: 5px; word-break: break-all;">${url}</div>`
+        )
+        .join("")}
           </div>
           <div style="margin-top: 5px; font-size: 11px; color: #28a745;">
             ✅ パラメータが暗号化され、URLが短くなります
@@ -211,11 +214,11 @@ function showBadgePreview(badgeData) {
           <h4 style="color: #6c757d; margin: 0 0 8px 0; font-size: 14px;">� 通常URL（互換性）</h4>
           <div style="font-family: monospace; font-size: 11px; line-height: 1.6; color: #6c757d; background: white; padding: 10px; border-radius: 4px; border: 1px solid #e0e0e0;">
             ${normalUrls
-              .map(
-                (url) =>
-                  `<div style="margin-bottom: 5px; word-break: break-all;">${url}</div>`
-              )
-              .join("")}
+        .map(
+          (url) =>
+            `<div style="margin-bottom: 5px; word-break: break-all;">${url}</div>`
+        )
+        .join("")}
           </div>
         </div>
     
@@ -357,11 +360,10 @@ ${encrypted}
 ${decrypted}
 
 ✅ 復号化${decrypted === jsonString ? "成功" : "失敗"}
-${
-  decrypted === jsonString
-    ? "✅ データが正常に復元されました"
-    : "❌ データ復元に失敗しました"
-}
+${decrypted === jsonString
+      ? "✅ データが正常に復元されました"
+      : "❌ データ復元に失敗しました"
+    }
   `;
 
   alert(result);

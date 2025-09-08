@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>アクセス権限なし - QR Scan System</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #dc3545;
+            margin: 0 0 10px 0;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+
+        .info-box {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: left;
+        }
+
+        .info-box h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+
+        .info-box p {
+            margin: 5px 0;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .role-badge {
+            background: #6c757d;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            display: inline-block;
+        }
+
+        .required-badge {
+            background: #dc3545;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            display: inline-block;
+            margin-left: 5px;
+        }
+
+        .actions {
+            margin-top: 30px;
+        }
+
+        .btn {
+            background: #4285f4;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn:hover {
+            background: #3367d6;
+        }
+
+        .btn.secondary {
+            background: #6c757d;
+        }
+
+        .btn.danger {
+            background: #dc3545;
+        }
+
+        .contact-info {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .contact-info h4 {
+            margin: 0 0 10px 0;
+            color: #1976d2;
+        }
+
+        .footer {
+            margin-top: 30px;
+            font-size: 12px;
+            color: #999;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="icon">🚫</div>
+        <h1>アクセス権限がありません</h1>
+        <p class="subtitle">このページにアクセスする権限がありません</p>
+
+        <div class="info-box">
+            <h3>アクセス情報</h3>
+            <p><strong>現在のロール:</strong> <span class="role-badge" id="currentRole">不明</span></p>
+            <p><strong>必要なロール:</strong> <span id="requiredRoles">不明</span></p>
+            <p><strong>アクセス時刻:</strong> <span id="accessTime"></span></p>
+            <p><strong>ページ:</strong> <span id="requestedPage"></span></p>
+        </div>
+
+        <div class="contact-info">
+            <h4>📞 管理者へのお問い合わせ</h4>
+            <p>適切なアクセス権限が必要な場合は、システム管理者にお問い合わせください。</p>
+            <p><strong>管理者:</strong> admin@example.com</p>
+            <p><strong>内線:</strong> 1234</p>
+        </div>
+
+        <div class="actions">
+            <a href="javascript:history.back()" class="btn secondary">前のページに戻る</a>
+            <a href="login.html" class="btn">ログイン画面へ</a>
+            <button class="btn danger" onclick="logout()">ログアウト</button>
+        </div>
+
+        <div class="footer">
+            QR Scan System - Role-Based Access Control
+        </div>
+    </div>
+
+    <script>
+        // URLパラメータから情報を取得
+        function getUrlParams() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return {
+                role: urlParams.get('role') || '不明',
+                required: urlParams.get('required') || '不明',
+                page: urlParams.get('page') || document.referrer || '不明'
+            };
+        }
+
+        // ページ初期化
+        function initializePage() {
+            const params = getUrlParams();
+
+            // 現在のロールを表示
+            document.getElementById('currentRole').textContent = params.role;
+
+            // 必要なロールを表示
+            const requiredRoles = params.required.split(',');
+            const requiredHTML = requiredRoles.map(role =>
+                `<span class="required-badge">${role}</span>`
+            ).join(' ');
+            document.getElementById('requiredRoles').innerHTML = requiredHTML;
+
+            // アクセス時刻を表示
+            document.getElementById('accessTime').textContent = new Date().toLocaleString();
+
+            // 要求されたページを表示
+            document.getElementById('requestedPage').textContent = params.page;
+        }
+
+        // ログアウト機能
+        function logout() {
+            // 認証情報をクリア
+            localStorage.removeItem('rbac_auth');
+
+            // Firebase認証もクリア（利用可能な場合）
+            if (typeof firebase !== 'undefined' && firebase.auth) {
+                firebase.auth().signOut().then(() => {
+                    window.location.href = 'login.html';
+                });
+            } else {
+                window.location.href = 'login.html';
+            }
+        }
+
+        // 管理者に連絡
+        function contactAdmin() {
+            const params = getUrlParams();
+            const subject = encodeURIComponent(`アクセス権限要求: ${params.page}`);
+            const body = encodeURIComponent(
+                `以下のページへのアクセス権限を要求します:\n\n` +
+                `ページ: ${params.page}\n` +
+                `現在のロール: ${params.role}\n` +
+                `必要なロール: ${params.required}\n` +
+                `要求日時: ${new Date().toLocaleString()}\n\n` +
+                `理由: \n\n`
+            );
+
+            window.location.href = `mailto:admin@example.com?subject=${subject}&body=${body}`;
+        }
+
+        // ページ読み込み時に初期化
+        document.addEventListener('DOMContentLoaded', initializePage);
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ロールベース認証テスト - QR Scan System</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .header h1 {
+            color: #333;
+            margin: 0 0 10px 0;
+        }
+
+        .auth-status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+
+        .auth-status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .auth-status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .auth-status.loading {
+            background: #e3f2fd;
+            color: #1976d2;
+            border: 1px solid #bbdefb;
+        }
+
+        .section {
+            margin: 30px 0;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+        }
+
+        .section h2 {
+            color: #666;
+            margin-top: 0;
+        }
+
+        .role-test-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .role-card {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+
+        .role-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .role-card.admin {
+            border-color: #dc3545;
+            background: #fff5f5;
+        }
+
+        .role-card.users {
+            border-color: #4285f4;
+            background: #f8f9ff;
+        }
+
+        .role-card.staff {
+            border-color: #28a745;
+            background: #f8fff8;
+        }
+
+        .role-card.maker {
+            border-color: #fd7e14;
+            background: #fff8f0;
+        }
+
+        .role-card.uketuke {
+            border-color: #6f42c1;
+            background: #f8f5ff;
+        }
+
+        .role-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .role-name {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .role-description {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .btn {
+            background: #4285f4;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn:hover {
+            background: #3367d6;
+        }
+
+        .btn.admin {
+            background: #dc3545;
+        }
+
+        .btn.users {
+            background: #4285f4;
+        }
+
+        .btn.staff {
+            background: #28a745;
+        }
+
+        .btn.maker {
+            background: #fd7e14;
+        }
+
+        .btn.uketuke {
+            background: #6f42c1;
+        }
+
+        .btn.secondary {
+            background: #6c757d;
+        }
+
+        .btn.danger {
+            background: #dc3545;
+        }
+
+        .form-group {
+            margin: 15px 0;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .form-group select,
+        .form-group input {
+            width: 200px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .admin-only {
+            display: none;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 4px 4px 0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔐 ロールベース認証システム テスト</h1>
+            <p>各ロールでの認証とアクセス制御をテストできます</p>
+        </div>
+
+        <div id="authLoading" class="loading">
+            🔐 認証システムを初期化中...
+        </div>
+
+        <div id="mainContent" style="display: none;">
+            <!-- 現在の認証状態 -->
+            <div class="section">
+                <h2>📊 現在の認証状態</h2>
+                <div id="authStatus" class="auth-status loading">認証確認中...</div>
+
+                <div class="info-box">
+                    <p><strong>ユーザー:</strong> <span class="user-name">未ログイン</span></p>
+                    <p><strong>ロール:</strong> <span class="user-role">未設定</span></p>
+                    <p><strong>管理者権限:</strong> <span id="adminStatus">なし</span></p>
+                    <p><strong>認証時刻:</strong> <span id="authTime">-</span></p>
+                </div>
+
+                <button class="btn danger" onclick="logout()">ログアウト</button>
+                <button class="btn secondary" onclick="refreshAuth()">認証状態更新</button>
+            </div>
+
+            <!-- ロール切り替えテスト -->
+            <div class="section admin-only">
+                <h2>🔄 ロール切り替えテスト（管理者のみ）</h2>
+                <p>管理者権限でテスト用のロール切り替えが可能です</p>
+
+                <div class="form-group">
+                    <label for="testRole">テストロール:</label>
+                    <select id="testRole">
+                        <option value="admin">admin（管理者）</option>
+                        <option value="users">users（ユーザー）</option>
+                        <option value="staff">staff（スタッフ）</option>
+                        <option value="maker">maker（製作者）</option>
+                        <option value="uketuke">uketuke（受付）</option>
+                    </select>
+                    <button class="btn" onclick="switchTestRole()">ロール切り替え</button>
+                </div>
+            </div>
+
+            <!-- ロール別ページアクセステスト -->
+            <div class="section">
+                <h2>🌐 ロール別ページアクセステスト</h2>
+                <p>各ロールの専用ページにアクセスしてアクセス制御をテストします</p>
+
+                <div class="role-test-grid">
+                    <div class="role-card admin">
+                        <div class="role-icon">👑</div>
+                        <div class="role-name">管理者</div>
+                        <div class="role-description">全機能にアクセス可能</div>
+                        <a href="admin.html" class="btn admin">管理画面へ</a>
+                        <a href="test-crypto.html" class="btn admin">暗号化テスト</a>
+                    </div>
+
+                    <div class="role-card users">
+                        <div class="role-icon">👥</div>
+                        <div class="role-name">ユーザー</div>
+                        <div class="role-description">ユーザー機能のみ</div>
+                        <a href="user-portal.html" class="btn users">ユーザー画面へ</a>
+                    </div>
+
+                    <div class="role-card staff">
+                        <div class="role-icon">👷</div>
+                        <div class="role-name">スタッフ</div>
+                        <div class="role-description">イベント運営機能</div>
+                        <a href="staff.html" class="btn staff">スタッフ画面へ</a>
+                    </div>
+
+                    <div class="role-card maker">
+                        <div class="role-icon">🔧</div>
+                        <div class="role-name">製作者</div>
+                        <div class="role-description">システム開発機能</div>
+                        <a href="maker.html" class="btn maker">製作者画面へ</a>
+                    </div>
+
+                    <div class="role-card uketuke">
+                        <div class="role-icon">🏢</div>
+                        <div class="role-name">受付</div>
+                        <div class="role-description">受付業務機能</div>
+                        <a href="uketuke.html" class="btn uketuke">受付画面へ</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- データベースアクセステスト -->
+            <div class="section">
+                <h2>💾 データベースアクセステスト</h2>
+                <p>Firestoreルールに基づくデータアクセス制御をテストします</p>
+
+                <div style="margin: 20px 0;">
+                    <button class="btn" onclick="testUserDataAccess()">ユーザーデータアクセス</button>
+                    <button class="btn" onclick="testStaffDataAccess()">スタッフデータアクセス</button>
+                    <button class="btn" onclick="testMakerDataAccess()">製作者データアクセス</button>
+                    <button class="btn" onclick="testUketukeDataAccess()">受付データアクセス</button>
+                    <button class="btn admin-only" onclick="testAdminDataAccess()">管理者データアクセス</button>
+                </div>
+
+                <div id="dataTestResult"
+                    style="background: #f8f9fa; padding: 15px; border-radius: 4px; margin: 15px 0; font-family: monospace; font-size: 12px; display: none;">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <!-- 認証ライブラリ -->
+    <script src="js/rbac-auth.js"></script>
+
+    <script>
+        // Firebase設定
+        const firebaseConfig = {
+            apiKey: "AIzaSyDh1B7fDVs5FdFzE2nnGQKQNzFGvGkYMQE",
+            authDomain: "qrscan2-99ffd.firebaseapp.com",
+            projectId: "qrscan2-99ffd",
+            storageBucket: "qrscan2-99ffd.appspot.com",
+            messagingSenderId: "1089215781575",
+            appId: "1:1089215781575:web:35cab4f6dc9a9b70dda70e"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // 認証成功時の処理
+        window.addEventListener('rbacAuthSuccess', (event) => {
+            document.getElementById('authLoading').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'block';
+
+            updateAuthDisplay(event.detail);
+            console.log('認証テストページ初期化完了:', event.detail);
+        });
+
+        // 認証情報表示を更新
+        function updateAuthDisplay(authInfo) {
+            const statusEl = document.getElementById('authStatus');
+
+            statusEl.className = 'auth-status success';
+            statusEl.innerHTML = `✅ 認証成功 - ロール: ${authInfo.role}`;
+
+            document.getElementById('adminStatus').textContent = authInfo.isAdmin ? 'あり' : 'なし';
+            document.getElementById('authTime').textContent = new Date().toLocaleString();
+        }
+
+        // ロール切り替え（テスト用）
+        function switchTestRole() {
+            const newRole = document.getElementById('testRole').value;
+
+            if (!window.rbacAuth.isAdmin) {
+                alert('管理者権限が必要です');
+                return;
+            }
+
+            // ローカルストレージの認証情報を更新
+            const authData = window.rbacAuth.getStoredAuth();
+            if (authData) {
+                authData.role = newRole;
+                authData.timestamp = Date.now();
+                localStorage.setItem('rbac_auth', JSON.stringify(authData));
+
+                alert(`ロールを ${newRole} に切り替えました。ページを再読み込みします。`);
+                window.location.reload();
+            }
+        }
+
+        // 認証状態更新
+        function refreshAuth() {
+            window.location.reload();
+        }
+
+        // データアクセステスト関数群
+        async function testDataAccess(collection, description) {
+            const resultEl = document.getElementById('dataTestResult');
+            resultEl.style.display = 'block';
+            resultEl.innerHTML = `${description}をテスト中...`;
+
+            try {
+                const snapshot = await db.collection(collection).limit(1).get();
+                const success = `✅ ${description} 読み取り成功 (${snapshot.size}件)`;
+
+                // 書き込みテスト
+                try {
+                    await db.collection(collection).add({
+                        test: true,
+                        timestamp: new Date(),
+                        user: window.rbacAuth.currentUser?.uid || 'anonymous'
+                    });
+                    resultEl.innerHTML = success + '\n✅ 書き込みテスト成功';
+                } catch (writeError) {
+                    resultEl.innerHTML = success + `\n❌ 書き込みテスト失敗: ${writeError.message}`;
+                }
+            } catch (error) {
+                resultEl.innerHTML = `❌ ${description} アクセス失敗: ${error.message}`;
+            }
+        }
+
+        function testUserDataAccess() { testDataAccess('users_data', 'ユーザーデータ'); }
+        function testStaffDataAccess() { testDataAccess('staff_data', 'スタッフデータ'); }
+        function testMakerDataAccess() { testDataAccess('maker_data', '製作者データ'); }
+        function testUketukeDataAccess() { testDataAccess('uketuke_data', '受付データ'); }
+        function testAdminDataAccess() { testDataAccess('admin_settings', '管理者データ'); }
+
+        // 初期化
+        document.addEventListener('DOMContentLoaded', function () {
+            setTimeout(() => {
+                if (document.getElementById('authLoading').style.display !== 'none') {
+                    document.getElementById('authLoading').innerHTML = '❌ 認証に失敗しました。<br><a href="login.html">ログイン画面へ</a>';
+                }
+            }, 5000);
+        });
+    </script>
+</body>
+
+</html>

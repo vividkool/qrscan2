@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QRコード暗号化システム - テスト管理画面</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .section {
+            margin: 30px 0;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+        }
+
+        .section h2 {
+            color: #666;
+            margin-top: 0;
+        }
+
+        .form-group {
+            margin: 15px 0;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        button {
+            background: #4285f4;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+
+        button:hover {
+            background: #3367d6;
+        }
+
+        button.secondary {
+            background: #6c757d;
+        }
+
+        button.success {
+            background: #28a745;
+        }
+
+        button.warning {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .result {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .qr-display {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .qr-display canvas {
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            margin: 10px;
+        }
+
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🔐 QRコード暗号化システム - テスト管理画面</h1>
+
+        <!-- 1. 管理者設定とキー生成 -->
+        <div class="section">
+            <h2>1. 管理者設定とキー生成</h2>
+            <div class="form-group">
+                <label for="adminId">管理者ID:</label>
+                <input type="text" id="adminId" value="ADMIN001" placeholder="管理者IDを入力">
+            </div>
+            <div class="form-group">
+                <label for="eventId">イベントID:</label>
+                <input type="text" id="eventId" value="EVENT001" placeholder="イベントIDを入力">
+            </div>
+            <button onclick="generateEncryptionKey()">🔑 暗号化キー生成/取得</button>
+            <button onclick="checkAdminSettings()" class="secondary">📋 現在の設定確認</button>
+            <div id="adminResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- 2. QRトークン生成テスト -->
+        <div class="section">
+            <h2>2. QRトークン生成テスト</h2>
+            <div class="form-group">
+                <label for="testDocId">テストドキュメントID:</label>
+                <input type="text" id="testDocId" value="USER001" placeholder="ユーザードキュメントID">
+            </div>
+            <button onclick="generateTestToken()">🎯 トークン生成</button>
+            <button onclick="decryptTestToken()" class="secondary">🔓 トークン復号化</button>
+            <div id="tokenResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- 3. QRコード生成と表示 -->
+        <div class="section">
+            <h2>3. QRコード生成と表示</h2>
+            <div class="grid">
+                <div>
+                    <h3>従来のURL</h3>
+                    <div class="qr-display">
+                        <canvas id="normalQR" width="200" height="200"></canvas>
+                    </div>
+                    <div id="normalUrl" class="result" style="display: none;"></div>
+                </div>
+                <div>
+                    <h3>暗号化トークンURL</h3>
+                    <div class="qr-display">
+                        <canvas id="encryptedQR" width="200" height="200"></canvas>
+                    </div>
+                    <div id="encryptedUrl" class="result" style="display: none;"></div>
+                </div>
+            </div>
+            <button onclick="generateQRCodes()">📱 QRコード生成</button>
+        </div>
+
+        <!-- 4. システム状態 -->
+        <div class="section">
+            <h2>4. システム状態</h2>
+            <div id="systemStatus" class="status">システム初期化中...</div>
+            <button onclick="checkSystemStatus()" class="secondary">🔍 状態確認</button>
+            <button onclick="clearTestData()" class="warning">🗑️ テストデータクリア</button>
+        </div>
+    </div>
+
+    <!-- QRコードライブラリ -->
+    <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getFirestore, doc, getDoc, setDoc, updateDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        // Firebase設定
+        const firebaseConfig = {
+            apiKey: "AIzaSyDh1B7fDVs5FdFzE2nnGQKQNzFGvGkYMQE",
+            authDomain: "qrscan2-99ffd.firebaseapp.com",
+            projectId: "qrscan2-99ffd",
+            storageBucket: "qrscan2-99ffd.appspot.com",
+            messagingSenderId: "1089215781575",
+            appId: "1:1089215781575:web:35cab4f6dc9a9b70dda70e"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // グローバル変数
+        let currentToken = null;
+        let currentKey = null;
+
+        // 暗号化ユーティリティ（crypto-utils.jsの内容を直接含める）
+        function generateRandomKey(length = 32) {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            let result = '';
+            for (let i = 0; i < length; i++) {
+                result += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return result;
+        }
+
+        function xorEncrypt(text, key) {
+            let result = '';
+            for (let i = 0; i < text.length; i++) {
+                result += String.fromCharCode(text.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+            }
+            return result;
+        }
+
+        function xorDecrypt(encrypted, key) {
+            return xorEncrypt(encrypted, key); // XORは可逆的
+        }
+
+        function encodeBase64URL(str) {
+            return btoa(unescape(encodeURIComponent(str)))
+                .replace(/\+/g, '-')
+                .replace(/\//g, '_')
+                .replace(/=/g, '');
+        }
+
+        function decodeBase64URL(str) {
+            str = (str + '===').slice(0, str.length + (str.length % 4));
+            str = str.replace(/-/g, '+').replace(/_/g, '/');
+            return decodeURIComponent(escape(atob(str)));
+        }
+
+        function generateQRToken(adminId, eventId, key) {
+            // 固定トークン生成（タイムスタンプなし）
+            const data = `${adminId}|${eventId}`;
+            const encrypted = xorEncrypt(data, key);
+            return encodeBase64URL(encrypted);
+        }
+
+        function decodeQRToken(token, key) {
+            try {
+                const decoded = decodeBase64URL(token);
+                const decrypted = xorDecrypt(decoded, key);
+                const parts = decrypted.split('|');
+
+                if (parts.length < 2) {
+                    throw new Error('Invalid token format');
+                }
+
+                const [adminId, eventId] = parts;
+                return {
+                    adminId,
+                    eventId,
+                    isFixed: true
+                };
+            } catch (error) {
+                throw new Error('トークンの復号化に失敗しました');
+            }
+        }
+
+        function isTokenValid(decryptedData) {
+            // 固定トークンの場合、必要なデータが存在すれば有効
+            return decryptedData && decryptedData.adminId && decryptedData.eventId;
+        }
+
+        // 管理関数
+        window.generateEncryptionKey = async function () {
+            const adminId = document.getElementById('adminId').value;
+            const result = document.getElementById('adminResult');
+
+            try {
+                const settingsRef = doc(db, 'admin_settings', adminId);
+                const settingsDoc = await getDoc(settingsRef);
+
+                let encryptionKey;
+                if (settingsDoc.exists() && settingsDoc.data().qrEncryptionKey) {
+                    encryptionKey = settingsDoc.data().qrEncryptionKey;
+                    result.innerHTML = `既存のキーを取得しました:<br>Admin ID: ${adminId}<br>Encryption Key: ${encryptionKey}`;
+                } else {
+                    encryptionKey = generateRandomKey();
+                    await setDoc(settingsRef, {
+                        qrEncryptionKey: encryptionKey,
+                        createdAt: new Date(),
+                        updatedAt: new Date()
+                    }, { merge: true });
+                    result.innerHTML = `新しいキーを生成しました:<br>Admin ID: ${adminId}<br>Encryption Key: ${encryptionKey}`;
+                }
+
+                currentKey = encryptionKey;
+                result.style.display = 'block';
+                updateSystemStatus('成功', `管理者 ${adminId} のキーを準備しました`);
+            } catch (error) {
+                result.innerHTML = `エラー: ${error.message}`;
+                result.style.display = 'block';
+                updateSystemStatus('エラー', error.message);
+            }
+        };
+
+        window.checkAdminSettings = async function () {
+            const adminId = document.getElementById('adminId').value;
+            const result = document.getElementById('adminResult');
+
+            try {
+                const settingsRef = doc(db, 'admin_settings', adminId);
+                const settingsDoc = await getDoc(settingsRef);
+
+                if (settingsDoc.exists()) {
+                    const data = settingsDoc.data();
+                    result.innerHTML = `管理者設定:<br>${JSON.stringify(data, null, 2)}`;
+                } else {
+                    result.innerHTML = `管理者 ${adminId} の設定が見つかりません`;
+                }
+
+                result.style.display = 'block';
+            } catch (error) {
+                result.innerHTML = `エラー: ${error.message}`;
+                result.style.display = 'block';
+            }
+        };
+
+        window.generateTestToken = function () {
+            const adminId = document.getElementById('adminId').value;
+            const eventId = document.getElementById('eventId').value;
+            const result = document.getElementById('tokenResult');
+
+            if (!currentKey) {
+                result.innerHTML = '先に暗号化キーを生成してください';
+                result.style.display = 'block';
+                return;
+            }
+
+            try {
+                currentToken = generateQRToken(adminId, eventId, currentKey);
+                result.innerHTML = `固定トークン生成完了:<br>${currentToken}<br><br>詳細:<br>Admin ID: ${adminId}<br>Event ID: ${eventId}<br>トークンタイプ: 固定<br>生成時刻: ${new Date().toLocaleString()}`;
+                result.style.display = 'block';
+                updateSystemStatus('成功', '固定トークンを生成しました');
+            } catch (error) {
+                result.innerHTML = `エラー: ${error.message}`;
+                result.style.display = 'block';
+            }
+        };
+
+        window.decryptTestToken = function () {
+            const result = document.getElementById('tokenResult');
+
+            if (!currentToken || !currentKey) {
+                result.innerHTML = '先にトークンを生成してください';
+                result.style.display = 'block';
+                return;
+            }
+
+            try {
+                const decrypted = decodeQRToken(currentToken, currentKey);
+                const isValid = isTokenValid(decrypted);
+
+                result.innerHTML = `復号化結果:<br>Admin ID: ${decrypted.adminId}<br>Event ID: ${decrypted.eventId}<br>トークンタイプ: ${decrypted.isFixed ? '固定' : '動的'}<br>有効性: ${isValid ? '有効' : '無効'}<br>復号化時刻: ${new Date().toLocaleString()}`;
+                result.style.display = 'block';
+                updateSystemStatus('成功', '固定トークンを復号化しました');
+            } catch (error) {
+                result.innerHTML = `復号化エラー: ${error.message}`;
+                result.style.display = 'block';
+            }
+        };
+
+        window.generateQRCodes = function () {
+            const adminId = document.getElementById('adminId').value;
+            const eventId = document.getElementById('eventId').value;
+            const docId = document.getElementById('testDocId').value;
+            const baseUrl = window.location.origin;
+
+            // 従来のURL
+            const normalUrl = `${baseUrl}/login.html?admin_id=${adminId}&event_id=${eventId}&uid=${docId}`;
+            document.getElementById('normalUrl').innerHTML = normalUrl;
+            document.getElementById('normalUrl').style.display = 'block';
+
+            // 暗号化トークンURL
+            if (currentToken) {
+                const encryptedUrl = `${baseUrl}/users.html?token=${currentToken}&id=${docId}`;
+                document.getElementById('encryptedUrl').innerHTML = encryptedUrl;
+                document.getElementById('encryptedUrl').style.display = 'block';
+
+                // QRコード生成
+                new QRious({
+                    element: document.getElementById('normalQR'),
+                    value: normalUrl,
+                    size: 200,
+                    background: 'white',
+                    foreground: 'black'
+                });
+
+                new QRious({
+                    element: document.getElementById('encryptedQR'),
+                    value: encryptedUrl,
+                    size: 200,
+                    background: 'white',
+                    foreground: 'black'
+                });
+
+                updateSystemStatus('成功', 'QRコードを生成しました');
+            } else {
+                document.getElementById('encryptedUrl').innerHTML = 'トークンが生成されていません';
+                document.getElementById('encryptedUrl').style.display = 'block';
+            }
+        };
+
+        window.checkSystemStatus = function () {
+            const adminId = document.getElementById('adminId').value;
+            const eventId = document.getElementById('eventId').value;
+
+            let status = '✅ システム正常\n';
+            status += `🔑 暗号化キー: ${currentKey ? '設定済み' : '未設定'}\n`;
+            status += `🎯 トークン: ${currentToken ? '生成済み' : '未生成'}\n`;
+            status += `👤 管理者ID: ${adminId}\n`;
+            status += `📅 イベントID: ${eventId}\n`;
+            status += `🕒 最終更新: ${new Date().toLocaleString()}`;
+
+            updateSystemStatus('情報', status);
+        };
+
+        window.clearTestData = function () {
+            if (confirm('テストデータをクリアしますか？')) {
+                currentToken = null;
+                currentKey = null;
+                document.getElementById('tokenResult').style.display = 'none';
+                document.getElementById('adminResult').style.display = 'none';
+                document.getElementById('normalUrl').style.display = 'none';
+                document.getElementById('encryptedUrl').style.display = 'none';
+                updateSystemStatus('情報', 'テストデータをクリアしました');
+            }
+        };
+
+        function updateSystemStatus(type, message) {
+            const statusEl = document.getElementById('systemStatus');
+            statusEl.className = `status ${type === 'エラー' ? 'error' : 'success'}`;
+            statusEl.textContent = `${type}: ${message}`;
+        }
+
+        // 初期化
+        document.addEventListener('DOMContentLoaded', function () {
+            updateSystemStatus('情報', 'システムが初期化されました');
+        });
+    </script>
+</body>
+
+</html>
