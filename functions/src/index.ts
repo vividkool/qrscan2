@@ -4,6 +4,7 @@ import { initializeApp, getApps } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
 import * as nodemailer from "nodemailer";
+import axios from "axios";
 
 // Firebase Admin初期化
 if (!getApps().length) {
@@ -366,6 +367,283 @@ export const sendNotificationEmail = onRequest(
             response.status(500).json({
                 error: "Email sending failed",
                 details: error instanceof Error ? error.message : "Unknown error",
+            });
+        }
+    }
+);
+
+// LINEWORKS Bot APIを使用した通知送信Function
+export const sendLineworksNotification = onRequest(
+    {
+        region: "asia-northeast1",
+        cors: ["https://qrscan2-99ffd.web.app", "http://localhost:3000", "http://localhost:8000"],
+    },
+    async (request, response) => {
+        try {
+            // CORSヘッダーを設定
+            response.set("Access-Control-Allow-Origin", "*");
+            response.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+            response.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+            if (request.method === "OPTIONS") {
+                response.status(200).send("");
+                return;
+            }
+
+            if (request.method !== "POST") {
+                response.status(405).json({ error: "Method not allowed" });
+                return;
+            }
+
+            const { userData, botToken, channelId } = request.body;
+
+            if (!userData || !botToken || !channelId) {
+                response.status(400).json({
+                    error: "Missing required parameters: userData, botToken, channelId"
+                });
+                return;
+            }
+
+            logger.info("LINEWORKS通知送信開始", {
+                userIdで: userData.user_id,
+                channelId: channelId
+            });
+
+            // LINEWORKS Bot API用のメッセージを作成
+            const message = `🎯 来場者到着のお知らせ
+
+👤 **${userData.company_name || ""}の${userData.user_name || ""}様**が来場されました！
+
+📋 **詳細情報**
+• ユーザーID: ${userData.user_id || ""}
+• 会社名: ${userData.company_name || ""}
+• 担当者: ${userData.tantou || ""}
+• 入場時刻: ${new Date().toLocaleString("ja-JP")}
+
+🤖 受付システムより自動送信`;
+
+            // LINEWORKS Bot API呼び出し
+            const lineworksResponse = await axios.post(
+                `https://apis.worksmobile.com/r/${process.env.LINEWORKS_API_ID}/message/v1/bot/${botToken}/message/push`,
+                {
+                    channelId: channelId,
+                    content: {
+                        type: "text",
+                        text: message
+                    }
+                },
+                {
+                    headers: {
+                        "Authorization": `Bearer ${process.env.LINEWORKS_ACCESS_TOKEN}`,
+                        "Content-Type": "application/json"
+                    },
+                    timeout: 10000
+                }
+            );
+
+            logger.info("LINEWORKS通知送信成功", {
+                status: lineworksResponse.status,
+                data: lineworksResponse.data
+            });
+
+            response.json({
+                success: true,
+                message: "LINEWORKS notification sent successfully",
+                lineworksResponse: {
+                    status: lineworksResponse.status,
+                    data: lineworksResponse.data
+                },
+                userData: {
+                    user_name: userData.user_name,
+                    company_name: userData.company_name,
+                    tantou: userData.tantou
+                }
+            });
+
+        } catch (error) {
+            logger.error("LINEWORKS通知送信エラー", error);
+
+            let errorMessage = "Unknown error";
+            let statusCode = 500;
+
+            if (error && typeof error === 'object' && 'response' in error) {
+                const axiosError: any = error;
+                errorMessage = `LINEWORKS API Error: ${axiosError.response?.status} - ${axiosError.response?.data?.message || axiosError.message}`;
+                statusCode = axiosError.response?.status || 500;
+            } else if (error instanceof Error) {
+                errorMessage = error.message;
+            }
+
+            response.status(statusCode).json({
+                error: "LINEWORKS notification failed",
+                details: errorMessage,
+                timestamp: new Date().toISOString()
+            });
+        }
+    }
+);
+
+// 統合通知Function（メールまたはLINEWORKS）
+export const sendUnifiedNotification = onRequest(
+    {
+        region: "asia-northeast1",
+        cors: ["https://qrscan2-99ffd.web.app", "http://localhost:3000", "http://localhost:8000"],
+    },
+    async (request, response) => {
+        try {
+            // CORSヘッダーを設定
+            response.set("Access-Control-Allow-Origin", "*");
+            response.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+            response.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+            if (request.method === "OPTIONS") {
+                response.status(200).send("");
+                return;
+            }
+
+            if (request.method !== "POST") {
+                response.status(405).json({ error: "Method not allowed" });
+                return;
+            }
+
+            const {
+                userData,
+                notificationMethod,
+                emailTo,
+                botToken,
+                channelId
+            } = request.body;
+
+            if (!userData || !notificationMethod) {
+                response.status(400).json({
+                    error: "Missing required parameters: userData, notificationMethod"
+                });
+                return;
+            }
+
+            logger.info("統合通知送信開始", {
+                method: notificationMethod,
+                userId: userData.user_id
+            });
+
+            if (notificationMethod === "lineworks") {
+                if (!botToken || !channelId) {
+                    response.status(400).json({
+                        error: "LINEWORKS method requires botToken and channelId"
+                    });
+                    return;
+                }
+
+                // LINEWORKS通知を送信
+                const message = `🎯 来場者到着のお知らせ
+
+👤 **${userData.company_name || ""}の${userData.user_name || ""}様**が来場されました！
+
+📋 **詳細情報**
+• ユーザーID: ${userData.user_id || ""}
+• 会社名: ${userData.company_name || ""}
+• 担当者: ${userData.tantou || ""}
+• 入場時刻: ${new Date().toLocaleString("ja-JP")}
+
+🤖 受付システムより自動送信`;
+
+                const lineworksResponse = await axios.post(
+                    `https://apis.worksmobile.com/r/${process.env.LINEWORKS_API_ID}/message/v1/bot/${botToken}/message/push`,
+                    {
+                        channelId: channelId,
+                        content: {
+                            type: "text",
+                            text: message
+                        }
+                    },
+                    {
+                        headers: {
+                            "Authorization": `Bearer ${process.env.LINEWORKS_ACCESS_TOKEN}`,
+                            "Content-Type": "application/json"
+                        },
+                        timeout: 10000
+                    }
+                );
+
+                response.json({
+                    success: true,
+                    method: "lineworks",
+                    message: "LINEWORKS notification sent successfully",
+                    lineworksResponse: {
+                        status: lineworksResponse.status
+                    }
+                });
+
+            } else if (notificationMethod === "mail") {
+                if (!emailTo) {
+                    response.status(400).json({
+                        error: "Email method requires emailTo parameter"
+                    });
+                    return;
+                }
+
+                // メール通知を送信（既存のロジック）
+                const transporter = nodemailer.createTransport({
+                    service: "gmail",
+                    auth: {
+                        user: process.env.GMAIL_USER,
+                        pass: process.env.GMAIL_APP_PASSWORD,
+                    },
+                });
+
+                const mailOptions = {
+                    from: process.env.GMAIL_USER,
+                    to: emailTo,
+                    subject: "来場者到着通知",
+                    html: `
+                        <h2>来場者到着のお知らせ</h2>
+                        <p><strong>${userData.company_name || ""}の${userData.user_name || ""}様</strong>が来場されました。</p>
+                        <hr>
+                        <h3>詳細情報</h3>
+                        <ul>
+                            <li><strong>ユーザーID:</strong> ${userData.user_id || ""}</li>
+                            <li><strong>会社名:</strong> ${userData.company_name || ""}</li>
+                            <li><strong>担当者:</strong> ${userData.tantou || ""}</li>
+                            <li><strong>入場時刻:</strong> ${new Date().toLocaleString("ja-JP")}</li>
+                        </ul>
+                        <hr>
+                        <p><small>受付システムより自動送信</small></p>
+                    `,
+                };
+
+                const info = await transporter.sendMail(mailOptions);
+
+                response.json({
+                    success: true,
+                    method: "mail",
+                    message: "Email notification sent successfully",
+                    messageId: info.messageId
+                });
+
+            } else {
+                response.status(400).json({
+                    error: "Invalid notification method. Use 'lineworks' or 'mail'"
+                });
+            }
+
+        } catch (error) {
+            logger.error("統合通知送信エラー", error);
+
+            let errorMessage = "Unknown error";
+            let statusCode = 500;
+
+            if (error && typeof error === 'object' && 'response' in error) {
+                const axiosError: any = error;
+                errorMessage = `API Error: ${axiosError.response?.status} - ${axiosError.response?.data?.message || axiosError.message}`;
+                statusCode = axiosError.response?.status || 500;
+            } else if (error instanceof Error) {
+                errorMessage = error.message;
+            }
+
+            response.status(statusCode).json({
+                error: "Unified notification failed",
+                details: errorMessage,
+                timestamp: new Date().toISOString()
             });
         }
     }

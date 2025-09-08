@@ -814,8 +814,14 @@ function handleLogout() {
 // 担当者通知機能（Firebase Extensions版）
 async function sendTantouNotification(userData) {
   try {
-    console.log("=== 担当者通知処理開始（Firebase Extensions版） ===");
+    console.log("=== 担当者通知処理開始（統合版） ===");
     console.log("来場者データ:", userData);
+
+    const tantou = userData.tantou;
+    if (!tantou) {
+      console.log("担当者が設定されていません。通知送信をスキップします。");
+      return;
+    }
 
     // 管理者設定からスタッフ通知方法を確認
     let staffNotificationMethod = 'lineworks'; // デフォルト値
@@ -832,121 +838,118 @@ async function sendTantouNotification(userData) {
       console.log('デフォルト設定（LINEWORKS）を使用します。');
     }
 
-    // LINEWORKSが設定されている場合は通知をスキップ
-    if (staffNotificationMethod === 'lineworks') {
-      console.log('スタッフ通知方法がLINEWORKSに設定されています。メール通知をスキップします。');
-      showSuccessMessage(
-        `${userData.user_name}様の入場を記録しました。担当者通知はLINEWORKS経由で行われます。`
-      );
-      return;
-    }
-
-    const tantou = userData.tantou;
-    if (!tantou) {
-      console.log("担当者が設定されていません。通知送信をスキップします。");
-      return;
-    }
-
     console.log("担当者:", tantou);
-    console.log("メール通知を実行します。");
+    console.log(`通知方法: ${staffNotificationMethod}`);
 
-    // スタッフのメールアドレスを取得
-    const staffEmail = await findStaffEmail(tantou);
-    if (!staffEmail) {
-      console.warn(`担当者「${tantou}」のメールアドレスが見つかりません。`);
-      showSuccessMessage(
-        `${userData.user_name}様の入場を記録しました。担当者「${tantou}」のメールアドレスが未設定です。`
-      );
-      return;
-    }
-
-    console.log("担当者メールアドレス:", staffEmail);
-
-    // Firebase Extensions用のメールドキュメントを作成
-    const emailData = {
-      to: [staffEmail], // 配列形式で指定（複数宛先も可能）
-      message: {
-        subject: "来場者到着通知",
-        html: `
-          <h2>来場者到着のお知らせ</h2>
-          <p><strong>${userData.company_name || ""}の${userData.user_name || ""
-          }様</strong>が来場されました。</p>
-          <hr>
-          <h3>詳細情報</h3>
-          <ul>
-            <li><strong>ユーザーID:</strong> ${userData.user_id || ""}</li>
-            <li><strong>会社名:</strong> ${userData.company_name || ""}</li>
-            <li><strong>担当者:</strong> ${tantou}</li>
-            <li><strong>入場時刻:</strong> ${new Date().toLocaleString(
-            "ja-JP"
-          )}</li>
-          </ul>
-          <hr>
-          <p><small>受付システムより自動送信</small></p>
-        `,
-        text:
-          `${userData.company_name || ""}の${userData.user_name || ""
-          }様が来場しました。\n\n` +
-          `詳細情報:\n` +
-          `- ユーザーID: ${userData.user_id || ""}\n` +
-          `- 会社名: ${userData.company_name || ""}\n` +
-          `- 担当者: ${tantou}\n` +
-          `- 入場時刻: ${new Date().toLocaleString("ja-JP")}\n\n` +
-          `受付システムより自動送信`,
-      },
-      // メタデータ（ログ用）
-      metadata: {
-        admin_id: currentAdmin.admin_id,
-        event_id: currentAdmin.event_id,
-        visitor_user_id: userData.user_id,
-        tantou: tantou,
-        type: "visitor_arrival",
-      },
-      timestamp: serverTimestamp(),
-    };
-
-    // Cloud Functions経由でメール送信
+    // 統合通知API呼び出し
     try {
-      const response = await fetch('https://sendnotificationemail-ijui6cxhzq-an.a.run.app', {
+      let requestBody = {
+        userData: userData,
+        notificationMethod: staffNotificationMethod
+      };
+
+      if (staffNotificationMethod === 'lineworks') {
+        // LINEWORKS設定を管理者設定から取得
+        let lineworksConfig = null;
+        try {
+          if (window.getAdminSetting) {
+            const fullSettings = await window.getAdminSetting('lineworksSettings');
+            if (fullSettings && fullSettings.apiId && fullSettings.botToken && fullSettings.channelId) {
+              lineworksConfig = fullSettings;
+              console.log("LINEWORKS設定を取得しました:", {
+                apiId: lineworksConfig.apiId.substring(0, 8) + '...',
+                channelId: lineworksConfig.channelId
+              });
+            }
+          }
+        } catch (settingError) {
+          console.warn('LINEWORKS設定取得エラー:', settingError);
+        }
+
+        if (!lineworksConfig) {
+          console.warn('LINEWORKS設定が未設定です。管理者設定で設定してください。');
+          showSuccessMessage(
+            `${userData.user_name}様の入場を記録しました。LINEWORKS設定が未設定のため通知を送信できませんでした。`
+          );
+          return;
+        }
+
+        requestBody.botToken = lineworksConfig.botToken;
+        requestBody.channelId = lineworksConfig.channelId;
+        requestBody.apiId = lineworksConfig.apiId;
+        requestBody.accessToken = lineworksConfig.accessToken;
+
+        console.log("LINEWORKS通知を送信します");
+      } else if (staffNotificationMethod === 'mail') {
+        // スタッフのメールアドレスを取得
+        const staffEmail = await findStaffEmail(tantou);
+        if (!staffEmail) {
+          console.warn(`担当者「${tantou}」のメールアドレスが見つかりません。`);
+          showSuccessMessage(
+            `${userData.user_name}様の入場を記録しました。担当者「${tantou}」のメールアドレスが未設定です。`
+          );
+          return;
+        }
+        requestBody.emailTo = staffEmail;
+        console.log("メール通知を送信します。宛先:", staffEmail);
+      }
+
+      const response = await fetch('https://sendunifiednotification-ijui6cxhzq-an.a.run.app', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          to: staffEmail,
-          subject: emailData.message.subject,
-          text: emailData.message.text,
-          adminId: currentAdmin.admin_id,
-          eventId: currentAdmin.event_id
-        })
+        body: JSON.stringify(requestBody)
       });
 
       if (response.ok) {
         const result = await response.json();
-        console.log("✅ メール送信成功:", result);
-        console.log(`- 宛先: ${staffEmail}`);
+        console.log("✅ 通知送信成功:", result);
+        console.log(`- 通知方法: ${result.method}`);
         console.log(`- 担当者: ${tantou}`);
         console.log(`- 来場者: ${userData.user_name || ""}`);
 
         // 成功メッセージを表示
+        const methodText = staffNotificationMethod === 'lineworks' ? 'LINEWORKS' : 'メール';
         showSuccessMessage(
-          `${userData.user_name}様の入場を記録し、担当者「${tantou}」にメール通知を送信しました。`
+          `${userData.user_name}様の入場を記録し、担当者「${tantou}」に${methodText}通知を送信しました。`
         );
       } else {
-        throw new Error(`メール送信API エラー: ${response.status}`);
+        const errorData = await response.json().catch(() => null);
+        throw new Error(`通知送信API エラー: ${response.status} - ${errorData?.details || 'Unknown error'}`);
       }
     } catch (error) {
-      console.error("メール送信エラー:", error);
+      console.error("通知送信エラー:", error);
 
-      // フォールバック: mailtoリンク生成
-      const mailtoUrl = `mailto:${encodeURIComponent(staffEmail)}?subject=${encodeURIComponent(emailData.message.subject)}&body=${encodeURIComponent(emailData.message.text)}`;
-      console.log("フォールバック: mailtoリンク生成", mailtoUrl);
+      // フォールバック処理
+      if (staffNotificationMethod === 'mail') {
+        const staffEmail = await findStaffEmail(tantou);
+        if (staffEmail) {
+          // フォールバック: mailtoリンク生成
+          const subject = "来場者到着通知";
+          const body = `${userData.company_name || ""}の${userData.user_name || ""}様が来場しました。\n\n` +
+            `詳細情報:\n` +
+            `- ユーザーID: ${userData.user_id || ""}\n` +
+            `- 会社名: ${userData.company_name || ""}\n` +
+            `- 担当者: ${tantou}\n` +
+            `- 入場時刻: ${new Date().toLocaleString("ja-JP")}\n\n` +
+            `受付システムより自動送信`;
+
+          const mailtoUrl = `mailto:${encodeURIComponent(staffEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+          console.log("フォールバック: mailtoリンク生成", mailtoUrl);
+        }
+      }
+
+      // エラーメッセージを表示
+      showSuccessMessage(
+        `${userData.user_name}様の入場を記録しました。通知の送信中にエラーが発生しました。`
+      );
     }
   } catch (error) {
     console.error("担当者通知処理エラー:", error);
     // エラーが発生してもシステム全体は継続
     showSuccessMessage(
-      `${userData.user_name}様の入場を記録しました。メール通知の送信中にエラーが発生しました。`
+      `${userData.user_name}様の入場を記録しました。通知処理中にエラーが発生しました。`
     );
   }
 }

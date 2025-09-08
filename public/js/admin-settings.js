@@ -147,6 +147,28 @@ function applySettingsToUI(settings) {
             console.warn(`ラジオボタンが見つかりません: ${settingName}[${value}]`);
         }
     });
+
+    // LINEWORKS設定を適用
+    if (settings.lineworksSettings) {
+        const lineworksSettings = settings.lineworksSettings;
+
+        const apiIdField = document.getElementById('lineworksApiId');
+        const accessTokenField = document.getElementById('lineworksAccessToken');
+        const botTokenField = document.getElementById('lineworksBotToken');
+        const channelIdField = document.getElementById('lineworksChannelId');
+
+        if (apiIdField) apiIdField.value = lineworksSettings.apiId || '';
+        if (accessTokenField) accessTokenField.value = lineworksSettings.accessToken || '';
+        if (botTokenField) botTokenField.value = lineworksSettings.botToken || '';
+        if (channelIdField) channelIdField.value = lineworksSettings.channelId || '';
+
+        console.log('LINEWORKS設定を適用しました');
+    }
+
+    // LINEWORKS設定の表示/非表示を制御
+    if (window.toggleLineworksSettings) {
+        window.toggleLineworksSettings();
+    }
 }
 
 /**
@@ -159,16 +181,23 @@ function showSettingSaveSuccess(settings) {
     const scanDataPrintJP = settings.scanDataPrint === 'enabled' ? '印刷する' : '印刷しない';
     const nametagSizeJP = settings.nametagSize === 'a6' ? 'A6サイズ' : 'A4サイズ';
 
-    const message = `設定が保存されました！\n\n` +
+    let message = `設定が保存されました！\n\n` +
         `🏷️ 名札印刷タイミング: ${nametagTimingJP}\n` +
         `📄 スキャンデータ控え: ${scanDataPrintJP}\n` +
         `📢 スタッフ通知方法: ${staffNotificationJP}\n` +
         `📏 名札印刷サイズ: ${nametagSizeJP}`;
 
-    alert(message);
-}
+    // LINEWORKS設定が含まれている場合
+    if (settings.lineworksSettings && settings.staffNotification === 'lineworks') {
+        const apiId = settings.lineworksSettings.apiId;
+        const channelId = settings.lineworksSettings.channelId;
+        message += `\n\n🔧 LINEWORKS設定:\n` +
+            `  • テナントID: ${apiId ? apiId.substring(0, 8) + '...' : '未設定'}\n` +
+            `  • チャンネルID: ${channelId || '未設定'}`;
+    }
 
-/**
+    alert(message);
+}/**
  * 特定の設定値を取得
  * @param {string} settingName - 設定名
  * @returns {Promise<string>} 設定値
@@ -185,6 +214,12 @@ window.getAdminSetting = async function (settingName) {
 
         if (settingsDoc.exists()) {
             const settings = settingsDoc.data();
+
+            // 特別な処理：lineworksSettingsの場合は設定オブジェクト全体を返す
+            if (settingName === 'lineworksSettings') {
+                return settings.lineworksSettings || null;
+            }
+
             return settings[settingName] || getDefaultSettings()[settingName];
         } else {
             return getDefaultSettings()[settingName];

@@ -955,6 +955,46 @@
                                 <span class="toggle-label">mail</span>
                             </label>
                         </div>
+
+                        <!-- LINEWORKS詳細設定 -->
+                        <div id="lineworksSettings"
+                            style="margin-top: 20px; padding: 20px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #28a745;">
+                            <h4 style="color: #28a745; margin: 0 0 15px 0;">🔧 LINEWORKS設定</h4>
+                            <div style="display: grid; gap: 15px;">
+                                <div>
+                                    <label style="display: block; font-weight: bold; margin-bottom: 5px;">テナントID (API
+                                        ID):</label>
+                                    <input type="text" id="lineworksApiId" placeholder="例: 1234567890"
+                                        style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                    <small style="color: #6c757d;">LINEWORKS Developer Consoleで取得</small>
+                                </div>
+                                <div>
+                                    <label
+                                        style="display: block; font-weight: bold; margin-bottom: 5px;">アクセストークン:</label>
+                                    <input type="password" id="lineworksAccessToken"
+                                        placeholder="例: aBcDeFgHiJkL1234567890"
+                                        style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                    <small style="color: #6c757d;">Server API用アクセストークン</small>
+                                </div>
+                                <div>
+                                    <label
+                                        style="display: block; font-weight: bold; margin-bottom: 5px;">ボットトークン:</label>
+                                    <input type="password" id="lineworksBotToken" placeholder="例: xYzAbC123456789"
+                                        style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                    <small style="color: #6c757d;">Bot用トークン</small>
+                                </div>
+                                <div>
+                                    <label
+                                        style="display: block; font-weight: bold; margin-bottom: 5px;">チャンネルID:</label>
+                                    <input type="text" id="lineworksChannelId" placeholder="例: ch-987654321"
+                                        style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                    <small style="color: #6c757d;">通知送信先チャンネル</small>
+                                </div>
+                            </div>
+                            <div style="margin-top: 15px; padding: 15px; background: #fff3cd; border-radius: 4px;">
+                                <strong>⚠️ 注意:</strong> これらの情報は暗号化して保存されます。LINEWORKS管理者にお問い合わせください。
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -1105,12 +1145,33 @@
 
         function saveDetailSettings() {
             // 現在の設定値を取得
+            const staffNotification = document.querySelector('input[name="staffNotification"]:checked')?.value;
+
             const settings = {
                 nametagTiming: document.querySelector('input[name="nametagTiming"]:checked')?.value,
                 scanDataPrint: document.querySelector('input[name="scanDataPrint"]:checked')?.value,
-                staffNotification: document.querySelector('input[name="staffNotification"]:checked')?.value,
+                staffNotification: staffNotification,
                 nametagSize: document.querySelector('input[name="nametagSize"]:checked')?.value
             };
+
+            // LINEWORKS設定が選択されている場合、追加設定を含める
+            if (staffNotification === 'lineworks') {
+                settings.lineworksSettings = {
+                    apiId: document.getElementById('lineworksApiId')?.value || '',
+                    accessToken: document.getElementById('lineworksAccessToken')?.value || '',
+                    botToken: document.getElementById('lineworksBotToken')?.value || '',
+                    channelId: document.getElementById('lineworksChannelId')?.value || ''
+                };
+
+                // LINEWORKS設定の検証
+                const requiredFields = ['apiId', 'accessToken', 'botToken', 'channelId'];
+                const missingFields = requiredFields.filter(field => !settings.lineworksSettings[field]);
+
+                if (missingFields.length > 0) {
+                    alert(`LINEWORKS設定が不完全です。以下の項目を入力してください:\n${missingFields.join(', ')}`);
+                    return;
+                }
+            }
 
             console.log('保存する設定:', settings);
 
@@ -1126,9 +1187,39 @@
                 document.querySelector('input[name="staffNotification"][value="lineworks"]').checked = true;
                 document.querySelector('input[name="nametagSize"][value="a6"]').checked = true;
 
+                // LINEWORKS設定もクリア
+                document.getElementById('lineworksApiId').value = '';
+                document.getElementById('lineworksAccessToken').value = '';
+                document.getElementById('lineworksBotToken').value = '';
+                document.getElementById('lineworksChannelId').value = '';
+
+                // LINEWORKS設定の表示を更新
+                toggleLineworksSettings();
+
                 console.log('設定をデフォルト値にリセットしました');
             }
         }
+
+        // LINEWORKS設定の表示/非表示を制御
+        function toggleLineworksSettings() {
+            const staffNotification = document.querySelector('input[name="staffNotification"]:checked')?.value;
+            const lineworksSettings = document.getElementById('lineworksSettings');
+
+            if (lineworksSettings) {
+                if (staffNotification === 'lineworks') {
+                    lineworksSettings.style.display = 'block';
+                } else {
+                    lineworksSettings.style.display = 'none';
+                }
+            }
+        }
+
+        // ラジオボタンの変更を監視
+        document.addEventListener('change', function (event) {
+            if (event.target.name === 'staffNotification') {
+                toggleLineworksSettings();
+            }
+        });
 
         // モーダル外クリックで閉じる
         document.addEventListener('click', function (event) {

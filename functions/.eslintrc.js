@@ -18,6 +18,7 @@ module.exports = {
     rules: {
         "no-restricted-globals": ["error", "name", "length"],
         "prefer-arrow-callback": "error",
+        "@typescript-eslint/no-explicit-any": "off",
         "quotes": ["error", "double", { "allowTemplateLiterals": true }],
     },
 };
