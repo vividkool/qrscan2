@@ -260,7 +260,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     // テストユーザーの場合は継承したadmin_idとevent_idを優先使用
     admin_id:
       firebaseUser.uid === "kF5eX2FYyBUpxeNxfo6Jvlya38P2" &&
-      inheritedAdminData?.admin_id
+        inheritedAdminData?.admin_id
         ? inheritedAdminData.admin_id
         : adminData?.admin_id || userData?.admin_id || firebaseUser.uid,
 
@@ -275,7 +275,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     // テストユーザーの場合は継承したevent_idを優先使用
     event_id:
       firebaseUser.uid === "kF5eX2FYyBUpxeNxfo6Jvlya38P2" &&
-      inheritedAdminData?.event_id
+        inheritedAdminData?.event_id
         ? inheritedAdminData.event_id
         : adminData?.event_id || userData?.event_id,
 
@@ -295,26 +295,26 @@ document.addEventListener("DOMContentLoaded", async function () {
     // 継承したadminデータから追加情報を取得（テストユーザーの場合）
     ...(firebaseUser.uid === "kF5eX2FYyBUpxeNxfo6Jvlya38P2" &&
       inheritedAdminData && {
-        ...(inheritedAdminData.company_name && {
-          company_name: inheritedAdminData.company_name,
-        }),
-        ...(inheritedAdminData.project_name && {
-          project_name: inheritedAdminData.project_name,
-        }),
-        ...(inheritedAdminData.event_date && {
-          event_date: inheritedAdminData.event_date,
-        }),
+      ...(inheritedAdminData.company_name && {
+        company_name: inheritedAdminData.company_name,
       }),
+      ...(inheritedAdminData.project_name && {
+        project_name: inheritedAdminData.project_name,
+      }),
+      ...(inheritedAdminData.event_date && {
+        event_date: inheritedAdminData.event_date,
+      }),
+    }),
 
     // userDataからのフォールバック（admin_settingsが無い場合）
     ...(!adminData &&
       userData && {
-        ...(userData.admin_name && { admin_name: userData.admin_name }),
-        ...(userData.company_name && { company_name: userData.company_name }),
-        ...(userData.email && { email: userData.email }),
-        ...(userData.project_name && { project_name: userData.project_name }),
-        ...(userData.event_date && { event_date: userData.event_date }),
-      }),
+      ...(userData.admin_name && { admin_name: userData.admin_name }),
+      ...(userData.company_name && { company_name: userData.company_name }),
+      ...(userData.email && { email: userData.email }),
+      ...(userData.project_name && { project_name: userData.project_name }),
+      ...(userData.event_date && { event_date: userData.event_date }),
+    }),
   };
   window.currentAdmin = currentAdmin;
 
@@ -328,8 +328,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   console.log(
     "Admin別コレクションパス:",
-    `admin_collections/${currentAdmin.admin_id}/${
-      currentAdmin.event_id || "NO_EVENT_ID"
+    `admin_collections/${currentAdmin.admin_id}/${currentAdmin.event_id || "NO_EVENT_ID"
     }/`
   );
 
@@ -349,9 +348,8 @@ document.addEventListener("DOMContentLoaded", async function () {
             <li>UID: ${firebaseUser.uid}</li>
             <li>admin_id: ${currentAdmin.admin_id}</li>
             <li>event_id: ${currentAdmin.event_id || "未設定"}</li>
-            <li>admin_settingsからデータ取得: ${
-              !!adminData ? "成功" : "失敗"
-            }</li>
+            <li>admin_settingsからデータ取得: ${!!adminData ? "成功" : "失敗"
+        }</li>
           </ul>
           <p>管理者にadmin_settingsコレクションの設定をご確認ください。</p>
         </div>
@@ -437,12 +435,10 @@ async function loadUsersList() {
       <div class="error">
         <p>ユーザー一覧の読み込み中にエラーが発生しました。</p>
         <p style="font-size: 12px;">${error.message}</p>
-        <p style="font-size: 10px;">Admin ID: ${
-          currentAdmin?.admin_id || "未設定"
-        }</p>
-        <p style="font-size: 10px;">Event ID: ${
-          currentAdmin?.event_id || "未設定"
-        }</p>
+        <p style="font-size: 10px;">Admin ID: ${currentAdmin?.admin_id || "未設定"
+      }</p>
+        <p style="font-size: 10px;">Event ID: ${currentAdmin?.event_id || "未設定"
+      }</p>
       </div>
     `;
   }
@@ -501,36 +497,32 @@ function displayUsersTable() {
         <td>
           <button 
             class="action-btn btn-success" 
-            onclick="changeStatus('${userData.docId}', '${
-      userData.user_name
-    }', '入場中')"
+            onclick="changeStatus('${userData.docId}', '${userData.user_name
+      }', '入場中')"
             ${status === "入場中" ? "disabled" : ""}
           >
             入場
           </button>
           <button 
             class="action-btn btn-danger" 
-            onclick="changeStatus('${userData.docId}', '${
-      userData.user_name
-    }', '退場済')"
+            onclick="changeStatus('${userData.docId}', '${userData.user_name
+      }', '退場済')"
             ${status === "退場済" ? "disabled" : ""}
           >
             退場
           </button>
           <button 
             class="action-btn btn-warning" 
-            onclick="changePrintStatus('${userData.docId}', '${
-      userData.user_name
-    }', '済')"
+            onclick="changePrintStatus('${userData.docId}', '${userData.user_name
+      }', '済')"
             ${printStatus === "済" ? "disabled" : ""}
           >
             印刷済
           </button>
           <button 
             class="action-btn btn-secondary" 
-            onclick="changePrintStatus('${userData.docId}', '${
-      userData.user_name
-    }', '未')"
+            onclick="changePrintStatus('${userData.docId}', '${userData.user_name
+      }', '未')"
             ${printStatus === "未" ? "disabled" : ""}
           >
             印刷取消
@@ -897,9 +889,8 @@ async function sendTantouNotification(userData) {
         subject: "来場者到着通知",
         html: `
           <h2>来場者到着のお知らせ</h2>
-          <p><strong>${userData.company_name || ""}の${
-          userData.user_name || ""
-        }様</strong>が来場されました。</p>
+          <p><strong>${userData.company_name || ""}の${userData.user_name || ""
+          }様</strong>が来場されました。</p>
           <hr>
           <h3>詳細情報</h3>
           <ul>
@@ -907,15 +898,14 @@ async function sendTantouNotification(userData) {
             <li><strong>会社名:</strong> ${userData.company_name || ""}</li>
             <li><strong>担当者:</strong> ${tantou}</li>
             <li><strong>入場時刻:</strong> ${new Date().toLocaleString(
-              "ja-JP"
-            )}</li>
+            "ja-JP"
+          )}</li>
           </ul>
           <hr>
           <p><small>受付システムより自動送信</small></p>
         `,
         text:
-          `${userData.company_name || ""}の${
-            userData.user_name || ""
+          `${userData.company_name || ""}の${userData.user_name || ""
           }様が来場しました。\n\n` +
           `詳細情報:\n` +
           `- ユーザーID: ${userData.user_id || ""}\n` +
@@ -935,20 +925,43 @@ async function sendTantouNotification(userData) {
       timestamp: serverTimestamp(),
     };
 
-    // mailコレクションにドキュメントを追加（Firebase Extensionsが自動処理）
-    await addDoc(collection(db, "mail"), emailData);
+    // Cloud Functions経由でメール送信
+    try {
+      const response = await fetch('https://sendnotificationemail-ijui6cxhzq-an.a.run.app', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          to: staffEmail,
+          subject: emailData.message.subject,
+          text: emailData.message.text,
+          adminId: currentAdmin.admin_id,
+          eventId: currentAdmin.event_id
+        })
+      });
 
-    console.log(
-      "🔔 Firebase Extensions経由でメール送信ドキュメントを作成しました:"
-    );
-    console.log(`- 宛先: ${staffEmail}`);
-    console.log(`- 担当者: ${tantou}`);
-    console.log(`- 来場者: ${userData.user_name || ""}`);
+      if (response.ok) {
+        const result = await response.json();
+        console.log("✅ メール送信成功:", result);
+        console.log(`- 宛先: ${staffEmail}`);
+        console.log(`- 担当者: ${tantou}`);
+        console.log(`- 来場者: ${userData.user_name || ""}`);
 
-    // 成功メッセージを表示
-    showSuccessMessage(
-      `${userData.user_name}様の入場を記録し、担当者「${tantou}」にメール通知を送信しました。`
-    );
+        // 成功メッセージを表示
+        showSuccessMessage(
+          `${userData.user_name}様の入場を記録し、担当者「${tantou}」にメール通知を送信しました。`
+        );
+      } else {
+        throw new Error(`メール送信API エラー: ${response.status}`);
+      }
+    } catch (error) {
+      console.error("メール送信エラー:", error);
+
+      // フォールバック: mailtoリンク生成
+      const mailtoUrl = `mailto:${encodeURIComponent(staffEmail)}?subject=${encodeURIComponent(emailData.message.subject)}&body=${encodeURIComponent(emailData.message.text)}`;
+      console.log("フォールバック: mailtoリンク生成", mailtoUrl);
+    }
   } catch (error) {
     console.error("担当者通知処理エラー:", error);
     // エラーが発生してもシステム全体は継続
