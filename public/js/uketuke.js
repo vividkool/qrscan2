@@ -260,7 +260,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     // テストユーザーの場合は継承したadmin_idとevent_idを優先使用
     admin_id:
       firebaseUser.uid === "kF5eX2FYyBUpxeNxfo6Jvlya38P2" &&
-        inheritedAdminData?.admin_id
+      inheritedAdminData?.admin_id
         ? inheritedAdminData.admin_id
         : adminData?.admin_id || userData?.admin_id || firebaseUser.uid,
 
@@ -275,7 +275,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     // テストユーザーの場合は継承したevent_idを優先使用
     event_id:
       firebaseUser.uid === "kF5eX2FYyBUpxeNxfo6Jvlya38P2" &&
-        inheritedAdminData?.event_id
+      inheritedAdminData?.event_id
         ? inheritedAdminData.event_id
         : adminData?.event_id || userData?.event_id,
 
@@ -295,26 +295,26 @@ document.addEventListener("DOMContentLoaded", async function () {
     // 継承したadminデータから追加情報を取得（テストユーザーの場合）
     ...(firebaseUser.uid === "kF5eX2FYyBUpxeNxfo6Jvlya38P2" &&
       inheritedAdminData && {
-      ...(inheritedAdminData.company_name && {
-        company_name: inheritedAdminData.company_name,
+        ...(inheritedAdminData.company_name && {
+          company_name: inheritedAdminData.company_name,
+        }),
+        ...(inheritedAdminData.project_name && {
+          project_name: inheritedAdminData.project_name,
+        }),
+        ...(inheritedAdminData.event_date && {
+          event_date: inheritedAdminData.event_date,
+        }),
       }),
-      ...(inheritedAdminData.project_name && {
-        project_name: inheritedAdminData.project_name,
-      }),
-      ...(inheritedAdminData.event_date && {
-        event_date: inheritedAdminData.event_date,
-      }),
-    }),
 
     // userDataからのフォールバック（admin_settingsが無い場合）
     ...(!adminData &&
       userData && {
-      ...(userData.admin_name && { admin_name: userData.admin_name }),
-      ...(userData.company_name && { company_name: userData.company_name }),
-      ...(userData.email && { email: userData.email }),
-      ...(userData.project_name && { project_name: userData.project_name }),
-      ...(userData.event_date && { event_date: userData.event_date }),
-    }),
+        ...(userData.admin_name && { admin_name: userData.admin_name }),
+        ...(userData.company_name && { company_name: userData.company_name }),
+        ...(userData.email && { email: userData.email }),
+        ...(userData.project_name && { project_name: userData.project_name }),
+        ...(userData.event_date && { event_date: userData.event_date }),
+      }),
   };
   window.currentAdmin = currentAdmin;
 
@@ -328,7 +328,8 @@ document.addEventListener("DOMContentLoaded", async function () {
 
   console.log(
     "Admin別コレクションパス:",
-    `admin_collections/${currentAdmin.admin_id}/${currentAdmin.event_id || "NO_EVENT_ID"
+    `admin_collections/${currentAdmin.admin_id}/${
+      currentAdmin.event_id || "NO_EVENT_ID"
     }/`
   );
 
@@ -348,8 +349,9 @@ document.addEventListener("DOMContentLoaded", async function () {
             <li>UID: ${firebaseUser.uid}</li>
             <li>admin_id: ${currentAdmin.admin_id}</li>
             <li>event_id: ${currentAdmin.event_id || "未設定"}</li>
-            <li>admin_settingsからデータ取得: ${!!adminData ? "成功" : "失敗"
-        }</li>
+            <li>admin_settingsからデータ取得: ${
+              !!adminData ? "成功" : "失敗"
+            }</li>
           </ul>
           <p>管理者にadmin_settingsコレクションの設定をご確認ください。</p>
         </div>
@@ -435,10 +437,12 @@ async function loadUsersList() {
       <div class="error">
         <p>ユーザー一覧の読み込み中にエラーが発生しました。</p>
         <p style="font-size: 12px;">${error.message}</p>
-        <p style="font-size: 10px;">Admin ID: ${currentAdmin?.admin_id || "未設定"
-      }</p>
-        <p style="font-size: 10px;">Event ID: ${currentAdmin?.event_id || "未設定"
-      }</p>
+        <p style="font-size: 10px;">Admin ID: ${
+          currentAdmin?.admin_id || "未設定"
+        }</p>
+        <p style="font-size: 10px;">Event ID: ${
+          currentAdmin?.event_id || "未設定"
+        }</p>
       </div>
     `;
   }
@@ -501,32 +505,36 @@ function displayUsersTable() {
         <td>
           <button 
             class="action-btn btn-success" 
-            onclick="changeStatus('${userData.docId}', '${userData.user_name
-      }', '入場中')"
+            onclick="changeStatus('${userData.docId}', '${
+      userData.user_name
+    }', '入場中')"
             ${status === "入場中" ? "disabled" : ""}
           >
             入場
           </button>
           <button 
             class="action-btn btn-danger" 
-            onclick="changeStatus('${userData.docId}', '${userData.user_name
-      }', '退場済')"
+            onclick="changeStatus('${userData.docId}', '${
+      userData.user_name
+    }', '退場済')"
             ${status === "退場済" ? "disabled" : ""}
           >
             退場
           </button>
           <button 
             class="action-btn btn-warning" 
-            onclick="changePrintStatus('${userData.docId}', '${userData.user_name
-      }', '済')"
+            onclick="changePrintStatus('${userData.docId}', '${
+      userData.user_name
+    }', '済')"
             ${printStatus === "済" ? "disabled" : ""}
           >
             印刷済
           </button>
           <button 
             class="action-btn btn-secondary" 
-            onclick="changePrintStatus('${userData.docId}', '${userData.user_name
-      }', '未')"
+            onclick="changePrintStatus('${userData.docId}', '${
+      userData.user_name
+    }', '未')"
             ${printStatus === "未" ? "disabled" : ""}
           >
             印刷取消
@@ -838,18 +846,22 @@ async function sendTantouNotification(userData) {
     }
 
     // 管理者設定からスタッフ通知方法を確認
-    let staffNotificationMethod = 'lineworks'; // デフォルト値
+    let staffNotificationMethod = "lineworks"; // デフォルト値
 
     try {
       if (window.getAdminSetting) {
-        staffNotificationMethod = await window.getAdminSetting('staffNotification');
+        staffNotificationMethod = await window.getAdminSetting(
+          "staffNotification"
+        );
         console.log("スタッフ通知設定:", staffNotificationMethod);
       } else {
-        console.warn('getAdminSetting関数が利用できません。デフォルト設定を使用します。');
+        console.warn(
+          "getAdminSetting関数が利用できません。デフォルト設定を使用します。"
+        );
       }
     } catch (settingError) {
-      console.warn('設定取得エラー:', settingError);
-      console.log('デフォルト設定（LINEWORKS）を使用します。');
+      console.warn("設定取得エラー:", settingError);
+      console.log("デフォルト設定（LINEWORKS）を使用します。");
     }
 
     console.log("担当者:", tantou);
@@ -859,29 +871,38 @@ async function sendTantouNotification(userData) {
     try {
       let requestBody = {
         userData: userData,
-        notificationMethod: staffNotificationMethod
+        notificationMethod: staffNotificationMethod,
       };
 
-      if (staffNotificationMethod === 'lineworks') {
+      if (staffNotificationMethod === "lineworks") {
         // LINEWORKS設定を管理者設定から取得
         let lineworksConfig = null;
         try {
           if (window.getAdminSetting) {
-            const fullSettings = await window.getAdminSetting('lineworksSettings');
-            if (fullSettings && fullSettings.apiId && fullSettings.botToken && fullSettings.channelId) {
+            const fullSettings = await window.getAdminSetting(
+              "lineworksSettings"
+            );
+            if (
+              fullSettings &&
+              fullSettings.apiId &&
+              fullSettings.botToken &&
+              fullSettings.channelId
+            ) {
               lineworksConfig = fullSettings;
               console.log("LINEWORKS設定を取得しました:", {
-                apiId: lineworksConfig.apiId.substring(0, 8) + '...',
-                channelId: lineworksConfig.channelId
+                apiId: lineworksConfig.apiId.substring(0, 8) + "...",
+                channelId: lineworksConfig.channelId,
               });
             }
           }
         } catch (settingError) {
-          console.warn('LINEWORKS設定取得エラー:', settingError);
+          console.warn("LINEWORKS設定取得エラー:", settingError);
         }
 
         if (!lineworksConfig) {
-          console.warn('LINEWORKS設定が未設定です。管理者設定で設定してください。');
+          console.warn(
+            "LINEWORKS設定が未設定です。管理者設定で設定してください。"
+          );
           showSuccessMessage(
             `${userData.user_name}様の入場を記録しました。LINEWORKS設定が未設定のため通知を送信できませんでした。`
           );
@@ -894,7 +915,7 @@ async function sendTantouNotification(userData) {
         requestBody.accessToken = lineworksConfig.accessToken;
 
         console.log("LINEWORKS通知を送信します");
-      } else if (staffNotificationMethod === 'mail') {
+      } else if (staffNotificationMethod === "mail") {
         // スタッフのメールアドレスを取得
         const staffEmail = await findStaffEmail(tantou);
         if (!staffEmail) {
@@ -908,13 +929,16 @@ async function sendTantouNotification(userData) {
         console.log("メール通知を送信します。宛先:", staffEmail);
       }
 
-      const response = await fetch('https://sendunifiednotification-ijui6cxhzq-an.a.run.app', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody)
-      });
+      const response = await fetch(
+        "https://sendunifiednotification-ijui6cxhzq-an.a.run.app",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(requestBody),
+        }
+      );
 
       if (response.ok) {
         const result = await response.json();
@@ -924,24 +948,32 @@ async function sendTantouNotification(userData) {
         console.log(`- 来場者: ${userData.user_name || ""}`);
 
         // 成功メッセージを表示
-        const methodText = staffNotificationMethod === 'lineworks' ? 'LINEWORKS' : 'メール';
+        const methodText =
+          staffNotificationMethod === "lineworks" ? "LINEWORKS" : "メール";
         showSuccessMessage(
           `${userData.user_name}様の入場を記録し、担当者「${tantou}」に${methodText}通知を送信しました。`
         );
       } else {
         const errorData = await response.json().catch(() => null);
-        throw new Error(`通知送信API エラー: ${response.status} - ${errorData?.details || 'Unknown error'}`);
+        throw new Error(
+          `通知送信API エラー: ${response.status} - ${
+            errorData?.details || "Unknown error"
+          }`
+        );
       }
     } catch (error) {
       console.error("通知送信エラー:", error);
 
       // フォールバック処理
-      if (staffNotificationMethod === 'mail') {
+      if (staffNotificationMethod === "mail") {
         const staffEmail = await findStaffEmail(tantou);
         if (staffEmail) {
           // フォールバック: mailtoリンク生成
           const subject = "来場者到着通知";
-          const body = `${userData.company_name || ""}の${userData.user_name || ""}様が来場しました。\n\n` +
+          const body =
+            `${userData.company_name || ""}の${
+              userData.user_name || ""
+            }様が来場しました。\n\n` +
             `詳細情報:\n` +
             `- ユーザーID: ${userData.user_id || ""}\n` +
             `- 会社名: ${userData.company_name || ""}\n` +
@@ -949,7 +981,11 @@ async function sendTantouNotification(userData) {
             `- 入場時刻: ${new Date().toLocaleString("ja-JP")}\n\n` +
             `受付システムより自動送信`;
 
-          const mailtoUrl = `mailto:${encodeURIComponent(staffEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+          const mailtoUrl = `mailto:${encodeURIComponent(
+            staffEmail
+          )}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(
+            body
+          )}`;
           console.log("フォールバック: mailtoリンク生成", mailtoUrl);
         }
       }
@@ -1020,89 +1056,70 @@ async function findStaffEmail(tantouName) {
   }
 }
 
-
-
-// ユーザー直リンクを新しいタブで開く
+// ユーザー直リンクを新しいタブで開く（login.html経由に変更）
 function openUserDirect(directLink) {
   try {
-    console.log('ユーザー直リンクを開きます:', directLink);
+    console.log("ユーザー直リンクを開きます:", directLink);
 
-    // 新しいタブで開く
-    const newWindow = window.open(directLink, '_blank');
+    // URLからパラメータを抽出
+    const url = new URL(directLink);
+    const userId = url.searchParams.get("user_id");
+    const adminId = url.searchParams.get("admin_id");
+    const eventId = url.searchParams.get("event_id");
 
-    if (newWindow) {
-      newWindow.focus();
-      showSuccessMessage('ユーザー画面を新しいタブで開きました。');
-    } else {
-      // ポップアップブロッカーでブロックされた場合
-      console.warn('ポップアップがブロックされました。直接リンクをコピーします。');
-
-      // クリップボードにコピー
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(directLink).then(() => {
-          showSuccessMessage('ユーザー画面のリンクをクリップボードにコピーしました。新しいタブで貼り付けてアクセスしてください。');
-        }).catch(() => {
-          // フォールバック: alert でリンクを表示
-          alert(`ユーザー画面リンク:\n\n${directLink}\n\nこのリンクをコピーして新しいタブで開いてください。`);
-        });
-      } else {
-        // フォールバック: alert でリンクを表示
-        alert(`ユーザー画面リンク:\n\n${directLink}\n\nこのリンクをコピーして新しいタブで開いてください。`);
-      }
-    }
-  } catch (error) {
-    console.error('ユーザー直リンク処理エラー:', error);
-    showErrorMessage('ユーザー画面を開く際にエラーが発生しました。');
-  }
-}
-
-// ユーザー一覧をExcel形式でエクスポート（将来の機能拡張用）
-function exportUsersList() {
-  try {
-    console.log('ユーザー一覧のエクスポートを開始します');
-
-    if (!allUsers || allUsers.length === 0) {
-      showErrorMessage('エクスポートするユーザーデータがありません。');
+    if (!userId || !adminId || !eventId) {
+      console.error("必要なパラメータが不足しています:", {
+        userId,
+        adminId,
+        eventId,
+      });
+      showErrorMessage("リンクパラメータが不正です。");
       return;
     }
 
-    // CSV形式でエクスポート
-    const headers = ['ユーザーID', '会社名', 'ユーザー名', '担当者', '入退場ステータス', '印刷ステータス'];
-    const csvContent = [
-      headers.join(','),
-      ...allUsers.map(user => [
-        user.user_id || '',
-        user.company_name || '',
-        user.user_name || '',
-        user.tantou || '',
-        user.status || '未設定',
-        user.print_status || '未'
-      ].join(','))
-    ].join('\n');
+    // login.html経由でQRコード認証を実行するURLを生成
+    const baseUrl = window.location.origin;
+    const loginUrl = `${baseUrl}/login.html?user_id=${userId}&admin_id=${adminId}&event_id=${eventId}`;
 
-    // BOMを追加してUTF-8で正しく表示されるようにする
-    const bom = '\uFEFF';
-    const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
+    console.log("login.html経由のQRコード認証URL:", loginUrl);
 
-    // ダウンロードリンクを作成
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
+    // 新しいタブで開く
+    const newWindow = window.open(loginUrl, "_blank");
 
-    const now = new Date();
-    const timestamp = now.toISOString().slice(0, 19).replace(/[:-]/g, '');
-    link.setAttribute('download', `ユーザー一覧_${timestamp}.csv`);
+    if (newWindow) {
+      newWindow.focus();
+      showSuccessMessage("ユーザー認証画面を新しいタブで開きました。");
+    } else {
+      // ポップアップブロッカーでブロックされた場合
+      console.warn(
+        "ポップアップがブロックされました。直接リンクをコピーします。"
+      );
 
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    showSuccessMessage(`ユーザー一覧（${allUsers.length}件）をCSVファイルでエクスポートしました。`);
-
+      // クリップボードにコピー
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard
+          .writeText(loginUrl)
+          .then(() => {
+            showSuccessMessage(
+              "ユーザー認証画面のリンクをクリップボードにコピーしました。新しいタブで貼り付けてアクセスしてください。"
+            );
+          })
+          .catch(() => {
+            // フォールバック: alert でリンクを表示
+            alert(
+              `ユーザー認証画面リンク:\n\n${loginUrl}\n\nこのリンクをコピーして新しいタブで開いてください。`
+            );
+          });
+      } else {
+        // フォールバック: alert でリンクを表示
+        alert(
+          `ユーザー認証画面リンク:\n\n${loginUrl}\n\nこのリンクをコピーして新しいタブで開いてください。`
+        );
+      }
+    }
   } catch (error) {
-    console.error('エクスポートエラー:', error);
-    showErrorMessage('エクスポート処理中にエラーが発生しました。');
+    console.error("ユーザー直リンク処理エラー:", error);
+    showErrorMessage("ユーザー画面を開く際にエラーが発生しました。");
   }
 }
 
@@ -1110,7 +1127,6 @@ function exportUsersList() {
 window.changeStatus = changeStatus;
 window.changePrintStatus = changePrintStatus;
 window.refreshUsersList = refreshUsersList;
-window.exportUsersList = exportUsersList;
 window.handleLogout = handleLogout;
 window.openUserDirect = openUserDirect;
 

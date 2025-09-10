@@ -26,201 +26,221 @@ const firebaseConfig = {
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// DOM Elements
-const loginForm = document.getElementById("loginForm");
-const admin_idInput = document.getElementById("adminId");
-const user_idInput = document.getElementById("userId");
-const loginButton = document.getElementById("loginButton");
-const loading = document.getElementById("loading");
-const loadingText = document.getElementById("loadingText");
-const errorMessage = document.getElementById("errorMessage");
-const successMessage = document.getElementById("successMessage");
+// QRコード認証専用 - DOM要素は不要
 
 function showError(msg) {
-  showToast(msg, 'error');
-  errorMessage.textContent = msg;
-  errorMessage.style.display = "block";
-  successMessage.style.display = "none";
+  console.error("QRコード認証エラー:", msg);
+  // HTMLページのエラー表示領域があれば使用
+  const messageArea = document.getElementById("messageArea");
+  if (messageArea) {
+    messageArea.innerHTML = `<div class="error-message">${msg}</div>`;
+  }
 }
 
 function showSuccess(msg) {
-  showToast(msg, 'success');
-  successMessage.textContent = msg;
-  successMessage.style.display = "block";
-  errorMessage.style.display = "none";
+  console.log("QRコード認証成功:", msg);
+  // HTMLページの成功表示領域があれば使用
+  const messageArea = document.getElementById("messageArea");
+  if (messageArea) {
+    messageArea.innerHTML = `<div class="success-message">${msg}</div>`;
+  }
 }
-
-// トーストメッセージ表示機能
-function showToast(message, type = 'error') {
-  const toast = document.getElementById('toast');
-
-  // トーストの内容とスタイルを設定
-  toast.textContent = message;
-  toast.className = `toast ${type}`;
-
-  // トーストを表示
-  toast.classList.add('show');
-
-  // 4秒後に自動で非表示
-  setTimeout(() => {
-    toast.classList.remove('show');
-  }, 4000);
-}
-
-// 新規管理者登録ページへ遷移
-function goToAdminRegister() {
-  window.location.href = 'index.html';
-}
-
-// グローバル関数として公開
-window.goToAdminRegister = goToAdminRegister;
 
 function toggleLoading(show, text = "処理中...") {
-  loading.style.display = show ? "flex" : "none";
-  loadingText.textContent = text;
-  loginButton.disabled = show;
+  const loadingArea = document.getElementById("loadingArea");
+  const statusMessage = document.getElementById("statusMessage");
+
+  if (loadingArea) {
+    loadingArea.style.display = show ? "block" : "none";
+  }
+  if (statusMessage) {
+    statusMessage.textContent = text;
+  }
+  console.log("QRコード認証状態:", show ? text : "処理完了");
 }
 
-// メインログイン関数
-async function debugLogin(admin_id, user_id) {
-  if (!admin_id || !user_id) {
-    showError("admin_idとuser_idを入力してください");
-    return;
+// Firestoreからユーザーデータを取得する関数
+async function getUserDataFromFirestore(userId, adminId, eventId) {
+  // 1. 元の構造でテスト
+  console.log("Firestoreパス確認 - 元の構造でテスト");
+  const userRef = doc(db, `admin_collections/${adminId}/users/${userId}`);
+  console.log("Firestoreパス:", `admin_collections/${adminId}/users/${userId}`);
+  const userSnap = await getDoc(userRef);
+
+  if (!userSnap.exists()) {
+    // 2. 新しい構造でテスト
+    console.log("元の構造で見つからない、新しい構造でテスト");
+    const userRefNew = doc(
+      db,
+      `admin_collections/${adminId}/${eventId}_users/${userId}`
+    );
+    console.log(
+      "新しいFirestoreパス:",
+      `admin_collections/${adminId}/${eventId}_users/${userId}`
+    );
+    const userSnapNew = await getDoc(userRefNew);
+
+    if (!userSnapNew.exists()) {
+      throw new Error(
+        `ユーザーが見つかりません。確認したパス:\n1. admin_collections/${adminId}/users/${userId}\n2. admin_collections/${adminId}/${eventId}_users/${userId}`
+      );
+    }
+
+    // 新しい構造でユーザーが見つかった場合
+    const userDataNew = userSnapNew.data();
+    console.log("新しい構造でQRコードユーザーデータ取得:", userDataNew);
+    return { userData: userDataNew, isNewStructure: true };
   }
 
-  toggleLoading(true, "ログイン中...");
+  // 元の構造でユーザーが見つかった場合
+  const userDataOld = userSnap.data();
+  console.log("元の構造でQRコードユーザーデータ取得:", userDataOld);
+  return { userData: userDataOld, isNewStructure: false };
+}
+
+// QRコード認証処理
+async function performQRCodeAuth(userId, adminId, eventId) {
+  toggleLoading(true, "QRコード認証中...");
 
   try {
-    // Firestore から role を取得
-    const userRef = doc(db, `admin_collections/${admin_id}/users/${user_id}`);
-    const userSnap = await getDoc(userRef);
-    if (!userSnap.exists()) {
-      showError("ユーザーが見つかりません");
-      toggleLoading(false);
-      return;
-    }
-    const userData = userSnap.data();
-    const role = userData.role || "user";
+    console.log("QRコード認証開始:", { userId, adminId, eventId });
 
-    // カスタムトークン取得
-    const tokenRes = await fetch(
+    // Firestoreからユーザーデータを取得
+    const { userData, isNewStructure } = await getUserDataFromFirestore(
+      userId,
+      adminId,
+      eventId
+    );
+
+    // 2. カスタムトークン生成とFirebase Auth認証
+    const response = await fetch(
       "https://createcustomtoken-ijui6cxhzq-an.a.run.app",
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: user_id, adminId: admin_id, role }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: userId,
+          adminId: adminId,
+          role: userData.role || "user",
+        }),
       }
     );
-    const tokenJson = await tokenRes.json();
-    if (!tokenJson.success || !tokenJson.customToken) {
-      throw new Error(tokenJson.error || "カスタムトークン取得失敗");
+
+    if (!response.ok) {
+      throw new Error("認証トークンの生成に失敗しました");
     }
 
-    const customToken = tokenJson.customToken;
+    const tokenData = await response.json();
 
-    // Firebase Auth サインイン
-    const auth = getAuth();
-    await signInWithCustomToken(auth, customToken);
-
-    const currentUser = auth.currentUser;
-    if (!currentUser) {
-      throw new Error("Auth currentUser が取得できません");
+    if (!tokenData.success || !tokenData.customToken) {
+      throw new Error(tokenData.error || "カスタムトークン取得失敗");
     }
 
-    // users/{uid} に情報を保存
-    await setDoc(
-      doc(db, `admin_collections/${admin_id}/users/${currentUser.uid}`),
-      {
-        admin_id,
-        user_id: userData.user_id || userSnap.id,
-        user_name: userData.user_name || userData.user_id || userSnap.id,
-        role,
-        updatedAt: Date.now(),
-      },
-      { merge: true }
-    );
+    const customToken = tokenData.customToken;
 
-    showSuccess(
-      `${userData.user_name || user_id
-      } さんでログインしました。リダイレクトします...`
-    );
+    // Firebase Auth認証
+    const userCredential = await signInWithCustomToken(getAuth(), customToken);
+    console.log("QRコードFirebase認証完了:", userCredential.user.uid);
 
-    if (role === "maker") {
-      window.location.href = `./maker.html?admin_id=${admin_id}&user_id=${user_id}`;
-    } else {
-      window.location.href = `./user.html?admin_id=${admin_id}&user_id=${user_id}`;
+    // 認証成功後、Firestoreにユーザー情報を保存
+    const currentUser = getAuth().currentUser;
+    if (currentUser) {
+      // 構造に応じて保存先を決定
+      const saveRef = isNewStructure
+        ? doc(
+            db,
+            `admin_collections/${adminId}/${eventId}_users/${currentUser.uid}`
+          )
+        : doc(db, `admin_collections/${adminId}/users/${currentUser.uid}`);
+
+      console.log(
+        "Firestore保存先:",
+        isNewStructure
+          ? `admin_collections/${adminId}/${eventId}_users/${currentUser.uid}`
+          : `admin_collections/${adminId}/users/${currentUser.uid}`
+      );
+
+      await setDoc(
+        saveRef,
+        {
+          admin_id: adminId,
+          user_id: userData.user_id || userId,
+          user_name: userData.user_name || userData.user_id || userId,
+          role: userData.role || "user",
+          updatedAt: Date.now(),
+        },
+        { merge: true }
+      );
+      console.log("QRコードユーザー情報Firestore保存完了");
     }
-  } catch (err) {
-    showError("ログインエラー: " + (err.message || err));
+
+    // 3. ロール判定とリダイレクト
+    const userRole = userData.role || "user";
+    console.log("QRコードユーザーロール:", userRole);
+
+    showSuccess("認証成功！ページをリダイレクトしています...");
+
+    // ロールに応じたページリダイレクト
+    setTimeout(() => {
+      switch (userRole) {
+        case "user":
+          window.location.href = "user.html";
+          break;
+        case "staff":
+          window.location.href = "staff.html";
+          break;
+        case "maker":
+          window.location.href = "maker.html";
+          break;
+        case "admin":
+          window.location.href = "admin.html";
+          break;
+        default:
+          window.location.href = "user.html";
+      }
+    }, 1000);
+  } catch (error) {
+    console.error("QRコード認証エラー:", error);
+    showError("QRコード認証に失敗しました: " + error.message);
   } finally {
     toggleLoading(false);
   }
 }
 
-// イベント登録
-loginForm.addEventListener("submit", (e) => {
-  e.preventDefault();
-  const admin_id = admin_idInput.value.trim();
-  const user_id = user_idInput.value.trim();
-  debugLogin(admin_id, user_id);
-});
+// DOMContentLoaded後の初期化処理（QRコード認証専用）
+document.addEventListener("DOMContentLoaded", async function () {
+  console.log("QRコード認証専用 login.js 初期化");
 
-// QRコード表示関数
-function addDivider(text) {
-  return `
-    <div style="position: relative; margin: 20px 0;">
-      <div style="height: 1px; background: #ddd; z-index: 1;"></div>
-      <div style="background: white; padding: 0 15px; z-index: 2; position: relative; display: inline-block; color: #666; font-size: 14px;">${text}</div>
-    </div>
-  `;
-}
+  // QRコードパラメータチェック
+  const urlParams = new URLSearchParams(window.location.search);
+  const qrUserId = urlParams.get("user_id");
+  const qrAdminId = urlParams.get("admin_id");
+  const qrEventId = urlParams.get("event_id");
 
-function generateQRDisplay(role, demoUrl) {
-  const qrDisplay = document.getElementById('qrDisplay');
-  const roleIcons = {
-    user: '👤',
-    maker: '🔧',
-    staff: '👷'
-  };
-  const roleNames = {
-    user: 'ユーザー',
-    maker: '製造者',
-    staff: 'スタッフ'
-  };
-  const roleColors = {
-    user: '#28a745',
-    maker: '#17a2b8',
-    staff: '#ffc107'
-  };
+  console.log("URLパラメータ確認:", { qrUserId, qrAdminId, qrEventId });
 
-  qrDisplay.innerHTML = `
-    <div style="text-align: center; padding: 60px 20px; background: #f5f5f5; border: 2px dashed #ddd; border-radius: 8px;">
-      <div style="font-size: 48px; margin-bottom: 10px;">${roleIcons[role]}</div>
-      <div style="color: #666; margin-bottom: 15px;">${roleNames[role]}用QRコード</div>
-      <div style="font-size: 12px; word-break: break-all; background: white; padding: 10px; border-radius: 4px; color: #333;">${demoUrl}</div>
-    </div>
-    ${addDivider('または直接アクセス')}
-    <div style="text-align: center; margin-top: 15px;">
-      <button onclick="window.location.href='${demoUrl}'" style="background: ${roleColors[role]}; color: ${role === 'staff' ? '#212529' : 'white'}; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer;">${roleNames[role]}ページへ</button>
-    </div>
-  `;
-}
+  // QRコードからのアクセス判定
+  if (qrUserId && qrAdminId && qrEventId) {
+    console.log("QRコードからのアクセス検出:", {
+      qrUserId,
+      qrAdminId,
+      qrEventId,
+    });
 
-// DOMContentLoaded後の初期化処理
-document.addEventListener('DOMContentLoaded', function () {
-  // デモボタンのイベントリスナー設定
-  document.getElementById('demoUser').addEventListener('click', function () {
-    const demoUrl = 'https://qrscan2-99ffd.web.app/user.html?uid=demo_user_001';
-    generateQRDisplay('user', demoUrl);
-  });
+    // URLパラメータをクリーンアップ
+    const cleanUrl = window.location.pathname;
+    window.history.replaceState({}, "", cleanUrl);
 
-  document.getElementById('demoMaker').addEventListener('click', function () {
-    const demoUrl = 'https://qrscan2-99ffd.web.app/maker.html?uid=demo_maker_001';
-    generateQRDisplay('maker', demoUrl);
-  });
-
-  document.getElementById('demoStaff').addEventListener('click', function () {
-    const demoUrl = 'https://qrscan2-99ffd.web.app/staff.html?uid=demo_staff_001';
-    generateQRDisplay('staff', demoUrl);
-  });
+    // QRコード専用認証処理を実行
+    await performQRCodeAuth(qrUserId, qrAdminId, qrEventId);
+    return;
+  } else {
+    // QRコードパラメータがない場合はindex.htmlにリダイレクト
+    console.log(
+      "QRコードパラメータがありません。index.htmlにリダイレクトします"
+    );
+    window.location.href = "index.html";
+  }
 });

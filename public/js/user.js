@@ -39,15 +39,16 @@ async function waitForFirebaseAuth() {
 
 // ページロード時の初期化
 document.addEventListener("DOMContentLoaded", async function () {
-  // QRコード用のuidパラメータチェック
+  // QRコード用のuidパラメータとuser_idパラメータをチェック
   const urlParams = new URLSearchParams(window.location.search);
   const qrUid = urlParams.get("uid");
+  const userId = urlParams.get("user_id");
 
-  if (qrUid) {
-    console.log("QRコードからのアクセス検出:", qrUid);
+  if (qrUid || userId) {
+    console.log("QRコードからのアクセス検出:", { qrUid, userId });
 
     // QRコード用の簡易認証処理
-    if (qrUid.startsWith("demo_")) {
+    if (qrUid && qrUid.startsWith("demo_")) {
       // デモユーザーの場合は認証をスキップして直接アクセスを許可
       console.log("デモQRコードからのアクセス - 認証スキップ");
 
@@ -59,8 +60,8 @@ document.addEventListener("DOMContentLoaded", async function () {
       const roleFromUid = qrUid.includes("maker")
         ? "maker"
         : qrUid.includes("staff")
-          ? "staff"
-          : "user";
+        ? "staff"
+        : "user";
 
       // 役割に応じたページリダイレクト
       if (
@@ -80,6 +81,17 @@ document.addEventListener("DOMContentLoaded", async function () {
       // ページ表示処理を続行
       initializePage();
       return;
+    }
+
+    // user_idパラメータの場合、URLパラメータを保持してFirebase認証を実行
+    if (userId) {
+      console.log("user_idパラメータでのアクセス:", userId);
+      // user_idを一時的に保存
+      sessionStorage.setItem("direct_user_id", userId);
+
+      // URLからパラメータを除去（認証後に使用）
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState({}, "", cleanUrl);
     }
   }
 
@@ -125,6 +137,25 @@ async function performFirebaseAuth() {
   if (window.UserSession && typeof UserSession.getCurrentUser === "function") {
     userData = await UserSession.getCurrentUser();
     console.log("Firebase Auth ユーザーデータ取得:", userData);
+  }
+
+  // sessionStorageから直リンクのuser_idをチェック
+  const directUserIdFromSession = sessionStorage.getItem("direct_user_id");
+  if (directUserIdFromSession) {
+    console.log(
+      "sessionStorageから直リンクuser_id検出:",
+      directUserIdFromSession
+    );
+
+    // 直リンクでアクセスした場合は、ロールに関係なくuser.htmlで表示
+    console.log("ユーザー直リンクのため、ロールリダイレクトをスキップします");
+
+    // 使用後は削除
+    sessionStorage.removeItem("direct_user_id");
+
+    // 認証完了後のページ初期化
+    initializePage();
+    return;
   }
 
   // URLパラメータをチェック（ユーザー直リンクの場合）
