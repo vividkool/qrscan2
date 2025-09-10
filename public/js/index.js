@@ -465,8 +465,7 @@ async function createInitialCollections(targetCollectionName) {
       `[DEBUG] doc()セグメント確認: "${adminCollections}", "${adminId}", "${eventId}", "sample-item-001"`
     );
     console.log(
-      `[DEBUG] セグメント数確認: ${
-        [adminCollections, adminId, eventId, "sample-item-001"].length
+      `[DEBUG] セグメント数確認: ${[adminCollections, adminId, eventId, "sample-item-001"].length
       }個`
     );
 
@@ -663,12 +662,14 @@ async function loginAdmin(adminId, password) {
   try {
     const adminRef = doc(db, "admin_settings", adminId);
     const adminDoc = await getDoc(adminRef);
+    console.log("Adminドキュメント取得:", adminDoc.exists());
 
     if (!adminDoc.exists()) {
       throw new Error("Admin IDが見つかりません");
     }
 
     const adminData = adminDoc.data();
+    console.log("Adminデータ:", adminData);
 
     // パスワードチェック（Firestore認証）
     if (adminData.password !== password) {
@@ -692,12 +693,14 @@ async function loginAdmin(adminId, password) {
     // Firebase Auth認証成功後、auth.jsのUserSessionでrole判定
     // 少し待機してFirebase Authの状態が安定するのを待つ
     await new Promise((resolve) => setTimeout(resolve, 1000));
+    console.log("Firebase Auth認証成功:", firebaseUser.uid);
 
     // UserSessionから現在のユーザー情報を取得
     let userData = null;
     if (
       window.UserSession &&
       typeof UserSession.getCurrentUser === "function"
+
     ) {
       try {
         userData = await UserSession.getCurrentUser();

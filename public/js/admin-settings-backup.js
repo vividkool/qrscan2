@@ -14,61 +14,27 @@ import { getAuth } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth
 // Firebase設定は既存のものを使用（auth.jsから取得）
 let db, auth;
 
-/**
- * Firebase初期化を安全に実行
- */
-function initializeFirebaseSafely() {
-    console.log('Firebase インスタンス確認:', {
-        'window.firebaseApp': !!window.firebaseApp,
-        'window.auth': !!window.auth,
-        'window.db': !!window.db,
-        'getApps().length': getApps().length
-    });
-
-    // まず既存のアプリからインスタンスを取得を試行
+// Firebase初期化待ち
+window.addEventListener('load', async () => {
+    // auth.jsからFirebaseインスタンスを取得
     if (window.firebaseApp) {
         db = getFirestore(window.firebaseApp);
         auth = getAuth(window.firebaseApp);
-        console.log('Firebase インスタンスを window.firebaseApp から取得');
-        return;
-    }
-
-    // グローバル変数から取得を試行
-    if (window.auth && window.db) {
-        auth = window.auth;
-        db = window.db;
-        console.log('Firebase インスタンスをグローバル変数から取得');
-        return;
-    }
-
-    // 既存のアプリを確認
-    const existingApps = getApps();
-    if (existingApps.length > 0) {
-        const app = existingApps[0];
+    } else {
+        // フォールバック: 直接初期化
+        const firebaseConfig = {
+            apiKey: "AIzaSyDh1B7fDVs5FdFzE2nnGQKQNzFGvGkYMQE",
+            authDomain: "qrscan2-99ffd.firebaseapp.com",
+            projectId: "qrscan2-99ffd",
+            storageBucket: "qrscan2-99ffd.appspot.com",
+            messagingSenderId: "1089215781575",
+            appId: "1:1089215781575:web:35cab4f6dc9a9b70dda70e"
+        };
+        const app = initializeApp(firebaseConfig);
         db = getFirestore(app);
         auth = getAuth(app);
-        console.log('既存のFirebaseアプリを使用:', app.name);
-        return;
     }
-
-    // 最終手段: 新しいアプリを初期化
-    console.log('新しいFirebaseアプリを初期化します');
-    const firebaseConfig = {
-        apiKey: "AIzaSyDh1B7fDVs5FdFzE2nnGQKQNzFGvGkYMQE",
-        authDomain: "qrscan2-99ffd.firebaseapp.com",
-        projectId: "qrscan2-99ffd",
-        storageBucket: "qrscan2-99ffd.appspot.com",
-        messagingSenderId: "1089215781575",
-        appId: "1:1089215781575:web:35cab4f6dc9a9b70dda70e"
-    };
-    const app = initializeApp(firebaseConfig);
-    db = getFirestore(app);
-    auth = getAuth(app);
-    console.log('新しいFirebaseアプリの初期化完了');
-}
-
-// Firebase初期化待ち
-window.addEventListener('load', initializeFirebaseSafely);
+});
 
 /**
  * 管理者設定をFirestoreに保存
@@ -78,9 +44,41 @@ window.saveAdminSettings = async function (settings) {
     try {
         console.log('設定保存開始:', settings);
 
-        // Firebase初期化を確認
-        if (!auth || !db) {
-            initializeFirebaseSafely();
+        // Firebase認証状態を確認
+        if (!auth) {
+            console.log('Firebase インスタンス確認:', {
+                'window.firebaseApp': !!window.firebaseApp,
+                'window.auth': !!window.auth,
+                'window.db': !!window.db,
+                'window.app': !!window.app
+            });
+
+            // auth.jsからFirebaseインスタンスを再取得
+            if (window.firebaseApp) {
+                auth = getAuth(window.firebaseApp);
+                db = getFirestore(window.firebaseApp);
+                console.log('Firebase インスタンスを再取得しました');
+            } else if (window.auth && window.db) {
+                // グローバル変数から取得を試行
+                auth = window.auth;
+                db = window.db;
+                console.log('グローバル変数からFirebaseを取得しました');
+            } else {
+                // 最終手段: 直接初期化
+                console.log('直接Firebaseを初期化します');
+                const firebaseConfig = {
+                    apiKey: "AIzaSyDh1B7fDVs5FdFzE2nnGQKQNzFGvGkYMQE",
+                    authDomain: "qrscan2-99ffd.firebaseapp.com",
+                    projectId: "qrscan2-99ffd",
+                    storageBucket: "qrscan2-99ffd.appspot.com",
+                    messagingSenderId: "1089215781575",
+                    appId: "1:1089215781575:web:35cab4f6dc9a9b70dda70e"
+                };
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                console.log('Firebase直接初期化完了');
+            }
         }
 
         // 認証状態を待機（最大3秒）
@@ -96,9 +94,7 @@ window.saveAdminSettings = async function (settings) {
             throw new Error('ユーザーがログインしていません');
         }
 
-        const adminId = currentUser.uid;
-
-        // admin_settingsコレクションに保存
+        const adminId = currentUser.uid;        // admin_settingsコレクションに保存
         const settingsRef = doc(db, 'admin_settings', adminId);
 
         const settingsData = {
@@ -130,9 +126,41 @@ window.loadAdminSettings = async function () {
     try {
         console.log('設定読み込み開始');
 
-        // Firebase初期化を確認
-        if (!auth || !db) {
-            initializeFirebaseSafely();
+        // Firebase認証状態を確認
+        if (!auth) {
+            console.log('Firebase インスタンス確認:', {
+                'window.firebaseApp': !!window.firebaseApp,
+                'window.auth': !!window.auth,
+                'window.db': !!window.db,
+                'window.app': !!window.app
+            });
+
+            // auth.jsからFirebaseインスタンスを再取得
+            if (window.firebaseApp) {
+                auth = getAuth(window.firebaseApp);
+                db = getFirestore(window.firebaseApp);
+                console.log('Firebase インスタンスを再取得しました');
+            } else if (window.auth && window.db) {
+                // グローバル変数から取得を試行
+                auth = window.auth;
+                db = window.db;
+                console.log('グローバル変数からFirebaseを取得しました');
+            } else {
+                // 最終手段: 直接初期化
+                console.log('直接Firebaseを初期化します');
+                const firebaseConfig = {
+                    apiKey: "AIzaSyDh1B7fDVs5FdFzE2nnGQKQNzFGvGkYMQE",
+                    authDomain: "qrscan2-99ffd.firebaseapp.com",
+                    projectId: "qrscan2-99ffd",
+                    storageBucket: "qrscan2-99ffd.appspot.com",
+                    messagingSenderId: "1089215781575",
+                    appId: "1:1089215781575:web:35cab4f6dc9a9b70dda70e"
+                };
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                console.log('Firebase直接初期化完了');
+            }
         }
 
         // 認証状態を待機（最大3秒）
@@ -260,16 +288,14 @@ function showSettingSaveSuccess(settings) {
     }
 
     alert(message);
-}
-
-/**
+}/**
  * 特定の設定値を取得
  * @param {string} settingName - 設定名
  * @returns {Promise<string>} 設定値
  */
 window.getAdminSetting = async function (settingName) {
     try {
-        if (!auth || !auth.currentUser) {
+        if (!auth.currentUser) {
             return getDefaultSettings()[settingName];
         }
 
@@ -301,7 +327,7 @@ window.getAdminSetting = async function (settingName) {
  */
 window.updateStaffNotificationSetting = async function (notificationMethod) {
     try {
-        if (!auth || !auth.currentUser) {
+        if (!auth.currentUser) {
             throw new Error('ユーザーがログインしていません');
         }
 
