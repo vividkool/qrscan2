@@ -59,8 +59,8 @@ document.addEventListener("DOMContentLoaded", async function () {
       const roleFromUid = qrUid.includes("maker")
         ? "maker"
         : qrUid.includes("staff")
-        ? "staff"
-        : "user";
+          ? "staff"
+          : "user";
 
       // 役割に応じたページリダイレクト
       if (
@@ -125,6 +125,27 @@ async function performFirebaseAuth() {
   if (window.UserSession && typeof UserSession.getCurrentUser === "function") {
     userData = await UserSession.getCurrentUser();
     console.log("Firebase Auth ユーザーデータ取得:", userData);
+  }
+
+  // URLパラメータをチェック（ユーザー直リンクの場合）
+  const urlParams = new URLSearchParams(window.location.search);
+  const directAccessUserId = urlParams.get("user_id");
+  const directAccessAdminId = urlParams.get("admin_id");
+  const directAccessEventId = urlParams.get("event_id");
+
+  // ユーザー直リンクでアクセスした場合の処理
+  if (directAccessUserId && directAccessAdminId && directAccessEventId) {
+    console.log("ユーザー直リンクからのアクセス検出:");
+    console.log("- user_id:", directAccessUserId);
+    console.log("- admin_id:", directAccessAdminId);
+    console.log("- event_id:", directAccessEventId);
+
+    // 直リンクでアクセスした場合は、ロールに関係なくuser.htmlで表示
+    console.log("ユーザー直リンクのため、ロールリダイレクトをスキップします");
+
+    // 認証完了後のページ初期化
+    initializePage();
+    return;
   }
 
   // 役割に応じたページリダイレクト処理

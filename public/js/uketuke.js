@@ -470,6 +470,7 @@ function displayUsersTable() {
             <th>入退場ステータス</th>
             <th>印刷ステータス</th>
             <th>操作</th>
+            <th>ユーザー画面</th>
           </tr>
         </thead>
         <tbody>
@@ -479,6 +480,9 @@ function displayUsersTable() {
     const status = userData.status || "未設定";
     const printStatus = userData.print_status || "未";
     const tantou = userData.tantou || "-";
+
+    // ユーザー直リンクURL生成（user_idパラメータを使用）
+    const userDirectLink = `https://qrscan2-99ffd.web.app/user.html?admin_id=${currentAdmin.admin_id}&event_id=${currentAdmin.event_id}&user_id=${userData.user_id}`;
 
     html += `
       <tr>
@@ -526,6 +530,16 @@ function displayUsersTable() {
             ${printStatus === "未" ? "disabled" : ""}
           >
             印刷取消
+          </button>
+        </td>
+        
+        <td>
+          <button 
+            class="action-btn btn-info" 
+            onclick="openUserDirect('${userDirectLink}')"
+            title="ユーザー画面で直接ログイン"
+          >
+            🔗 ユーザー画面
           </button>
         </td>
       </tr>
@@ -1008,11 +1022,96 @@ async function findStaffEmail(tantouName) {
 
 
 
+// ユーザー直リンクを新しいタブで開く
+function openUserDirect(directLink) {
+  try {
+    console.log('ユーザー直リンクを開きます:', directLink);
+
+    // 新しいタブで開く
+    const newWindow = window.open(directLink, '_blank');
+
+    if (newWindow) {
+      newWindow.focus();
+      showSuccessMessage('ユーザー画面を新しいタブで開きました。');
+    } else {
+      // ポップアップブロッカーでブロックされた場合
+      console.warn('ポップアップがブロックされました。直接リンクをコピーします。');
+
+      // クリップボードにコピー
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(directLink).then(() => {
+          showSuccessMessage('ユーザー画面のリンクをクリップボードにコピーしました。新しいタブで貼り付けてアクセスしてください。');
+        }).catch(() => {
+          // フォールバック: alert でリンクを表示
+          alert(`ユーザー画面リンク:\n\n${directLink}\n\nこのリンクをコピーして新しいタブで開いてください。`);
+        });
+      } else {
+        // フォールバック: alert でリンクを表示
+        alert(`ユーザー画面リンク:\n\n${directLink}\n\nこのリンクをコピーして新しいタブで開いてください。`);
+      }
+    }
+  } catch (error) {
+    console.error('ユーザー直リンク処理エラー:', error);
+    showErrorMessage('ユーザー画面を開く際にエラーが発生しました。');
+  }
+}
+
+// ユーザー一覧をExcel形式でエクスポート（将来の機能拡張用）
+function exportUsersList() {
+  try {
+    console.log('ユーザー一覧のエクスポートを開始します');
+
+    if (!allUsers || allUsers.length === 0) {
+      showErrorMessage('エクスポートするユーザーデータがありません。');
+      return;
+    }
+
+    // CSV形式でエクスポート
+    const headers = ['ユーザーID', '会社名', 'ユーザー名', '担当者', '入退場ステータス', '印刷ステータス'];
+    const csvContent = [
+      headers.join(','),
+      ...allUsers.map(user => [
+        user.user_id || '',
+        user.company_name || '',
+        user.user_name || '',
+        user.tantou || '',
+        user.status || '未設定',
+        user.print_status || '未'
+      ].join(','))
+    ].join('\n');
+
+    // BOMを追加してUTF-8で正しく表示されるようにする
+    const bom = '\uFEFF';
+    const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' });
+
+    // ダウンロードリンクを作成
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+
+    const now = new Date();
+    const timestamp = now.toISOString().slice(0, 19).replace(/[:-]/g, '');
+    link.setAttribute('download', `ユーザー一覧_${timestamp}.csv`);
+
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    showSuccessMessage(`ユーザー一覧（${allUsers.length}件）をCSVファイルでエクスポートしました。`);
+
+  } catch (error) {
+    console.error('エクスポートエラー:', error);
+    showErrorMessage('エクスポート処理中にエラーが発生しました。');
+  }
+}
+
 // グローバル関数として公開
 window.changeStatus = changeStatus;
 window.changePrintStatus = changePrintStatus;
 window.refreshUsersList = refreshUsersList;
 window.exportUsersList = exportUsersList;
 window.handleLogout = handleLogout;
+window.openUserDirect = openUserDirect;
 
 console.log("Uketuke page functions loaded");
