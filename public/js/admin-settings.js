@@ -96,9 +96,20 @@ window.saveAdminSettings = async function (settings) {
             throw new Error('ユーザーがログインしていません');
         }
 
-        const adminId = currentUser.uid;
+        // まずFirebaseUIDでadmin情報を取得
+        const firebaseUid = currentUser.uid;
+        const adminDocRef = doc(db, 'admin_settings', firebaseUid);
+        const adminDoc = await getDoc(adminDocRef);
 
-        // admin_settingsコレクションに保存
+        let adminId;
+        if (adminDoc.exists()) {
+            const adminData = adminDoc.data();
+            adminId = adminData.admin_id || firebaseUid; // admin_idがあればそれを使用、なければFirebaseUIDを使用
+        } else {
+            adminId = firebaseUid; // ドキュメントが存在しない場合はFirebaseUIDを使用
+        }
+
+        // admin_settingsコレクションに保存（admin_idをキーとして使用）
         const settingsRef = doc(db, 'admin_settings', adminId);
 
         const settingsData = {
@@ -151,7 +162,20 @@ window.loadAdminSettings = async function () {
         }
 
         console.log('認証済みユーザー:', currentUser.uid);
-        const adminId = currentUser.uid;
+
+        // まずFirebaseUIDでadmin情報を取得
+        const firebaseUid = currentUser.uid;
+        const adminDocRef = doc(db, 'admin_settings', firebaseUid);
+        const adminDoc = await getDoc(adminDocRef);
+
+        let adminId;
+        if (adminDoc.exists()) {
+            const adminData = adminDoc.data();
+            adminId = adminData.admin_id || firebaseUid; // admin_idがあればそれを使用、なければFirebaseUIDを使用
+        } else {
+            adminId = firebaseUid; // ドキュメントが存在しない場合はFirebaseUIDを使用
+        }
+
         const settingsRef = doc(db, 'admin_settings', adminId);
         const settingsDoc = await getDoc(settingsRef);
 
@@ -273,7 +297,19 @@ window.getAdminSetting = async function (settingName) {
             return getDefaultSettings()[settingName];
         }
 
-        const adminId = auth.currentUser.uid;
+        // まずFirebaseUIDでadmin情報を取得
+        const firebaseUid = auth.currentUser.uid;
+        const adminDocRef = doc(db, 'admin_settings', firebaseUid);
+        const adminDoc = await getDoc(adminDocRef);
+
+        let adminId;
+        if (adminDoc.exists()) {
+            const adminData = adminDoc.data();
+            adminId = adminData.admin_id || firebaseUid; // admin_idがあればそれを使用、なければFirebaseUIDを使用
+        } else {
+            adminId = firebaseUid; // ドキュメントが存在しない場合はFirebaseUIDを使用
+        }
+
         const settingsRef = doc(db, 'admin_settings', adminId);
         const settingsDoc = await getDoc(settingsRef);
 
@@ -305,7 +341,19 @@ window.updateStaffNotificationSetting = async function (notificationMethod) {
             throw new Error('ユーザーがログインしていません');
         }
 
-        const adminId = auth.currentUser.uid;
+        // まずFirebaseUIDでadmin情報を取得
+        const firebaseUid = auth.currentUser.uid;
+        const adminDocRef = doc(db, 'admin_settings', firebaseUid);
+        const adminDoc = await getDoc(adminDocRef);
+
+        let adminId;
+        if (adminDoc.exists()) {
+            const adminData = adminDoc.data();
+            adminId = adminData.admin_id || firebaseUid; // admin_idがあればそれを使用、なければFirebaseUIDを使用
+        } else {
+            adminId = firebaseUid; // ドキュメントが存在しない場合はFirebaseUIDを使用
+        }
+
         const settingsRef = doc(db, 'admin_settings', adminId);
 
         await updateDoc(settingsRef, {
