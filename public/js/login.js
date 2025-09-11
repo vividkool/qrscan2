@@ -1,34 +1,25 @@
 import {
-  getAuth,
   signInWithCustomToken,
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import {
-  getFirestore,
-  doc,
-  getDoc,
-  setDoc,
   collection,
   query,
   where,
   getDocs,
+  doc,
+  setDoc,
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+// Firebase共通設定を使用
 import {
-  initializeApp,
-  getApps,
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-
-const firebaseConfig = {
-  apiKey: "AIzaSyCWFL91baSHkjkvU_k-yTUv6QS191YTFlg",
-  authDomain: "qrscan2-99ffd.firebaseapp.com",
-  projectId: "qrscan2-99ffd",
-  storageBucket: "qrscan2-99ffd.firebasestorage.app",
-  messagingSenderId: "1089215781575",
-  appId: "1:1089215781575:web:bf9d05f6930b7123813ce2",
-  measurementId: "G-QZZWT3HW0W",
-};
-
-const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
-const db = getFirestore(app);
+  app,
+  db,
+  auth,
+  API_ENDPOINTS,
+  getCollectionPath,
+  getUrlParams,
+  handleFirebaseError,
+} from "./firebase-config.js";
 
 // QRコード認証専用 - DOM要素は不要
 
@@ -63,7 +54,7 @@ function toggleLoading(show, text = "処理中...") {
   console.log("QRコード認証状態:", show ? text : "処理完了");
 }
 
-// Firestoreからユーザーデータを取得する関数
+// Firestoreからユーザーデータを取得する関数（改善版）
 async function getUserDataFromFirestore(userId, adminId, eventId) {
   console.log("Firestoreからユーザーデータ取得開始");
   console.log("- adminId:", adminId);
@@ -71,8 +62,8 @@ async function getUserDataFromFirestore(userId, adminId, eventId) {
   console.log("- userId:", userId);
 
   try {
-    // 新しいコレクション構造でwhereクエリを使用
-    const collectionPath = `admin_collections/${adminId}/${eventId}_users`;
+    // 共通ヘルパーを使用してコレクションパスを生成
+    const collectionPath = getCollectionPath.users(adminId, eventId);
     console.log("Firestoreコレクションパス:", collectionPath);
 
     const usersCollection = collection(db, collectionPath);
@@ -108,12 +99,11 @@ async function getUserDataFromFirestore(userId, adminId, eventId) {
       throw new Error(`ユーザーが見つかりません。\nコレクション: ${collectionPath}\nuser_id: ${userId}`);
     }
   } catch (error) {
-    console.error("Firestoreアクセスエラー:", error);
-    throw error;
+    const firebaseError = handleFirebaseError(error, "ユーザーデータ取得");
+    console.error("Firestoreアクセスエラー:", firebaseError);
+    throw new Error(firebaseError.userMessage);
   }
-}
-
-// QRコード認証処理
+}// QRコード認証処理
 async function performQRCodeAuth(userId, adminId, eventId) {
   toggleLoading(true, "QRコード認証中...");
 
@@ -127,9 +117,9 @@ async function performQRCodeAuth(userId, adminId, eventId) {
       eventId
     );
 
-    // 2. カスタムトークン生成とFirebase Auth認証
+    // 2. カスタムトークン生成とFirebase Auth認証（共通API使用）
     const response = await fetch(
-      "https://createcustomtoken-ijui6cxhzq-an.a.run.app",
+      API_ENDPOINTS.CREATE_CUSTOM_TOKEN,
       {
         method: "POST",
         headers: {
@@ -159,12 +149,12 @@ async function performQRCodeAuth(userId, adminId, eventId) {
 
     const customToken = tokenData.customToken;
 
-    // Firebase Auth認証
-    const userCredential = await signInWithCustomToken(getAuth(), customToken);
+    // Firebase Auth認証（共通auth使用）
+    const userCredential = await signInWithCustomToken(auth, customToken);
     console.log("QRコードFirebase認証完了:", userCredential.user.uid);
 
     // 認証成功後、Firestoreにユーザー情報を保存
-    const currentUser = getAuth().currentUser;
+    const currentUser = auth.currentUser;
     if (currentUser) {
       // 構造に応じて保存先を決定
       const saveRef = isNewStructure
@@ -232,34 +222,36 @@ async function performQRCodeAuth(userId, adminId, eventId) {
 document.addEventListener("DOMContentLoaded", async function () {
   console.log("QRコード認証専用 login.js 初期化");
 
-  // QRコードパラメータチェック
-  const urlParams = new URLSearchParams(window.location.search);
-  const qrUserId = urlParams.get("user_id");
-  const qrAdminId = urlParams.get("admin_id");
-  const qrEventId = urlParams.get("event_id");
+  try {
+    // URLパラメータを統一ヘルパーで取得
+    const urlParams = getUrlParams();
+    console.log("URLパラメータ確認:", urlParams);
 
-  console.log("URLパラメータ確認:", { qrUserId, qrAdminId, qrEventId });
+    // 必須パラメータの検証
+    const { admin_id, event_id, user_id } = urlParams;
 
-  // QRコードからのアクセス判定
-  if (qrUserId && qrAdminId && qrEventId) {
-    console.log("QRコードからのアクセス検出:", {
-      qrUserId,
-      qrAdminId,
-      qrEventId,
-    });
+    if (!admin_id || !event_id || !user_id) {
+      const missingParams = [];
+      if (!admin_id) missingParams.push("admin_id");
+      if (!event_id) missingParams.push("event_id");
+      if (!user_id) missingParams.push("user_id");
+
+      console.log(`必須パラメータが不足しています: ${missingParams.join(", ")}`);
+      console.log("index.htmlにリダイレクトします");
+      window.location.href = "index.html";
+      return;
+    }
+
+    console.log("QRコードからのアクセス検出:", { admin_id, event_id, user_id });
 
     // URLパラメータをクリーンアップ
     const cleanUrl = window.location.pathname;
     window.history.replaceState({}, "", cleanUrl);
 
-    // QRコード専用認証処理を実行
-    await performQRCodeAuth(qrUserId, qrAdminId, qrEventId);
-    return;
-  } else {
-    // QRコードパラメータがない場合はindex.htmlにリダイレクト
-    console.log(
-      "QRコードパラメータがありません。index.htmlにリダイレクトします"
-    );
-    window.location.href = "index.html";
+    // QRコード認証実行
+    await performQRCodeAuth(user_id, admin_id, event_id);
+  } catch (error) {
+    console.error("初期化エラー:", error);
+    showError(`初期化に失敗しました: ${error.message}`);
   }
 });

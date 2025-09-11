@@ -1,17 +1,10 @@
 // 認証・権限管理システム（Firebase Auth専用・レガシー削除版）
 import {
-  getAuth,
   signOut,
   onAuthStateChanged,
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 import {
-  initializeApp,
-  getApps,
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-
-import {
-  getFirestore,
   collection,
   query,
   where,
@@ -25,21 +18,14 @@ import {
   serverTimestamp,
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// Firebase設定
-const firebaseConfig = {
-  apiKey: "AIzaSyCWFL91baSHkjkvU_k-yTUv6QS191YTFlg",
-  authDomain: "qrscan2-99ffd.firebaseapp.com",
-  projectId: "qrscan2-99ffd",
-  storageBucket: "qrscan2-99ffd.firebasestorage.app",
-  messagingSenderId: "1089215781575",
-  appId: "1:1089215781575:web:bf9d05f6930b7123813ce2",
-  measurementId: "G-QZZWT3HW0W",
-};
-
-// Firebase初期化
-const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+// Firebase共通設定を使用
+import {
+  app,
+  db,
+  auth,
+  getCollectionPath,
+  handleFirebaseError,
+} from "./firebase-config.js";
 
 // ユーザーロール定義
 const USER_ROLES = {
