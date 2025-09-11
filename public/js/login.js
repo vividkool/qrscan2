@@ -7,6 +7,10 @@ import {
   doc,
   getDoc,
   setDoc,
+  collection,
+  query,
+  where,
+  getDocs,
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import {
   initializeApp,
@@ -61,41 +65,52 @@ function toggleLoading(show, text = "処理中...") {
 
 // Firestoreからユーザーデータを取得する関数
 async function getUserDataFromFirestore(userId, adminId, eventId) {
-  // 1. 元の構造でテスト
-  console.log("Firestoreパス確認 - 元の構造でテスト");
-  const userRef = doc(db, `admin_collections/${adminId}/users/${userId}`);
-  console.log("Firestoreパス:", `admin_collections/${adminId}/users/${userId}`);
-  const userSnap = await getDoc(userRef);
+  console.log("Firestoreからユーザーデータ取得開始");
+  console.log("- adminId:", adminId);
+  console.log("- eventId:", eventId);
+  console.log("- userId:", userId);
 
-  if (!userSnap.exists()) {
-    // 2. 新しい構造でテスト
-    console.log("元の構造で見つからない、新しい構造でテスト");
-    const userRefNew = doc(
-      db,
-      `admin_collections/${adminId}/${eventId}_users/${userId}`
-    );
-    console.log(
-      "新しいFirestoreパス:",
-      `admin_collections/${adminId}/${eventId}_users/${userId}`
-    );
-    const userSnapNew = await getDoc(userRefNew);
+  try {
+    // 新しいコレクション構造でwhereクエリを使用
+    const collectionPath = `admin_collections/${adminId}/${eventId}_users`;
+    console.log("Firestoreコレクションパス:", collectionPath);
 
-    if (!userSnapNew.exists()) {
-      throw new Error(
-        `ユーザーが見つかりません。確認したパス:\n1. admin_collections/${adminId}/users/${userId}\n2. admin_collections/${adminId}/${eventId}_users/${userId}`
-      );
+    const usersCollection = collection(db, collectionPath);
+    const userQuery = query(usersCollection, where("user_id", "==", userId));
+    const userSnapshot = await getDocs(userQuery);
+
+    if (!userSnapshot.empty) {
+      const userData = userSnapshot.docs[0].data();
+      console.log("✅ ユーザーデータ取得成功:", userData);
+      return { userData, isNewStructure: true };
+    } else {
+      console.log("❌ ユーザーが見つかりません");
+      console.log("検索条件:");
+      console.log("- コレクション:", collectionPath);
+      console.log("- user_id:", userId);
+
+      // デバッグ用: コレクション内の全ドキュメントを確認
+      try {
+        const allDocsSnapshot = await getDocs(usersCollection);
+        console.log("コレクション内の全ドキュメント数:", allDocsSnapshot.size);
+        allDocsSnapshot.forEach((docSnap, index) => {
+          const data = docSnap.data();
+          console.log(`ドキュメント${index + 1}:`, {
+            docId: docSnap.id,
+            user_id: data.user_id,
+            user_name: data.user_name || data.company_name
+          });
+        });
+      } catch (debugError) {
+        console.log("デバッグ用コレクション確認エラー:", debugError);
+      }
+
+      throw new Error(`ユーザーが見つかりません。\nコレクション: ${collectionPath}\nuser_id: ${userId}`);
     }
-
-    // 新しい構造でユーザーが見つかった場合
-    const userDataNew = userSnapNew.data();
-    console.log("新しい構造でQRコードユーザーデータ取得:", userDataNew);
-    return { userData: userDataNew, isNewStructure: true };
+  } catch (error) {
+    console.error("Firestoreアクセスエラー:", error);
+    throw error;
   }
-
-  // 元の構造でユーザーが見つかった場合
-  const userDataOld = userSnap.data();
-  console.log("元の構造でQRコードユーザーデータ取得:", userDataOld);
-  return { userData: userDataOld, isNewStructure: false };
 }
 
 // QRコード認証処理
@@ -123,7 +138,11 @@ async function performQRCodeAuth(userId, adminId, eventId) {
         body: JSON.stringify({
           userId: userId,
           adminId: adminId,
+          eventId: eventId,
           role: userData.role || "user",
+          user_name: userData.user_name,
+          company_name: userData.company_name,
+          user_role: userData.user_role,
         }),
       }
     );
@@ -150,9 +169,9 @@ async function performQRCodeAuth(userId, adminId, eventId) {
       // 構造に応じて保存先を決定
       const saveRef = isNewStructure
         ? doc(
-            db,
-            `admin_collections/${adminId}/${eventId}_users/${currentUser.uid}`
-          )
+          db,
+          `admin_collections/${adminId}/${eventId}_users/${currentUser.uid}`
+        )
         : doc(db, `admin_collections/${adminId}/users/${currentUser.uid}`);
 
       console.log(

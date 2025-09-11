@@ -2,13 +2,20 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    // admin_settings: ログイン時は認証不要で読み取り可能、書き込みは認証済みのみ
+    match /admin_settings/{adminId} {
+      allow read: if true;  // ログイン時のadmin_id検証のため
+      allow write: if request.auth != null && request.auth.uid == adminId;
+    }
+    
     // testtemplateコレクションはrole:adminのみアクセス可
     match /admin_collections/testtemplate/{subCollection}/{docId} {
       allow read, write: if
         request.auth != null &&
         get(/databases/$(database)/documents/admin_settings/$(request.auth.uid)).data.role == "admin";
     }
-    // その他は認証必須
+    
+    // その他のコレクションは認証必須
     match /{document=**} {
       allow read, write: if request.auth != null;
     }

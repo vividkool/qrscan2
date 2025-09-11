@@ -172,9 +172,9 @@ export const createCustomToken = onRequest(
                 return;
             }
 
-            const { userId, adminId, role } = request.body;
+            const { userId, adminId, role, eventId } = request.body;
             logger.info(
-                `[createCustomToken] 受信値 userId: ${userId}, adminId: ${adminId}, role: ${role}`
+                `[createCustomToken] 受信値 userId: ${userId}, adminId: ${adminId}, role: ${role}, eventId: ${eventId}`
             );
             if (!userId || !adminId || !role) {
                 response.status(400).json({
@@ -212,21 +212,33 @@ export const createCustomToken = onRequest(
                     email: userData.email,
                 };
             } else {
-                // maker, staff, uketuke等
-                const userRef = db
+                // maker, staff, uketuke等 - 新しいコレクション構造を使用
+                if (!eventId) {
+                    response.status(400).json({
+                        success: false,
+                        error: "eventId is required for non-admin users",
+                    });
+                    return;
+                }
+
+                // 新しい構造でuser_idでクエリ
+                const usersCollection = db
                     .collection("admin_collections")
                     .doc(adminId)
-                    .collection("users")
-                    .doc(userId);
-                // maker/staff/uketuke
-                const userDoc = await userRef.get();
-                if (!userDoc.exists) {
+                    .collection(`${eventId}_users`);
+
+                const userQuery = usersCollection.where("user_id", "==", userId);
+                const userSnapshot = await userQuery.get();
+
+                if (userSnapshot.empty) {
+                    logger.warn(`User not found: userId=${userId}, adminId=${adminId}, eventId=${eventId}`);
                     response
                         .status(404)
                         .json({ success: false, error: "User not found" });
                     return;
                 }
-                userData = userDoc.data();
+
+                userData = userSnapshot.docs[0].data();
                 if (!userData) {
                     response
                         .status(404)
@@ -244,7 +256,7 @@ export const createCustomToken = onRequest(
                 }
                 customClaims = {
                     user_id: userId,
-                    role: userData.role,
+                    role: userData.role || userData.user_role,
                     user_name: userData.user_name,
                 };
             }

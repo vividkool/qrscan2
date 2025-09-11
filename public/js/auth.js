@@ -203,19 +203,6 @@ class UserSession {
   static async getSession() {
     // Firebase認証状態を最優先でチェック
     if (currentFirebaseUser) {
-      // ※ localStorageキャッシュは削除（Firebase Auth専用システムのため不要）
-      /*
-      const firebaseSessionData = localStorage.getItem("firebaseSessionData");
-      if (firebaseSessionData) {
-        try {
-          const parsed = JSON.parse(firebaseSessionData);
-          if (parsed.uid === currentFirebaseUser.uid) {
-            currentUser = parsed;
-            return parsed;
-          }
-        } catch { }
-      }
-      */
 
       // Firebase Authのトークンから直接情報を取得
       try {
@@ -288,13 +275,7 @@ class UserSession {
 
         console.log("🎯 最終的なuserData:", firebaseUserData);
 
-        // キャッシュとして保存
-        /*
-        localStorage.setItem(
-          "firebaseSessionData",
-          JSON.stringify(firebaseUserData)
-        );
-        */
+
         currentUser = firebaseUserData;
         return firebaseUserData;
       } catch (error) {
@@ -302,48 +283,14 @@ class UserSession {
       }
     }
 
-    // フォールバック：古いcurrentAdminデータ（Firebase認証がない場合のみ）
-    // ※ Firebase Auth専用システムのため、以下のlocalStorageフォールバックは無効化
-    /*
-    const currentAdmin = localStorage.getItem("currentAdmin");
-    if (currentAdmin) {
-      try {
-        const adminObj = JSON.parse(currentAdmin);
-        console.log("⚠️  フォールバック: 古いcurrentAdminデータを使用:", adminObj);
-        return {
-          user_id: adminObj.admin_id ?? "",
-          user_name: adminObj.admin_name ?? adminObj.admin_id ?? "",
-          email: adminObj.email ?? "",
-          company_name: adminObj.company_name ?? "",
-          role: adminObj.role ?? "admin",
-          department: adminObj.department ?? "",
-          is_active: adminObj.is_active ?? true,
-          timestamp: adminObj.timestamp ?? Date.now(),
-          authType: "ADMIN",
-          status: adminObj.status ?? "active",
-          ...adminObj,
-        };
-      } catch {
-        return null;
-      }
-    }
-    */
+
 
     return null;
   }
 
   // セッションクリア（Firebase Auth専用・localStorage完全削除版）
   static clearSession() {
-    // ※ Firebase Auth専用システムのため、localStorage使用を完全停止
-    // localStorage.removeItem("firebaseSessionData");
 
-    // ※ レガシーデータ削除処理も無効化（Firebase Auth専用のため不要）
-    // localStorage.removeItem("currentUser"); // レガシーデータ削除
-    // localStorage.removeItem("session"); // レガシーデータ削除
-    // localStorage.removeItem("loginTime"); // レガシーデータ削除
-    // localStorage.removeItem("user");
-    // localStorage.removeItem("sessionData");
-    // localStorage.removeItem("userData");
 
     currentUser = null;
     currentFirebaseUser = null;
